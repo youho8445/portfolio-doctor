@@ -601,6 +601,18 @@ export default function AnalyzerPage() {
             ) : (
               <div className="space-y-4">
 
+                {/* ── 알림 배너 ── */}
+                {analysis.history?.alerts?.length > 0 && (
+                  <div className="space-y-2">
+                    {analysis.history.alerts.map((alert, i) => (
+                      <div key={i} className="flex items-start gap-2 rounded-lg border border-orange-800/60 bg-orange-950/30 px-3 py-2.5">
+                        <span className="text-orange-400 text-sm shrink-0">⚠️</span>
+                        <span className="text-orange-200 text-sm">{alert}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Score 카드 2개 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 flex items-center gap-4">
@@ -611,6 +623,11 @@ export default function AnalyzerPage() {
                       <div className="text-xs text-gray-400">Health Score</div>
                       <div className="text-white font-semibold text-sm mt-0.5">{analysis.portfolioName}</div>
                       <div className="text-xs text-gray-500 mt-0.5">{analysis.period} · {analysis.benchmarkCode}</div>
+                      {analysis.history?.change && (
+                        <div className={`text-xs font-semibold mt-1 ${analysis.history.change.healthScoreDelta > 0 ? 'text-green-400' : analysis.history.change.healthScoreDelta < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                          {analysis.history.change.healthScoreDelta > 0 ? '▲' : analysis.history.change.healthScoreDelta < 0 ? '▼' : '—'} {analysis.history.change.healthScoreDelta > 0 ? '+' : ''}{analysis.history.change.healthScoreDelta}점 (전 대비)
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 flex items-center gap-4">
@@ -624,9 +641,49 @@ export default function AnalyzerPage() {
                     <div>
                       <div className="text-xs text-gray-400">Diversification</div>
                       <div className="text-white font-semibold text-sm mt-0.5">{analysis.portfolioStyle}</div>
+                      {analysis.history?.change && (
+                        <div className={`text-xs font-semibold mt-1 ${analysis.history.change.diversificationScoreDelta > 0 ? 'text-green-400' : analysis.history.change.diversificationScoreDelta < 0 ? 'text-red-400' : 'text-gray-500'}`}>
+                          {analysis.history.change.diversificationScoreDelta > 0 ? '▲' : analysis.history.change.diversificationScoreDelta < 0 ? '▼' : '—'} {analysis.history.change.diversificationScoreDelta > 0 ? '+' : ''}{analysis.history.change.diversificationScoreDelta}점 (전 대비)
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
+
+                {/* ── 점수 추이 ── */}
+                {analysis.history?.trend?.length > 1 && (
+                  <div className="rounded-xl border border-gray-800 bg-gray-950 p-4">
+                    <div className="text-sm text-gray-400 mb-3">점수 추이</div>
+                    <div className="flex items-end gap-1.5 h-16">
+                      {analysis.history.trend.map((point, i) => {
+                        const isLatest = i === analysis.history.trend.length - 1;
+                        const hPct = Math.max(4, point.healthScore);
+                        const barColor = point.healthScore >= 80 ? 'bg-green-500' : point.healthScore >= 50 ? 'bg-yellow-500' : 'bg-red-500';
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                            <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10">
+                              <div className="bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap border border-gray-700">
+                                건강 {point.healthScore} · 분산 {point.diversificationScore}
+                                <br />
+                                <span className="text-gray-400">{new Date(point.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</span>
+                              </div>
+                            </div>
+                            <div
+                              className={`w-full rounded-t ${barColor} ${isLatest ? 'opacity-100 ring-1 ring-white/30' : 'opacity-60'} transition-all`}
+                              style={{ height: `${hPct}%` }}
+                            />
+                            <div className="text-[10px] text-gray-600">{new Date(point.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex gap-3 mt-2 text-[10px] text-gray-600">
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-green-500 inline-block"/>80+</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-yellow-500 inline-block"/>50~79</span>
+                      <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-500 inline-block"/>~49</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Score Breakdown */}
                 {analysis.scoreBreakdown.length > 0 && (

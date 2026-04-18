@@ -9,6 +9,7 @@ import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { computeScore, ItemMeta } from './score.engine';
 import { computeInsights } from './insights.engine';
 import { computeRebalance } from './rebalance.engine';
+import { HistoryService } from '../history/history.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require('yahoo-finance2').default;
 const yf = new YahooFinance({ suppressNotices: ['ripHistorical'] });
@@ -28,12 +29,14 @@ export class AnalysisService {
     private readonly benchmarkRepository: Repository<Benchmark>,
     @InjectRepository(BenchmarkPriceDaily)
     private readonly benchmarkPriceDailyRepository: Repository<BenchmarkPriceDaily>,
+    private readonly historyService: HistoryService,
   ) {}
 
   async analyzePortfolio(
     portfolioId: number,
     period: '1M' | '3M' | '1Y' = '1Y',
     benchmarkCode = 'SP500',
+    userId = 0,
   ) {
     const portfolio = await this.portfolioRepository.findOne({
       where: { id: portfolioId },
@@ -232,6 +235,28 @@ export class AnalysisService {
       sectorExposure,
     });
 
+    // ── 스냅샷 저장 + 히스토리 조회 ──
+    if (userId > 0) {
+      await this.historyService.saveSnapshot({
+        portfolioId,
+        userId,
+        healthScore,
+        diversificationScore,
+        portfolioReturn: Number(portfolioReturn.toFixed(2)),
+        benchmarkReturn: Number(benchmarkReturn.toFixed(2)),
+        top3Concentration: Number(top3Concentration.toFixed(2)),
+        maxSectorWeight: Number(maxSectorWeight.toFixed(2)),
+        maxSectorName,
+        portfolioStyle,
+        sectorExposure,
+        warnings,
+      });
+    }
+
+    const history = userId > 0
+      ? await this.historyService.getHistory(portfolioId, userId)
+      : { trend: [], alerts: [], change: null };
+
     return {
       portfolioId,
       portfolioName: portfolio.name,
@@ -252,6 +277,7 @@ export class AnalysisService {
       rebalanceHints,
       portfolioStyle,
       rebalanceResult,
+      history,
     };
   }
 

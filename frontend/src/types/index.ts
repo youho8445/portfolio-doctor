@@ -80,6 +80,24 @@ export type PersonalReturn = {
   weight: number;
 };
 
+export type HistoryChange = {
+  healthScoreDelta: number;
+  diversificationScoreDelta: number;
+  top3ConcentrationDelta: number;
+};
+
+export type HistoryTrendPoint = {
+  date: string;
+  healthScore: number;
+  diversificationScore: number;
+};
+
+export type PortfolioHistory = {
+  trend: HistoryTrendPoint[];
+  alerts: string[];
+  change: HistoryChange | null;
+};
+
 export type AnalysisResult = {
   portfolioId: number;
   portfolioName: string;
@@ -100,4 +118,5 @@ export type AnalysisResult = {
   rebalanceHints: string[];
   portfolioStyle: string;
   rebalanceResult: RebalanceResult | null;
+  history: PortfolioHistory;
 };

@@ -7,6 +7,7 @@ import { PortfoliosModule } from './portfolios/portfolios.module';
 import { SecuritiesModule } from './securities/securities.module';
 import { PricesModule } from './prices/prices.module';
 import { AnalysisModule } from './analysis/analysis.module';
+import { HistoryModule } from './history/history.module';
 
 @Module({
   controllers: [AppController],
@@ -32,6 +33,7 @@ import { AnalysisModule } from './analysis/analysis.module';
     SecuritiesModule,
     PricesModule,
     AnalysisModule,
+    HistoryModule,
   ],
 })
 export class AppModule {}

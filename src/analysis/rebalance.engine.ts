@@ -10,11 +10,20 @@ export interface RebalanceSuggestion {
   isNew: boolean;
 }
 
+export interface RebalanceAction {
+  ticker: string;
+  type: 'reduce' | 'add';
+  from: number;   // 변경 전 비중 (%)
+  to: number;     // 변경 후 비중 (%)
+  delta: number;  // 변화량 (양수=증가, 음수=감소)
+}
+
 export interface RebalanceOutput {
   currentScore: number;
   improvedScore: number;
   recommendations: string[];
   suggestedPortfolio: RebalanceSuggestion[];
+  actions: RebalanceAction[];
   finalConclusion: string;
   topActions: string[];
   beforeAfterSummary: string;
@@ -283,11 +292,41 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
     whyItMatters = '분산 투자는 위험을 줄이고 장기적으로 안정적인 수익을 만들어주는 가장 기본적인 방법입니다.';
   }
 
+  // ── 액션 목록 생성: 원래 비중 vs 제안 비중 비교 ────────────────────────
+  const originalWeightMap = new Map<string, number>();
+  for (const item of items) {
+    originalWeightMap.set(item.ticker, item.weight);
+  }
+
+  const actions: RebalanceAction[] = [];
+  for (const s of suggestedPortfolio) {
+    const from = Number((originalWeightMap.get(s.ticker) ?? 0).toFixed(1));
+    const to = Number(s.weight.toFixed(1));
+    const delta = Number((to - from).toFixed(1));
+    if (Math.abs(delta) < 1) continue; // 1% 미만 변화는 무시
+    actions.push({
+      ticker: s.ticker,
+      type: delta > 0 ? 'add' : 'reduce',
+      from,
+      to,
+      delta,
+    });
+  }
+  // 원래 있었지만 제안에서 사라진 종목 (완전 제거 케이스 — 현재 규칙상 없지만 안전망)
+  for (const [ticker, from] of originalWeightMap.entries()) {
+    if (!suggestedPortfolio.find((s) => s.ticker === ticker)) {
+      actions.push({ ticker, type: 'reduce', from: Number(from.toFixed(1)), to: 0, delta: -Number(from.toFixed(1)) });
+    }
+  }
+  // 감소 먼저, 그 다음 증가 순으로 정렬
+  actions.sort((a, b) => a.delta - b.delta);
+
   return {
     currentScore,
     improvedScore,
     recommendations,
     suggestedPortfolio,
+    actions,
     finalConclusion,
     topActions,
     beforeAfterSummary,

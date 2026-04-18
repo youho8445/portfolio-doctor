@@ -48,11 +48,20 @@ export type RebalanceSuggestion = {
   isNew: boolean;
 };
 
+export type RebalanceAction = {
+  ticker: string;
+  type: 'reduce' | 'add';
+  from: number;
+  to: number;
+  delta: number;
+};
+
 export type RebalanceResult = {
   currentScore: number;
   improvedScore: number;
   recommendations: string[];
   suggestedPortfolio: RebalanceSuggestion[];
+  actions: RebalanceAction[];
   finalConclusion: string;
   topActions: string[];
   beforeAfterSummary: string;

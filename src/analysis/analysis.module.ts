@@ -9,6 +9,7 @@ import { AnalysisController } from './analysis.controller';
 import { AnalysisService } from './analysis.service';
 import { HistoryModule } from '../history/history.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { PaymentsModule } from '../payments/payments.module';
     ]),
     HistoryModule,
     PaymentsModule,
+    AdminModule,
   ],
   controllers: [AnalysisController],
   providers: [AnalysisService],

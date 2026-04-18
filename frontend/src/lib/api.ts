@@ -115,6 +115,24 @@ export async function confirmTossPayment(
   return data.success;
 }
 
+export async function getAdminBillingMode(): Promise<'FREE' | 'SOFT_PAYWALL' | 'PAID'> {
+  const res = await fetch(`${API_BASE_URL}/admin/settings/billing-mode`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch billing mode');
+  const data = await res.json();
+  return data.mode;
+}
+
+export async function setAdminBillingMode(mode: 'FREE' | 'SOFT_PAYWALL' | 'PAID'): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/admin/settings/billing-mode`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ mode }),
+  });
+  if (!res.ok) throw new Error('Failed to set billing mode');
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

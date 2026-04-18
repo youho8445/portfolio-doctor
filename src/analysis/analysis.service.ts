@@ -11,6 +11,7 @@ import { computeInsights } from './insights.engine';
 import { computeRebalance } from './rebalance.engine';
 import { HistoryService } from '../history/history.service';
 import { PaymentsService } from '../payments/payments.service';
+import { AdminService } from '../admin/admin.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require('yahoo-finance2').default;
 const yf = new YahooFinance({ suppressNotices: ['ripHistorical'] });
@@ -32,6 +33,7 @@ export class AnalysisService {
     private readonly benchmarkPriceDailyRepository: Repository<BenchmarkPriceDaily>,
     private readonly historyService: HistoryService,
     private readonly paymentsService: PaymentsService,
+    private readonly adminService: AdminService,
   ) {}
 
   async analyzePortfolio(
@@ -259,9 +261,18 @@ export class AnalysisService {
       ? await this.historyService.getHistory(portfolioId, userId)
       : { trend: [], alerts: [], change: null };
 
-    const isPremium = userId > 0
-      ? await this.paymentsService.isUnlocked(portfolioId, userId)
-      : false;
+    const billingMode = await this.adminService.getBillingMode();
+    let isPremium: boolean;
+    if (billingMode === 'FREE') {
+      isPremium = true;
+    } else if (billingMode === 'SOFT_PAYWALL') {
+      isPremium = false; // 페이월 UI 노출, 데이터는 그대로 반환
+    } else {
+      // PAID: 실제 결제 여부 확인
+      isPremium = userId > 0
+        ? await this.paymentsService.isUnlocked(portfolioId, userId)
+        : false;
+    }
 
     return {
       portfolioId,

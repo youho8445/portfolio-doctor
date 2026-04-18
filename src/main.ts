@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // 허용 origin: 환경변수로 주입, 없으면 localhost 개발용
   const allowedOrigins = process.env.ALLOWED_ORIGINS

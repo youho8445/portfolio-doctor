@@ -99,6 +99,27 @@ export async function getPortfolioItems(portfolioId: number) {
   return res.json();
 }
 
+export async function createCheckoutSession(portfolioId: number): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/payments/checkout/${portfolioId}`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to create checkout session');
+  const data = await res.json();
+  return data.url;
+}
+
+export async function verifyPaymentSession(sessionId: string, portfolioId: number): Promise<boolean> {
+  const res = await fetch(`${API_BASE_URL}/payments/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ sessionId, portfolioId }),
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.success;
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

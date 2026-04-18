@@ -6,6 +6,7 @@ import {
   addPortfolioItem,
   analyzePortfolio,
   clearPortfolioItems,
+  createCheckoutSession,
   createPortfolio,
   deletePortfolio,
   getDataFreshness,
@@ -50,6 +51,7 @@ export default function AnalyzerPage() {
   const [lastPriceDate, setLastPriceDate] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'input' | 'result'>('input');
   const [showDetails, setShowDetails] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // ── ticker → 한글명 룩업 ──────────────────────────────────────────────────
   const tickerNameMap = useMemo(() => {
@@ -279,6 +281,19 @@ export default function AnalyzerPage() {
       setSidebarError(`삭제 실패: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
     } finally {
       setDeletingPortfolioId(null);
+    }
+  };
+
+  // ── 결제 ──────────────────────────────────────────────────────────────────
+  const handleCheckout = async () => {
+    if (!currentPortfolioId || checkoutLoading) return;
+    try {
+      setCheckoutLoading(true);
+      const url = await createCheckoutSession(currentPortfolioId);
+      window.location.href = url;
+    } catch {
+      setError('결제 페이지 이동에 실패했습니다.');
+      setCheckoutLoading(false);
     }
   };
 
@@ -619,7 +634,7 @@ export default function AnalyzerPage() {
                 const hasActions = top3Actions.length > 0;
                 const conclusion = analysis.rebalanceResult?.summary
                   ?? (analysis.healthScore >= 80 ? '포트폴리오가 잘 분산되어 있습니다.' : '포트폴리오 개선이 필요합니다.');
-                const isPremium = false; // TODO: 실제 인증 연결
+                const isPremium = analysis.isPremium ?? false;
                 return (
               <div className="space-y-3">
 
@@ -921,8 +936,12 @@ export default function AnalyzerPage() {
                                   <div className="text-gray-400 text-xs mb-4 leading-relaxed">
                                     구체적 비율 · Before/After 시뮬레이션<br />미래 리스크 분석 포함
                                   </div>
-                                  <button className="w-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold px-5 py-2.5 rounded-xl transition-all text-sm mb-1.5">
-                                    프리미엄으로 보기 — ₩2,900
+                                  <button
+                                    onClick={handleCheckout}
+                                    disabled={checkoutLoading}
+                                    className="w-full bg-purple-600 hover:bg-purple-500 active:scale-95 disabled:opacity-60 text-white font-bold px-5 py-2.5 rounded-xl transition-all text-sm mb-1.5"
+                                  >
+                                    {checkoutLoading ? '이동 중...' : '프리미엄으로 보기 — ₩2,900'}
                                   </button>
                                   <div className="text-[10px] text-gray-600">단건 결제 · 구독 아님 · 즉시 열람</div>
                                 </div>

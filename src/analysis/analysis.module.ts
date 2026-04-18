@@ -8,6 +8,7 @@ import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { AnalysisController } from './analysis.controller';
 import { AnalysisService } from './analysis.service';
 import { HistoryModule } from '../history/history.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { HistoryModule } from '../history/history.module';
       BenchmarkPriceDaily,
     ]),
     HistoryModule,
+    PaymentsModule,
   ],
   controllers: [AnalysisController],
   providers: [AnalysisService],

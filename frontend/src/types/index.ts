@@ -119,4 +119,5 @@ export type AnalysisResult = {
   portfolioStyle: string;
   rebalanceResult: RebalanceResult | null;
   history: PortfolioHistory;
+  isPremium: boolean;
 };

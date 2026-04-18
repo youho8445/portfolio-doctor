@@ -10,6 +10,7 @@ import { computeScore, ItemMeta } from './score.engine';
 import { computeInsights } from './insights.engine';
 import { computeRebalance } from './rebalance.engine';
 import { HistoryService } from '../history/history.service';
+import { PaymentsService } from '../payments/payments.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require('yahoo-finance2').default;
 const yf = new YahooFinance({ suppressNotices: ['ripHistorical'] });
@@ -30,6 +31,7 @@ export class AnalysisService {
     @InjectRepository(BenchmarkPriceDaily)
     private readonly benchmarkPriceDailyRepository: Repository<BenchmarkPriceDaily>,
     private readonly historyService: HistoryService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   async analyzePortfolio(
@@ -257,6 +259,10 @@ export class AnalysisService {
       ? await this.historyService.getHistory(portfolioId, userId)
       : { trend: [], alerts: [], change: null };
 
+    const isPremium = userId > 0
+      ? await this.paymentsService.isUnlocked(portfolioId, userId)
+      : false;
+
     return {
       portfolioId,
       portfolioName: portfolio.name,
@@ -278,6 +284,7 @@ export class AnalysisService {
       portfolioStyle,
       rebalanceResult,
       history,
+      isPremium,
     };
   }
 

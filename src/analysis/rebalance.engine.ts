@@ -1,5 +1,5 @@
 export interface RebalanceInput {
-  items: { ticker: string; weight: number; sector: string; assetType: string }[];
+  items: { ticker: string; name?: string; weight: number; sector: string; assetType: string }[];
   currentScore: number;
   sectorExposure: { sector: string; weight: number }[];
 }
@@ -100,15 +100,21 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
   const topSectorName = topSector?.sector ?? '';
   const uniqueSectorCount = scorableSectors.length;
 
-  // weightMap: ticker → { weight, isNew, assetType, sector }
-  const weightMap = new Map<string, { weight: number; isNew: boolean; assetType: string; sector: string }>();
+  // weightMap: ticker → { weight, isNew, assetType, sector, name }
+  const weightMap = new Map<string, { weight: number; isNew: boolean; assetType: string; sector: string; name: string }>();
   for (const item of items) {
     weightMap.set(item.ticker, {
       weight: item.weight,
       isNew: false,
       assetType: item.assetType,
       sector: item.sector,
+      name: item.name || item.ticker,
     });
+  }
+
+  // 표시용 이름: 한글명 우선, 없으면 ticker
+  function displayName(ticker: string, nameOverride?: string): string {
+    return nameOverride || weightMap.get(ticker)?.name || ticker;
   }
 
   const actions: RebalanceAction[] = [];
@@ -120,14 +126,15 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
       const reduced = r1(item.weight - 30);
       freedWeight += reduced;
       weightMap.get(item.ticker)!.weight = 30;
+      const dname = displayName(item.ticker, item.name);
       actions.push({
         ticker: item.ticker,
-        label: item.ticker,
+        label: dname,
         type: 'reduce',
         from: r1(item.weight),
         to: 30,
         delta: -reduced,
-        text: `${item.ticker} 비중을 ${r1(item.weight)}% → 30%로 줄이기 (−${reduced}%)`,
+        text: `${dname} 비중을 ${r1(item.weight)}% → 30%로 줄이기 (−${reduced}%)`,
       });
     }
   }
@@ -142,7 +149,7 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
     if (voo) {
       voo.weight = toPct;
     } else {
-      weightMap.set('VOO', { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF' });
+      weightMap.set('VOO', { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: 'VOO (미국 전체 시장 ETF)' });
     }
     freedWeight = r1(Math.max(0, freedWeight - addPct));
     actions.push({
@@ -160,7 +167,7 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
   const needsSectorDiv = (topSectorWeight > 60 || uniqueSectorCount <= 2) && stockItems.length >= 1;
   if (needsSectorDiv && !weightMap.has('XLV')) {
     const addPct = freedWeight >= 10 ? 10 : r1(Math.min(10, 10));
-    weightMap.set('XLV', { weight: addPct, isNew: true, assetType: 'ETF', sector: 'ETF' });
+    weightMap.set('XLV', { weight: addPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: 'XLV (헬스케어 ETF)' });
     freedWeight = r1(Math.max(0, freedWeight - addPct));
     actions.push({
       ticker: 'XLV',

@@ -191,6 +191,7 @@ export class AnalysisService {
     // ── 점수 엔진 ──
     const itemMetas: ItemMeta[] = items.map((item) => ({
       ticker: item.security?.ticker ?? '',
+      name: item.security?.displayNameKo || item.security?.name || item.security?.ticker || '',
       weight: Number(item.weight),
       sector: item.security?.sector ?? 'Unknown',
       assetType: item.security?.assetType ?? 'STOCK',

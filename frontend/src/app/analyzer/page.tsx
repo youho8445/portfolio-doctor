@@ -767,8 +767,8 @@ export default function AnalyzerPage() {
                               <span className="text-sm text-white font-medium">
                                 {action.text || (
                                   action.type === 'reduce'
-                                    ? `${action.ticker} 비중을 ${action.from}% → ${action.to}%로 줄이기 (${action.delta}%)`
-                                    : `${action.ticker} ${action.to}% ${action.from === 0 ? '추가하기' : `→ ${action.to}%로 늘리기`} (+${action.delta}%)`
+                                    ? `${action.label || action.ticker} 비중을 ${action.from}% → ${action.to}%로 줄이기 (${action.delta}%)`
+                                    : `${action.label || action.ticker} ${action.to}% ${action.from === 0 ? '추가하기' : `→ ${action.to}%로 늘리기`} (+${action.delta}%)`
                                 )}
                               </span>
                               {action.from === 0 && (

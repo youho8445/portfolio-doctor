@@ -6,6 +6,7 @@ export interface ScoreRule {
 
 export interface ItemMeta {
   ticker: string;
+  name?: string;
   weight: number;
   sector: string;
   assetType: string;

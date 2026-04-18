@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThanOrEqual, Repository } from 'typeorm';
 import { Portfolio } from '../entities/portfolio.entity';
@@ -9,9 +9,14 @@ import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { computeScore, ItemMeta } from './score.engine';
 import { computeInsights } from './insights.engine';
 import { computeRebalance } from './rebalance.engine';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const YahooFinance = require('yahoo-finance2').default;
+const yf = new YahooFinance({ suppressNotices: ['ripHistorical'] });
 
 @Injectable()
 export class AnalysisService {
+  private readonly logger = new Logger(AnalysisService.name);
+
   constructor(
     @InjectRepository(Portfolio)
     private readonly portfolioRepository: Repository<Portfolio>,
@@ -76,6 +81,8 @@ export class AnalysisService {
         item.security?.ticker?.toUpperCase() === 'CASH';
 
       if (isCash) continue; // 현금은 수익률 0으로 처리
+
+      await this.ensurePriceData(item.securityId, item.security?.ticker ?? '');
 
       const prices = await this.priceDailyRepository.find({
         where: {
@@ -163,6 +170,8 @@ export class AnalysisService {
     for (const item of items) {
       if (!item.avgCost || Number(item.avgCost) <= 0) continue;
 
+      await this.ensurePriceData(item.securityId, item.security?.ticker ?? '');
+
       const prices = await this.priceDailyRepository.find({
         where: { securityId: item.securityId },
         order: { tradeDate: 'DESC' },
@@ -244,6 +253,48 @@ export class AnalysisService {
       portfolioStyle,
       rebalanceResult,
     };
+  }
+
+  /** 가격 데이터가 없는 종목을 yfinance에서 실시간 fetch해 DB에 저장 */
+  private async ensurePriceData(securityId: number, ticker: string): Promise<void> {
+    const existing = await this.priceDailyRepository.findOne({
+      where: { securityId },
+      order: { tradeDate: 'DESC' },
+    });
+    if (existing) return; // 이미 데이터 있음
+
+    try {
+      this.logger.log(`[AUTO-FETCH] ${ticker} 가격 데이터 없음 → yfinance 수집 시작`);
+      const period1 = new Date();
+      period1.setFullYear(period1.getFullYear() - 1);
+      const period2 = new Date();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any[] = await yf.historical(ticker, { period1, period2 });
+      if (!result || result.length === 0) {
+        this.logger.warn(`[AUTO-FETCH] ${ticker} — 데이터 없음`);
+        return;
+      }
+
+      const rows = result.map((r: { date: Date; close?: number; adjClose?: number; volume?: number }) => ({
+        securityId,
+        tradeDate: new Date(r.date).toISOString().slice(0, 10),
+        close: r.close ?? r.adjClose ?? 0,
+        volume: r.volume ?? 0,
+      }));
+
+      await this.priceDailyRepository
+        .createQueryBuilder()
+        .insert()
+        .into(PriceDaily)
+        .values(rows)
+        .orUpdate(['close', 'volume'], ['securityId', 'tradeDate'])
+        .execute();
+
+      this.logger.log(`[AUTO-FETCH] ${ticker} — ${rows.length}건 저장 완료`);
+    } catch (e) {
+      this.logger.error(`[AUTO-FETCH] ${ticker} 실패: ${e}`);
+    }
   }
 
   private getStartDate(period: '1M' | '3M' | '1Y'): string {

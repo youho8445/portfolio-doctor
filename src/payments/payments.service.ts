@@ -16,10 +16,12 @@ export class PaymentsService {
     @InjectRepository(PremiumUnlock)
     private readonly unlockRepo: Repository<PremiumUnlock>,
   ) {
-    this.stripe = new StripeLib(process.env.STRIPE_SECRET_KEY ?? '');
+    const key = process.env.STRIPE_SECRET_KEY;
+    this.stripe = key ? new StripeLib(key) : null;
   }
 
   async createCheckoutSession(portfolioId: number, userId: number): Promise<string> {
+    if (!this.stripe) throw new Error('Stripe not configured');
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
 
     const session = await this.stripe.checkout.sessions.create({
@@ -50,6 +52,7 @@ export class PaymentsService {
   }
 
   async handleWebhook(rawBody: Buffer, signature: string): Promise<void> {
+    if (!this.stripe) throw new Error('Stripe not configured');
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? '';
     let event: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -82,6 +85,7 @@ export class PaymentsService {
   }
 
   async verifySession(sessionId: string, portfolioId: number, userId: number): Promise<boolean> {
+    if (!this.stripe) return false;
     try {
       const session = await this.stripe.checkout.sessions.retrieve(sessionId);
       if (session.payment_status !== 'paid') return false;

@@ -291,7 +291,7 @@ export default function AnalyzerPage() {
       const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '';
       const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
       const tossPayments = await loadTossPayments(clientKey);
-      const payment = tossPayments.payment(ANONYMOUS);
+      const payment = tossPayments.payment({ customerKey: ANONYMOUS });
       const orderId = `portfolio-${currentPortfolioId}-${Date.now()}`;
       await payment.requestPayment({
         method: 'CARD',

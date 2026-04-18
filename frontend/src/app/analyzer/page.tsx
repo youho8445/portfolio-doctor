@@ -301,7 +301,8 @@ export default function AnalyzerPage() {
         successUrl: `${window.location.origin}/payment/success?portfolioId=${currentPortfolioId}`,
         failUrl: `${window.location.origin}/analyzer`,
       });
-    } catch {
+    } catch (e) {
+      console.error('[Toss] 결제 오류:', e);
       setError('결제 페이지 이동에 실패했습니다.');
       setCheckoutLoading(false);
     }

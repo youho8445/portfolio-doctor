@@ -677,63 +677,69 @@ export default function AnalyzerPage() {
                 {/* 리밸런싱 추천 엔진 */}
                 {analysis.rebalanceResult && (
                   <div className="rounded-xl border border-emerald-900 bg-emerald-950/20 p-4 space-y-4">
-                    <div className="text-sm font-semibold text-emerald-300">리밸런싱 추천 엔진</div>
+                    <div className="text-sm font-semibold text-emerald-300">리밸런싱 가이드</div>
 
-                    {/* 점수 변화 */}
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500 mb-1">현재 분산 점수</div>
-                        <div className="text-2xl font-bold text-red-400">{analysis.rebalanceResult.currentScore}</div>
-                      </div>
-                      <div className="text-gray-500 text-xl">→</div>
-                      <div className="text-center">
-                        <div className="text-xs text-gray-500 mb-1">개선 후 점수</div>
-                        <div className="text-2xl font-bold text-emerald-400">{analysis.rebalanceResult.improvedScore}</div>
-                      </div>
-                      {analysis.rebalanceResult.improvedScore > analysis.rebalanceResult.currentScore && (
-                        <div className="ml-2 text-xs bg-emerald-900/50 text-emerald-300 px-2 py-1 rounded-full">
-                          +{analysis.rebalanceResult.improvedScore - analysis.rebalanceResult.currentScore}점 향상
-                        </div>
-                      )}
+                    {/* 최종 결론 */}
+                    <div className="rounded-lg bg-emerald-950/40 border border-emerald-800/50 px-4 py-3">
+                      <div className="text-xs text-emerald-500 mb-1 font-medium">한 줄 요약</div>
+                      <div className="text-sm text-white font-medium">{analysis.rebalanceResult.finalConclusion}</div>
                     </div>
 
-                    {/* 추천 목록 */}
-                    <ul className="space-y-1.5">
-                      {analysis.rebalanceResult.recommendations.map((rec, i) => (
-                        <li key={i} className="text-sm text-gray-300 flex gap-2">
-                          <span className="text-emerald-400 shrink-0">✓</span>
-                          {rec}
-                        </li>
-                      ))}
-                    </ul>
-
-                    {/* Before / After 테이블 */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-xs text-gray-500 mb-2 font-medium">현재 포트폴리오</div>
-                        <div className="space-y-1">
-                          {items.map((item) => (
-                            <div key={item.ticker} className="flex justify-between text-xs text-gray-400">
-                              <span>{item.ticker}</span>
-                              <span>{item.weight.toFixed(1)}%</span>
-                            </div>
-                          ))}
-                        </div>
+                    {/* Top 3 액션 */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-2 font-medium">지금 당장 할 수 있는 3가지</div>
+                      <div className="space-y-2">
+                        {analysis.rebalanceResult.topActions.map((action, i) => (
+                          <div key={i} className="flex items-start gap-3">
+                            <div className="shrink-0 w-5 h-5 rounded-full bg-emerald-900 text-emerald-300 text-xs flex items-center justify-center font-bold">{i + 1}</div>
+                            <div className="text-sm text-gray-200">{action}</div>
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <div className="text-xs text-gray-500 mb-2 font-medium">제안 포트폴리오</div>
-                        <div className="space-y-1">
-                          {analysis.rebalanceResult.suggestedPortfolio.map((s) => (
-                            <div key={s.ticker} className="flex justify-between items-center text-xs">
-                              <span className={s.isNew ? 'text-emerald-400 font-semibold' : 'text-gray-400'}>
-                                {s.ticker}
-                                {s.isNew && (
-                                  <span className="ml-1 bg-emerald-900/60 text-emerald-300 text-[10px] px-1 py-0.5 rounded">NEW</span>
-                                )}
-                              </span>
-                              <span className={s.isNew ? 'text-emerald-400' : 'text-gray-400'}>{s.weight.toFixed(1)}%</span>
-                            </div>
-                          ))}
+                    </div>
+
+                    {/* Before / After 요약 */}
+                    <div className="rounded-lg bg-gray-900/60 px-4 py-3">
+                      <div className="text-xs text-gray-500 mb-1 font-medium">개선 효과</div>
+                      <div className="text-sm text-emerald-300 font-medium">{analysis.rebalanceResult.beforeAfterSummary}</div>
+                    </div>
+
+                    {/* Why it matters */}
+                    <div className="text-xs text-gray-500 leading-relaxed border-t border-gray-800 pt-3">
+                      <span className="text-gray-400 font-medium">왜 중요할까요? </span>
+                      {analysis.rebalanceResult.whyItMatters}
+                    </div>
+
+                    {/* Before / After 포트폴리오 테이블 */}
+                    <div className="border-t border-gray-800 pt-3">
+                      <div className="text-xs text-gray-500 mb-2 font-medium">포트폴리오 구성 비교</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-gray-600 mb-1.5">현재</div>
+                          <div className="space-y-1">
+                            {items.map((item) => (
+                              <div key={item.ticker} className="flex justify-between text-xs text-gray-400">
+                                <span>{item.ticker}</span>
+                                <span>{item.weight.toFixed(1)}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-600 mb-1.5">제안</div>
+                          <div className="space-y-1">
+                            {analysis.rebalanceResult.suggestedPortfolio.map((s) => (
+                              <div key={s.ticker} className="flex justify-between items-center text-xs">
+                                <span className={s.isNew ? 'text-emerald-400 font-semibold' : 'text-gray-400'}>
+                                  {s.ticker}
+                                  {s.isNew && (
+                                    <span className="ml-1 bg-emerald-900/60 text-emerald-300 text-[10px] px-1 py-0.5 rounded">NEW</span>
+                                  )}
+                                </span>
+                                <span className={s.isNew ? 'text-emerald-400' : 'text-gray-400'}>{s.weight.toFixed(1)}%</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>

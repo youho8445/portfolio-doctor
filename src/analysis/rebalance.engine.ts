@@ -15,6 +15,10 @@ export interface RebalanceOutput {
   improvedScore: number;
   recommendations: string[];
   suggestedPortfolio: RebalanceSuggestion[];
+  finalConclusion: string;
+  topActions: string[];
+  beforeAfterSummary: string;
+  whyItMatters: string;
 }
 
 function calcDivScore(
@@ -214,10 +218,79 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
     recommendations.push('현재 포트폴리오가 잘 분산되어 있습니다');
   }
 
+  // ── 초보자 친화적 필드 생성 ──────────────────────────────────────────────
+
+  // 점수 레이블
+  function scoreLabel(s: number): string {
+    if (s < 40) return '위험';
+    if (s < 60) return '보통';
+    if (s < 80) return '양호';
+    return '우수';
+  }
+
+  // finalConclusion
+  let finalConclusion: string;
+  if (currentScore < 40) {
+    if (topSectorWeight > 60) {
+      finalConclusion = `포트폴리오가 ${topSectorName} 업종에 너무 집중되어 있어 고위험 상태입니다.`;
+    } else {
+      finalConclusion = '포트폴리오가 소수 종목에 너무 집중되어 있어 고위험 상태입니다.';
+    }
+  } else if (currentScore < 60) {
+    if (topSectorWeight > 50) {
+      finalConclusion = `${topSectorName} 업종 비중이 높아 리스크를 줄일 여지가 있습니다.`;
+    } else {
+      finalConclusion = '포트폴리오가 다소 집중되어 있어 분산을 개선할 수 있습니다.';
+    }
+  } else {
+    finalConclusion = '포트폴리오가 적절히 분산되어 안정적입니다.';
+  }
+
+  // topActions (최대 3개, 쉬운 말)
+  const allActions: string[] = [];
+  if (etfWeight === 0 && stockItems.length >= 2) {
+    allActions.push('VOO 같은 ETF를 20% 편입해 분산 효과를 높이세요');
+  }
+  if (topSectorWeight > 60) {
+    allActions.push(`${topSectorName} 종목 비중을 줄이세요`);
+  }
+  if (top3Total >= 70) {
+    allActions.push('상위 종목 비중을 줄이고 다른 종목을 추가하세요');
+  }
+  if (uniqueSectorCount <= 2 && stockItems.length > 0) {
+    allActions.push('헬스케어(XLV) 같은 다른 업종 종목을 추가하세요');
+  }
+  if (allActions.length === 0) {
+    allActions.push('현재 포트폴리오를 유지하세요');
+  }
+  const topActions = allActions.slice(0, 3);
+
+  // beforeAfterSummary
+  const beforeAfterSummary =
+    improvedScore > currentScore
+      ? `분산 점수 ${currentScore}점(${scoreLabel(currentScore)}) → ${improvedScore}점(${scoreLabel(improvedScore)})으로 개선됩니다`
+      : `현재 분산 점수 ${currentScore}점(${scoreLabel(currentScore)}) — 이미 잘 분산되어 있습니다`;
+
+  // whyItMatters
+  let whyItMatters: string;
+  if (etfWeight === 0 && stockItems.length >= 2) {
+    whyItMatters = '한 종목이 크게 떨어져도 다른 종목이 손실을 줄여줍니다. ETF 하나로 수백 개 기업에 분산 투자하는 효과를 얻을 수 있습니다.';
+  } else if (topSectorWeight > 60) {
+    whyItMatters = '특정 업종이 어려울 때 다른 업종이 포트폴리오를 지켜줍니다. 업종을 나누면 한 번의 뉴스로 전체가 흔들리는 상황을 피할 수 있습니다.';
+  } else if (top3Total >= 70) {
+    whyItMatters = '소수 종목에 몰빵하면 그 종목이 나쁠 때 큰 손실이 납니다. 종목을 나눠 담으면 리스크도 나눌 수 있습니다.';
+  } else {
+    whyItMatters = '분산 투자는 위험을 줄이고 장기적으로 안정적인 수익을 만들어주는 가장 기본적인 방법입니다.';
+  }
+
   return {
     currentScore,
     improvedScore,
     recommendations,
     suggestedPortfolio,
+    finalConclusion,
+    topActions,
+    beforeAfterSummary,
+    whyItMatters,
   };
 }

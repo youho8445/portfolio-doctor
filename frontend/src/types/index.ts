@@ -53,6 +53,10 @@ export type RebalanceResult = {
   improvedScore: number;
   recommendations: string[];
   suggestedPortfolio: RebalanceSuggestion[];
+  finalConclusion: string;
+  topActions: string[];
+  beforeAfterSummary: string;
+  whyItMatters: string;
 };
 
 export type ScoreRule = {

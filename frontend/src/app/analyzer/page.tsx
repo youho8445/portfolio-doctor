@@ -289,15 +289,13 @@ export default function AnalyzerPage() {
     try {
       setCheckoutLoading(true);
       const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '';
-      const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
-      const tossPayments = await loadTossPayments(clientKey);
-      const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+      const { loadPaymentWidget, ANONYMOUS } = await import('@tosspayments/payment-widget-sdk');
+      const paymentWidget = await loadPaymentWidget(clientKey, ANONYMOUS);
       const orderId = `portfolio-${currentPortfolioId}-${Date.now()}`;
-      await payment.requestPayment({
-        method: 'CARD',
-        amount: { currency: 'KRW', value: 2900 },
+      await paymentWidget.requestPayment({
         orderId,
         orderName: '포트폴리오 상세 리밸런싱 가이드',
+        amount: 2900,
         successUrl: `${window.location.origin}/payment/success?portfolioId=${currentPortfolioId}`,
         failUrl: `${window.location.origin}/analyzer`,
       });

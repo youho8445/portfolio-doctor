@@ -1,16 +1,14 @@
 import {
+  Body,
   Controller,
   Get,
-  Headers,
   HttpCode,
   Param,
   ParseIntPipe,
   Post,
-  RawBodyRequest,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
 
@@ -18,25 +16,25 @@ import { PaymentsService } from './payments.service';
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
-  /** Stripe Checkout 세션 생성 → URL 반환 */
+  /**
+   * 토스페이먼츠 결제 승인
+   * 프론트 success 페이지에서 paymentKey/orderId/amount 수신 후 호출
+   */
   @UseGuards(JwtAuthGuard)
-  @Post('checkout/:portfolioId')
-  async createCheckout(
-    @Param('portfolioId', ParseIntPipe) portfolioId: number,
+  @Post('confirm')
+  @HttpCode(200)
+  async confirmPayment(
     @Req() req: { user: { id: number } },
+    @Body() body: { paymentKey: string; orderId: string; amount: number; portfolioId: number },
   ) {
-    const url = await this.paymentsService.createCheckoutSession(portfolioId, req.user.id);
-    return { url };
-  }
-
-  /** 결제 완료 후 세션 검증 (success 페이지에서 호출) */
-  @UseGuards(JwtAuthGuard)
-  @Post('verify')
-  async verifySession(
-    @Req() req: { user: { id: number }; body: { sessionId: string; portfolioId: number } },
-  ) {
-    const { sessionId, portfolioId } = req.body as { sessionId: string; portfolioId: number };
-    const success = await this.paymentsService.verifySession(sessionId, portfolioId, req.user.id);
+    const { paymentKey, orderId, amount, portfolioId } = body;
+    const success = await this.paymentsService.confirmPayment(
+      paymentKey,
+      orderId,
+      amount,
+      portfolioId,
+      req.user.id,
+    );
     return { success };
   }
 
@@ -49,16 +47,5 @@ export class PaymentsController {
   ) {
     const unlocked = await this.paymentsService.isUnlocked(portfolioId, req.user.id);
     return { unlocked };
-  }
-
-  /** Stripe Webhook (인증 없음 — raw body 필요) */
-  @Post('webhook')
-  @HttpCode(200)
-  async webhook(
-    @Req() req: RawBodyRequest<Request>,
-    @Headers('stripe-signature') signature: string,
-  ) {
-    await this.paymentsService.handleWebhook(req.rawBody!, signature);
-    return { received: true };
   }
 }

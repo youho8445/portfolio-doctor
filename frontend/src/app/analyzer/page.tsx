@@ -6,7 +6,6 @@ import {
   addPortfolioItem,
   analyzePortfolio,
   clearPortfolioItems,
-  createCheckoutSession,
   createPortfolio,
   deletePortfolio,
   getDataFreshness,
@@ -284,13 +283,24 @@ export default function AnalyzerPage() {
     }
   };
 
-  // ── 결제 ──────────────────────────────────────────────────────────────────
+  // ── 결제 (토스페이먼츠) ────────────────────────────────────────────────────
   const handleCheckout = async () => {
     if (!currentPortfolioId || checkoutLoading) return;
     try {
       setCheckoutLoading(true);
-      const url = await createCheckoutSession(currentPortfolioId);
-      window.location.href = url;
+      const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '';
+      const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
+      const tossPayments = await loadTossPayments(clientKey);
+      const payment = tossPayments.payment(ANONYMOUS);
+      const orderId = `portfolio-${currentPortfolioId}-${Date.now()}`;
+      await payment.requestPayment({
+        method: 'CARD',
+        amount: { currency: 'KRW', value: 2900 },
+        orderId,
+        orderName: '포트폴리오 상세 리밸런싱 가이드',
+        successUrl: `${window.location.origin}/payment/success?portfolioId=${currentPortfolioId}`,
+        failUrl: `${window.location.origin}/analyzer`,
+      });
     } catch {
       setError('결제 페이지 이동에 실패했습니다.');
       setCheckoutLoading(false);

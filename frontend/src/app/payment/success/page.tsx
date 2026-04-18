@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { verifyPaymentSession } from '@/lib/api';
+import { confirmTossPayment } from '@/lib/api';
 
 export default function PaymentSuccessPage() {
   const router = useRouter();
@@ -10,15 +10,18 @@ export default function PaymentSuccessPage() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
 
   useEffect(() => {
-    const sessionId = params.get('session_id');
+    // 토스페이먼츠가 success URL에 붙여주는 파라미터
+    const paymentKey = params.get('paymentKey');
+    const orderId = params.get('orderId');
+    const amount = Number(params.get('amount'));
     const portfolioId = Number(params.get('portfolioId'));
 
-    if (!sessionId || !portfolioId) {
+    if (!paymentKey || !orderId || !amount || !portfolioId) {
       setStatus('error');
       return;
     }
 
-    verifyPaymentSession(sessionId, portfolioId)
+    confirmTossPayment(paymentKey, orderId, amount, portfolioId)
       .then((ok) => {
         if (ok) {
           setStatus('success');

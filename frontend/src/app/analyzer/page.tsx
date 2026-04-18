@@ -30,7 +30,7 @@ type InputMode = 'amount' | 'weight';
 
 export default function AnalyzerPage() {
   const router = useRouter();
-  const { user, logout, isLoggedIn } = useAuth();
+  const { user, logout, isLoggedIn, isLoading: authLoading } = useAuth();
   const [portfolioName, setPortfolioName] = useState('My Portfolio');
   const [inputMode, setInputMode] = useState<InputMode>('amount');
 
@@ -112,6 +112,7 @@ export default function AnalyzerPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!isLoggedIn) {
       router.replace('/login');
       return;
@@ -120,7 +121,7 @@ export default function AnalyzerPage() {
     getDataFreshness()
       .then((d) => setLastPriceDate(d.lastPriceDate))
       .catch(() => {});
-  }, [isLoggedIn]);
+  }, [authLoading, isLoggedIn]);
 
   // ── 검색 ──────────────────────────────────────────────────────────────────
   const handleSearch = async () => {
@@ -386,7 +387,21 @@ export default function AnalyzerPage() {
 
           {/* ── 저장된 포트폴리오 사이드바 ── */}
           <div className={`${activeTab !== 'input' ? 'hidden lg:flex' : 'flex'} rounded-2xl border border-gray-800 bg-gray-900 p-5 flex-col gap-3 h-fit`}>
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">저장된 포트폴리오</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">저장된 포트폴리오</h2>
+              <button
+                onClick={() => {
+                  setPortfolioName('새 포트폴리오');
+                  setItems([]);
+                  setCurrentPortfolioId(null);
+                  setAnalysis(null);
+                  setActiveTab('input');
+                }}
+                className="text-xs bg-purple-700 hover:bg-purple-600 text-white px-2.5 py-1 rounded-lg transition-colors"
+              >
+                + 새로 만들기
+              </button>
+            </div>
 
             {sidebarError && (
               <p className="text-xs text-red-400 bg-red-950/40 border border-red-800 rounded px-2 py-1.5">

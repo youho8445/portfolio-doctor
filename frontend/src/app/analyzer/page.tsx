@@ -741,7 +741,7 @@ export default function AnalyzerPage() {
                     <div className="text-sm font-bold text-emerald-300">🔄 리밸런싱 가이드</div>
 
                     {/* 한 줄 요약 */}
-                    <p className="text-sm text-gray-200">{analysis.rebalanceResult.summary}</p>
+                    <p className="text-sm text-gray-200">{analysis.rebalanceResult.summary ?? analysis.rebalanceResult.finalConclusion}</p>
 
                     {/* 지금 해야 할 행동 */}
                     {analysis.rebalanceResult.actions.length > 0 ? (
@@ -764,7 +764,13 @@ export default function AnalyzerPage() {
                             </div>
                             {/* 설명 */}
                             <div className="flex-1 min-w-0">
-                              <span className="text-sm text-white font-medium">{action.text}</span>
+                              <span className="text-sm text-white font-medium">
+                                {action.text || (
+                                  action.type === 'reduce'
+                                    ? `${action.ticker} 비중을 ${action.from}% → ${action.to}%로 줄이기 (${action.delta}%)`
+                                    : `${action.ticker} ${action.to}% ${action.from === 0 ? '추가하기' : `→ ${action.to}%로 늘리기`} (+${action.delta}%)`
+                                )}
+                              </span>
                               {action.from === 0 && (
                                 <span className="ml-2 text-[10px] bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded align-middle">신규</span>
                               )}

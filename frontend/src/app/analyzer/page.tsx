@@ -600,40 +600,55 @@ export default function AnalyzerPage() {
                   </div>
                 )}
 
-                {/* 수익률 지표 */}
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: '포트폴리오 수익률', value: analysis.portfolioReturn },
-                    { label: '벤치마크 수익률',   value: analysis.benchmarkReturn },
-                    { label: '초과 수익률',        value: analysis.excessReturn },
-                    { label: '상위 3종목 집중도',  value: analysis.top3Concentration, noColor: true },
-                  ].map(({ label, value, noColor }) => (
-                    <div key={label} className="rounded-xl border border-gray-800 bg-gray-950 p-4">
-                      <div className="text-xs text-gray-500 mb-1">{label}</div>
-                      <div className={`text-2xl font-bold ${noColor ? 'text-white' : retColor(value)}`}>
-                        {value > 0 && !noColor ? '+' : ''}{value}%
+                {/* ── 섹션 A: 시장 성과 ── */}
+                <div className="rounded-xl border border-gray-700 bg-gray-950 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-300 uppercase tracking-wide">📈 시장 성과</span>
+                    <span className="text-[10px] bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">최근 1년 · yfinance 기준</span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 -mt-1">내가 사고팔지 않았어도, 이 종목들이 시장에서 얼마나 올랐는지를 보여줍니다.</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: '내 포트폴리오', sub: '보유 비중 가중 수익률', value: analysis.portfolioReturn },
+                      { label: 'S&P 500 (벤치마크)', sub: '같은 기간 지수 수익률', value: analysis.benchmarkReturn },
+                      { label: '초과 수익률', sub: '포트폴리오 − 벤치마크', value: analysis.excessReturn },
+                      { label: '상위 3종목 집중도', sub: '높을수록 분산 부족', value: analysis.top3Concentration, noColor: true },
+                    ].map(({ label, sub, value, noColor }) => (
+                      <div key={label} className="rounded-lg border border-gray-800 bg-gray-900 p-3">
+                        <div className="text-xs text-gray-400 font-medium">{label}</div>
+                        <div className="text-[10px] text-gray-600 mb-1.5">{sub}</div>
+                        <div className={`text-xl font-bold ${noColor ? 'text-white' : retColor(value)}`}>
+                          {value > 0 && !noColor ? '+' : ''}{value}%
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
 
-                {/* 개인 수익률 (평단가 입력 시) */}
+                {/* ── 섹션 B: 내 투자 수익률 ── */}
                 {analysis.personalReturn !== null && (
-                  <div className="rounded-xl border border-blue-900 bg-blue-950/30 p-4">
-                    <div className="text-xs text-blue-400 mb-2 font-semibold">내 수익률 (평단가 기준)</div>
-                    <div className="flex items-center gap-4 mb-3">
+                  <div className="rounded-xl border border-indigo-800 bg-indigo-950/30 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-indigo-300 uppercase tracking-wide">💼 내 투자 수익률</span>
+                      <span className="text-[10px] bg-indigo-900/50 text-indigo-400 px-2 py-0.5 rounded-full">평단가 입력 기준</span>
+                    </div>
+                    <p className="text-[11px] text-indigo-400/70 -mt-1">
+                      내가 실제로 산 가격 대비 현재가를 비교합니다.
+                      <span className="text-yellow-600 ml-1">미국 주식 평단가는 달러($)로 입력하세요.</span>
+                    </p>
+                    <div className="flex items-baseline gap-3">
                       <span className={`text-3xl font-black ${retColor(analysis.personalReturn)}`}>
                         {analysis.personalReturn > 0 ? '+' : ''}{analysis.personalReturn}%
                       </span>
-                      <span className="text-xs text-gray-500">평단가 입력된 종목 기준</span>
+                      <span className="text-xs text-gray-500">평단가 입력된 종목 평균</span>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-2 pt-1 border-t border-indigo-900/50">
                       {analysis.personalReturns.map((r: PersonalReturn) => (
                         <div key={r.ticker} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400 font-semibold w-16">{r.ticker}</span>
-                          <div className="flex-1 mx-2 h-1 bg-gray-800 rounded-full overflow-hidden">
+                          <span className="text-gray-400 font-semibold w-20 shrink-0">{r.ticker}</span>
+                          <div className="flex-1 mx-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                             <div
-                              className={`h-1 rounded-full ${r.returnPct >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                              className={`h-1.5 rounded-full ${r.returnPct >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
                               style={{ width: `${Math.min(Math.abs(r.returnPct), 100)}%` }}
                             />
                           </div>

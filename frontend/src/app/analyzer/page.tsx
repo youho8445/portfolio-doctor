@@ -528,7 +528,7 @@ export default function AnalyzerPage() {
               disabled={loadingAnalyze || items.length === 0}
               className="w-full rounded-xl bg-purple-600 px-4 py-4 text-lg font-bold hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {loadingAnalyze ? '분석 중...' : 'Analyze Portfolio →'}
+              {loadingAnalyze ? '분석 중...' : '포트폴리오 분석하기 →'}
             </button>
           </div>
 
@@ -539,7 +539,7 @@ export default function AnalyzerPage() {
             {!analysis ? (
               <div className="flex flex-col items-center justify-center h-64 text-gray-600 border border-dashed border-gray-800 rounded-xl px-4">
                 <div className="text-5xl mb-3">📊</div>
-                <p className="text-center text-sm">종목을 추가하고<br /><span className="text-purple-500 font-semibold">Analyze Portfolio</span>를 눌러보세요</p>
+                <p className="text-center text-sm">종목을 추가하고<br /><span className="text-purple-500 font-semibold">포트폴리오 분석하기</span>를 눌러보세요</p>
                 <p className="text-center text-xs mt-2 text-gray-700">건강점수 · 리밸런싱 · 벤치마크 비교 제공</p>
                 <button
                   onClick={() => setActiveTab('input')}

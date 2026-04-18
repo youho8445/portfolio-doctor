@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -41,6 +42,20 @@ export class PortfoliosController {
     @Req() req: { user: { id: number } },
   ) {
     return this.portfoliosService.addItem(id, dto, req.user.id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { name: string },
+    @Req() req: { user: { id: number } },
+  ) {
+    return this.portfoliosService.update(id, body.name, req.user.id);
+  }
+
+  @Delete(':id/items')
+  clearItems(@Param('id', ParseIntPipe) id: number, @Req() req: { user: { id: number } }) {
+    return this.portfoliosService.clearItems(id, req.user.id);
   }
 
   @Delete(':id')

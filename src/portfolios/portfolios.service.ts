@@ -90,6 +90,20 @@ export class PortfoliosService {
     await this.portfolioItemRepository.save(items);
   }
 
+  async update(id: number, name: string, userId: number) {
+    const portfolio = await this.portfolioRepository.findOne({ where: { id, userId } });
+    if (!portfolio) throw new NotFoundException('Portfolio not found');
+    portfolio.name = name;
+    return this.portfolioRepository.save(portfolio);
+  }
+
+  async clearItems(portfolioId: number, userId: number): Promise<{ success: boolean }> {
+    const portfolio = await this.portfolioRepository.findOne({ where: { id: portfolioId, userId } });
+    if (!portfolio) throw new NotFoundException('Portfolio not found');
+    await this.portfolioItemRepository.delete({ portfolioId });
+    return { success: true };
+  }
+
   async delete(id: number, userId: number) {
     const portfolio = await this.portfolioRepository.findOne({ where: { id, userId } });
     if (!portfolio) throw new NotFoundException('Portfolio not found');

@@ -62,6 +62,25 @@ export async function getPortfolios() {
   return res.json();
 }
 
+export async function updatePortfolio(portfolioId: number, name: string) {
+  const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) throw new Error(`PATCH /portfolios/${portfolioId} → ${res.status}`);
+  return res.json();
+}
+
+export async function clearPortfolioItems(portfolioId: number) {
+  const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/items`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`DELETE /portfolios/${portfolioId}/items → ${res.status}`);
+  return res.json();
+}
+
 export async function deletePortfolio(portfolioId: number) {
   const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}`, {
     method: 'DELETE',

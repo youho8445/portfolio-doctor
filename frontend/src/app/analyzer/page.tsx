@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import {
   addPortfolioItem,
   analyzePortfolio,
+  clearPortfolioItems,
   createPortfolio,
   deletePortfolio,
   getDataFreshness,
   getPortfolioItems,
   getPortfolios,
   getSecurities,
+  updatePortfolio,
 } from '@/lib/api';
 import {
   AnalysisResult,
@@ -41,6 +43,7 @@ export default function AnalyzerPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [savedPortfolios, setSavedPortfolios] = useState<Portfolio[]>([]);
+  const [currentPortfolioId, setCurrentPortfolioId] = useState<number | null>(null);
   const [loadingPortfolioId, setLoadingPortfolioId] = useState<number | null>(null);
   const [deletingPortfolioId, setDeletingPortfolioId] = useState<number | null>(null);
   const [sidebarError, setSidebarError] = useState<string | null>(null);
@@ -170,7 +173,16 @@ export default function AnalyzerPage() {
       }
 
       setLoadingAnalyze(true);
-      const portfolio = await createPortfolio(portfolioName);
+
+      let portfolioId: number;
+      if (currentPortfolioId) {
+        await clearPortfolioItems(currentPortfolioId);
+        await updatePortfolio(currentPortfolioId, portfolioName);
+        portfolioId = currentPortfolioId;
+      } else {
+        const portfolio = await createPortfolio(portfolioName);
+        portfolioId = portfolio.id;
+      }
 
       for (const item of items) {
         const avgCost = Number(item.avgCost) > 0 ? Number(item.avgCost) : undefined;
@@ -178,11 +190,12 @@ export default function AnalyzerPage() {
           inputMode === 'amount'
             ? { amount: Number(item.amount), avgCost }
             : { weight: Number(item.weight), avgCost };
-        await addPortfolioItem(portfolio.id, item.securityId, options);
+        await addPortfolioItem(portfolioId, item.securityId, options);
       }
 
-      const result = await analyzePortfolio(portfolio.id, '1Y', 'SP500');
+      const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
       setAnalysis(result);
+      setCurrentPortfolioId(portfolioId);
       setActiveTab('result');
       await loadSavedPortfolios();
     } catch {
@@ -213,6 +226,7 @@ export default function AnalyzerPage() {
           avgCost: Number(item.avgCost ?? 0),
         })),
       );
+      setCurrentPortfolioId(portfolio.id);
       setAnalysis(null);
       setError(null);
     } catch {
@@ -231,6 +245,7 @@ export default function AnalyzerPage() {
       setDeletingPortfolioId(portfolio.id);
       await deletePortfolio(portfolio.id);
       setSavedPortfolios((prev) => prev.filter((p) => p.id !== portfolio.id));
+      if (currentPortfolioId === portfolio.id) setCurrentPortfolioId(null);
     } catch (e) {
       setSidebarError(`삭제 실패: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
     } finally {
@@ -476,12 +491,15 @@ export default function AnalyzerPage() {
                         {inputMode === 'amount' ? (
                           <>
                             <input
-                              type="number"
-                              min={0}
-                              value={item.amount || ''}
-                              onChange={(e) => updateAmount(item.securityId, Number(e.target.value))}
-                              className="flex-1 min-w-0 rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-right text-white text-sm outline-none focus:border-purple-500"
-                              placeholder="투자금액"
+                              type="text"
+                              inputMode="numeric"
+                              value={item.amount > 0 ? item.amount.toLocaleString('ko-KR') : ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/[^0-9]/g, '');
+                                updateAmount(item.securityId, raw ? Number(raw) : 0);
+                              }}
+                              className="flex-1 min-w-0 rounded border border-gray-700 bg-gray-900 px-3 py-1.5 text-right text-white text-sm outline-none focus:border-purple-500 tabular-nums tracking-tight"
+                              placeholder="0"
                             />
                             <span className="text-xs text-gray-400 w-12 text-right shrink-0">
                               {getItemWeight(item).toFixed(1)}%
@@ -502,12 +520,15 @@ export default function AnalyzerPage() {
                           </>
                         )}
                         <input
-                          type="number"
-                          min={0}
-                          value={item.avgCost || ''}
-                          onChange={(e) => updateAvgCost(item.securityId, Number(e.target.value))}
-                          className="w-24 rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-right text-gray-400 text-sm outline-none focus:border-blue-500"
-                          placeholder="평단가(선택)"
+                          type="text"
+                          inputMode="numeric"
+                          value={item.avgCost > 0 ? item.avgCost.toLocaleString('ko-KR') : ''}
+                          onChange={(e) => {
+                            const raw = e.target.value.replace(/[^0-9]/g, '');
+                            updateAvgCost(item.securityId, raw ? Number(raw) : 0);
+                          }}
+                          className="w-24 rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-right text-gray-400 text-sm outline-none focus:border-blue-500 tabular-nums"
+                          placeholder="평단가"
                         />
                       </div>
                     </div>
@@ -741,7 +762,7 @@ export default function AnalyzerPage() {
                     <div className="text-sm font-bold text-emerald-300">🔄 리밸런싱 가이드</div>
 
                     {/* 한 줄 요약 */}
-                    <p className="text-sm text-gray-200">{analysis.rebalanceResult.summary ?? analysis.rebalanceResult.finalConclusion}</p>
+                    <p className="text-sm text-gray-200">{analysis.rebalanceResult.summary}</p>
 
                     {/* 지금 해야 할 행동 */}
                     {analysis.rebalanceResult.actions.length > 0 ? (

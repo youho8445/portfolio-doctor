@@ -5,3 +5,5 @@ pymysql
 python-dotenv
 lxml
 requests
+pykrx
+finance-datareader

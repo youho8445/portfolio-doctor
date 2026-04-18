@@ -44,6 +44,7 @@ export default function AnalyzerPage() {
   const [deletingPortfolioId, setDeletingPortfolioId] = useState<number | null>(null);
   const [sidebarError, setSidebarError] = useState<string | null>(null);
   const [lastPriceDate, setLastPriceDate] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'input' | 'result'>('input');
 
   // ── 합산 ──────────────────────────────────────────────────────────────────
   const totalAmount = useMemo(
@@ -181,6 +182,7 @@ export default function AnalyzerPage() {
 
       const result = await analyzePortfolio(portfolio.id, '1Y', 'SP500');
       setAnalysis(result);
+      setActiveTab('result');
       await loadSavedPortfolios();
     } catch {
       setError('분석에 실패했습니다. 백엔드 서버를 확인하세요.');
@@ -249,26 +251,26 @@ export default function AnalyzerPage() {
 
   // ── 렌더 ──────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-6">
+    <main className="min-h-screen bg-gray-950 text-white p-4 sm:p-6">
       <div className="mx-auto max-w-screen-xl">
 
         {/* 헤더 */}
-        <div className="mb-8 flex items-start justify-between gap-4">
+        <div className="mb-6 flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
               Portfolio <span className="text-purple-400">Doctor</span>
             </h1>
-            <p className="text-gray-400 mt-1">종목과 투자금액을 입력하고 포트폴리오를 분석하세요.</p>
+            <p className="text-gray-500 text-xs sm:text-sm mt-0.5">건강진단 · 리밸런싱 · 벤치마크 비교</p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {lastPriceDate && (
-              <div className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-right">
-                <div className="text-xs text-gray-500">마지막 데이터 업데이트</div>
+              <div className="hidden sm:block rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-right">
+                <div className="text-xs text-gray-500">데이터 업데이트</div>
                 <div className="text-sm font-semibold text-gray-300">{lastPriceDate}</div>
               </div>
             )}
             <div className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2">
-              <span className="text-xs text-gray-400">{user?.name}</span>
+              <span className="text-xs text-gray-400 hidden sm:inline">{user?.name}</span>
               <button
                 onClick={() => { logout(); router.push('/login'); }}
                 className="text-xs text-gray-500 hover:text-red-400 transition-colors"
@@ -279,10 +281,26 @@ export default function AnalyzerPage() {
           </div>
         </div>
 
+        {/* 모바일 탭 */}
+        <div className="flex lg:hidden mb-4 rounded-xl overflow-hidden border border-gray-800">
+          <button
+            onClick={() => setActiveTab('input')}
+            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${activeTab === 'input' ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400'}`}
+          >
+            종목 입력
+          </button>
+          <button
+            onClick={() => setActiveTab('result')}
+            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${activeTab === 'result' ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400'}`}
+          >
+            분석 결과{analysis && <span className="ml-1.5 text-[10px] bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded-full align-middle">NEW</span>}
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_1fr] gap-6">
 
           {/* ── 저장된 포트폴리오 사이드바 ── */}
-          <div className="rounded-2xl border border-gray-800 bg-gray-900 p-5 flex flex-col gap-3 h-fit">
+          <div className={`${activeTab !== 'input' ? 'hidden lg:flex' : 'flex'} rounded-2xl border border-gray-800 bg-gray-900 p-5 flex-col gap-3 h-fit`}>
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">저장된 포트폴리오</h2>
 
             {sidebarError && (
@@ -322,7 +340,7 @@ export default function AnalyzerPage() {
           </div>
 
           {/* ── 입력 패널 ── */}
-          <div className="rounded-2xl border border-gray-800 bg-gray-900 p-6 space-y-6">
+          <div className={`${activeTab !== 'input' ? 'hidden lg:block' : ''} rounded-2xl border border-gray-800 bg-gray-900 p-4 sm:p-6 space-y-6`}>
 
             {/* 포트폴리오 이름 */}
             <div>
@@ -434,64 +452,63 @@ export default function AnalyzerPage() {
                   {items.map((item) => (
                     <div
                       key={item.securityId}
-                      className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-950 px-3 py-2.5"
+                      className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2.5 space-y-2"
                     >
-                      {/* 종목명 */}
-                      <div className="flex-1 min-w-0">
-                        <span className="font-semibold text-white text-sm">{item.ticker}</span>
-                        <span className="text-gray-500 text-xs ml-1.5 truncate">
-                          {item.displayNameKo ?? item.name}
-                        </span>
+                      {/* 종목명 + 삭제 */}
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-white text-sm">{item.ticker}</span>
+                          <span className="text-gray-500 text-xs ml-1.5 truncate">
+                            {item.displayNameKo ?? item.name}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => removeItem(item.securityId)}
+                          className="text-gray-600 hover:text-red-400 transition-colors text-lg leading-none ml-2 shrink-0"
+                        >
+                          ×
+                        </button>
                       </div>
 
-                      {inputMode === 'amount' ? (
-                        <>
-                          {/* 금액 입력 */}
-                          <input
-                            type="number"
-                            min={0}
-                            value={item.amount || ''}
-                            onChange={(e) => updateAmount(item.securityId, Number(e.target.value))}
-                            className="w-28 rounded border border-gray-700 bg-gray-900 px-2 py-1 text-right text-white text-sm outline-none focus:border-purple-500"
-                            placeholder="투자금액"
-                          />
-                          {/* 자동 계산 비중 */}
-                          <span className="text-xs text-gray-400 w-12 text-right shrink-0">
-                            {getItemWeight(item).toFixed(1)}%
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          {/* 비중 직접 입력 */}
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={item.weight || ''}
-                            onChange={(e) => updateWeight(item.securityId, Number(e.target.value))}
-                            className="w-20 rounded border border-gray-700 bg-gray-900 px-2 py-1 text-center text-white text-sm outline-none focus:border-purple-500"
-                            placeholder="0"
-                          />
-                          <span className="text-gray-500 text-sm shrink-0">%</span>
-                        </>
-                      )}
-                      {/* 평단가 입력 (선택) */}
-                      <input
-                        type="number"
-                        min={0}
-                        value={item.avgCost || ''}
-                        onChange={(e) => updateAvgCost(item.securityId, Number(e.target.value))}
-                        className="w-24 rounded border border-gray-700 bg-gray-900 px-2 py-1 text-right text-gray-300 text-sm outline-none focus:border-blue-500"
-                        placeholder="평단가"
-                      />
-
-                      {/* 삭제 */}
-                      <button
-                        onClick={() => removeItem(item.securityId)}
-                        className="text-gray-600 hover:text-red-400 transition-colors text-lg leading-none ml-1 shrink-0"
-                      >
-                        ×
-                      </button>
+                      {/* 입력 행 */}
+                      <div className="flex items-center gap-2">
+                        {inputMode === 'amount' ? (
+                          <>
+                            <input
+                              type="number"
+                              min={0}
+                              value={item.amount || ''}
+                              onChange={(e) => updateAmount(item.securityId, Number(e.target.value))}
+                              className="flex-1 min-w-0 rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-right text-white text-sm outline-none focus:border-purple-500"
+                              placeholder="투자금액"
+                            />
+                            <span className="text-xs text-gray-400 w-12 text-right shrink-0">
+                              {getItemWeight(item).toFixed(1)}%
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={item.weight || ''}
+                              onChange={(e) => updateWeight(item.securityId, Number(e.target.value))}
+                              className="w-20 rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-center text-white text-sm outline-none focus:border-purple-500"
+                              placeholder="0"
+                            />
+                            <span className="text-gray-500 text-sm shrink-0">%</span>
+                          </>
+                        )}
+                        <input
+                          type="number"
+                          min={0}
+                          value={item.avgCost || ''}
+                          onChange={(e) => updateAvgCost(item.securityId, Number(e.target.value))}
+                          className="w-24 rounded border border-gray-700 bg-gray-900 px-2 py-1.5 text-right text-gray-400 text-sm outline-none focus:border-blue-500"
+                          placeholder="평단가(선택)"
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -516,13 +533,20 @@ export default function AnalyzerPage() {
           </div>
 
           {/* ── 결과 패널 ── */}
-          <div className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
+          <div className={`${activeTab !== 'result' ? 'hidden lg:block' : ''} rounded-2xl border border-gray-800 bg-gray-900 p-4 sm:p-6`}>
             <h2 className="text-xl font-bold mb-6 text-gray-200">분석 결과</h2>
 
             {!analysis ? (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-600 border border-dashed border-gray-800 rounded-xl">
+              <div className="flex flex-col items-center justify-center h-64 text-gray-600 border border-dashed border-gray-800 rounded-xl px-4">
                 <div className="text-5xl mb-3">📊</div>
-                <p className="text-center">왼쪽에서 종목을 추가하고<br />분석을 실행하세요.</p>
+                <p className="text-center text-sm">종목을 추가하고<br /><span className="text-purple-500 font-semibold">Analyze Portfolio</span>를 눌러보세요</p>
+                <p className="text-center text-xs mt-2 text-gray-700">건강점수 · 리밸런싱 · 벤치마크 비교 제공</p>
+                <button
+                  onClick={() => setActiveTab('input')}
+                  className="lg:hidden mt-4 text-xs text-purple-400 border border-purple-800 rounded-lg px-4 py-2 hover:bg-purple-950/40 transition-colors"
+                >
+                  ← 종목 입력하러 가기
+                </button>
               </div>
             ) : (
               <div className="space-y-4">

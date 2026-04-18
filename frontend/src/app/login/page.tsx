@@ -40,10 +40,15 @@ export default function LoginPage() {
     <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-white mb-1">
             Portfolio <span className="text-purple-400">Doctor</span>
           </h1>
-          <p className="text-gray-500 text-sm mt-1">로그인하여 내 포트폴리오를 관리하세요</p>
+          <p className="text-gray-400 text-sm">내 투자 포트폴리오를 진단하고 최적화하세요</p>
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            <span className="text-xs bg-gray-800 text-gray-300 px-3 py-1.5 rounded-full border border-gray-700">📊 건강점수 진단</span>
+            <span className="text-xs bg-gray-800 text-gray-300 px-3 py-1.5 rounded-full border border-gray-700">🔄 리밸런싱 추천</span>
+            <span className="text-xs bg-gray-800 text-gray-300 px-3 py-1.5 rounded-full border border-gray-700">📈 벤치마크 비교</span>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

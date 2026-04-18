@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   addPortfolioItem,
   analyzePortfolio,
@@ -20,10 +21,13 @@ import {
   ScoreRule,
   Security,
 } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 type InputMode = 'amount' | 'weight';
 
 export default function AnalyzerPage() {
+  const router = useRouter();
+  const { user, logout, isLoggedIn } = useAuth();
   const [portfolioName, setPortfolioName] = useState('My Portfolio');
   const [inputMode, setInputMode] = useState<InputMode>('amount');
 
@@ -73,11 +77,15 @@ export default function AnalyzerPage() {
   };
 
   useEffect(() => {
+    if (!isLoggedIn) {
+      router.replace('/login');
+      return;
+    }
     loadSavedPortfolios();
     getDataFreshness()
       .then((d) => setLastPriceDate(d.lastPriceDate))
       .catch(() => {});
-  }, []);
+  }, [isLoggedIn]);
 
   // ── 검색 ──────────────────────────────────────────────────────────────────
   const handleSearch = async () => {
@@ -252,12 +260,23 @@ export default function AnalyzerPage() {
             </h1>
             <p className="text-gray-400 mt-1">종목과 투자금액을 입력하고 포트폴리오를 분석하세요.</p>
           </div>
-          {lastPriceDate && (
-            <div className="shrink-0 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-right">
-              <div className="text-xs text-gray-500">마지막 데이터 업데이트</div>
-              <div className="text-sm font-semibold text-gray-300">{lastPriceDate}</div>
+          <div className="flex items-center gap-3 shrink-0">
+            {lastPriceDate && (
+              <div className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-right">
+                <div className="text-xs text-gray-500">마지막 데이터 업데이트</div>
+                <div className="text-sm font-semibold text-gray-300">{lastPriceDate}</div>
+              </div>
+            )}
+            <div className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2">
+              <span className="text-xs text-gray-400">{user?.name}</span>
+              <button
+                onClick={() => { logout(); router.push('/login'); }}
+                className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+              >
+                로그아웃
+              </button>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_1fr] gap-6">

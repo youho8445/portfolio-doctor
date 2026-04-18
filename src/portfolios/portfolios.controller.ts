@@ -6,45 +6,50 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PortfoliosService } from './portfolios.service';
 import { CreatePortfolioDto } from './dto/create-portfolio.dto';
 import { AddPortfolioItemDto } from './dto/add-portfolio-item.dto';
 
+@UseGuards(JwtAuthGuard)
 @Controller('portfolios')
 export class PortfoliosController {
   constructor(private readonly portfoliosService: PortfoliosService) {}
 
   @Post()
-  create(@Body() dto: CreatePortfolioDto) {
-    return this.portfoliosService.create(dto);
+  create(@Body() dto: CreatePortfolioDto, @Req() req: { user: { id: number } }) {
+    return this.portfoliosService.create(dto, req.user.id);
   }
 
   @Get()
-  findAll() {
-    return this.portfoliosService.findAll();
+  findAll(@Req() req: { user: { id: number } }) {
+    return this.portfoliosService.findAll(req.user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.portfoliosService.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: { user: { id: number } }) {
+    return this.portfoliosService.findOne(id, req.user.id);
   }
 
   @Post(':id/items')
   addItem(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AddPortfolioItemDto,
+    @Req() req: { user: { id: number } },
   ) {
-    return this.portfoliosService.addItem(id, dto);
+    return this.portfoliosService.addItem(id, dto, req.user.id);
   }
 
   @Delete(':id')
-  delete(@Param('id', ParseIntPipe) id: number) {
-    return this.portfoliosService.delete(id);
+  delete(@Param('id', ParseIntPipe) id: number, @Req() req: { user: { id: number } }) {
+    return this.portfoliosService.delete(id, req.user.id);
   }
 
   @Get(':id/items')
-  findItems(@Param('id', ParseIntPipe) id: number) {
-    return this.portfoliosService.findItems(id);
+  findItems(@Param('id', ParseIntPipe) id: number, @Req() req: { user: { id: number } }) {
+    return this.portfoliosService.findItems(id, req.user.id);
   }
 }

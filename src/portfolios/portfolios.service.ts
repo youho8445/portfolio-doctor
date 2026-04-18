@@ -18,31 +18,30 @@ export class PortfoliosService {
     private readonly securityRepository: Repository<Security>,
   ) {}
 
-  async create(dto: CreatePortfolioDto) {
-    const portfolio = this.portfolioRepository.create({ name: dto.name });
+  async create(dto: CreatePortfolioDto, userId: number) {
+    const portfolio = this.portfolioRepository.create({ name: dto.name, userId });
     return this.portfolioRepository.save(portfolio);
   }
 
-  async findAll() {
-    return this.portfolioRepository.find({ order: { id: 'DESC' } });
+  async findAll(userId: number) {
+    return this.portfolioRepository.find({
+      where: { userId },
+      order: { id: 'DESC' },
+    });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, userId: number) {
     const portfolio = await this.portfolioRepository.findOne({
-      where: { id },
+      where: { id, userId },
       relations: ['items'],
     });
-
-    if (!portfolio) {
-      throw new NotFoundException('Portfolio not found');
-    }
-
+    if (!portfolio) throw new NotFoundException('Portfolio not found');
     return portfolio;
   }
 
-  async addItem(portfolioId: number, dto: AddPortfolioItemDto) {
+  async addItem(portfolioId: number, dto: AddPortfolioItemDto, userId: number) {
     const portfolio = await this.portfolioRepository.findOne({
-      where: { id: portfolioId },
+      where: { id: portfolioId, userId },
     });
     if (!portfolio) throw new NotFoundException('Portfolio not found');
 
@@ -71,7 +70,6 @@ export class PortfoliosService {
       await this.portfolioItemRepository.save(item);
     }
 
-    // amount 기반이면 포트폴리오 전체 비중을 재계산
     if (dto.amount !== undefined) {
       await this.recalculateWeightsFromAmounts(portfolioId);
     }
@@ -92,24 +90,19 @@ export class PortfoliosService {
     await this.portfolioItemRepository.save(items);
   }
 
-  async delete(id: number) {
-    const portfolio = await this.portfolioRepository.findOne({ where: { id } });
-    if (!portfolio) {
-      throw new NotFoundException('Portfolio not found');
-    }
+  async delete(id: number, userId: number) {
+    const portfolio = await this.portfolioRepository.findOne({ where: { id, userId } });
+    if (!portfolio) throw new NotFoundException('Portfolio not found');
     await this.portfolioItemRepository.delete({ portfolioId: id });
     await this.portfolioRepository.delete(id);
     return { success: true };
   }
 
-  async findItems(portfolioId: number) {
+  async findItems(portfolioId: number, userId: number) {
     const portfolio = await this.portfolioRepository.findOne({
-      where: { id: portfolioId },
+      where: { id: portfolioId, userId },
     });
-    if (!portfolio) {
-      throw new NotFoundException('Portfolio not found');
-    }
-
+    if (!portfolio) throw new NotFoundException('Portfolio not found');
     return this.portfolioItemRepository.find({
       where: { portfolioId },
       order: { id: 'ASC' },

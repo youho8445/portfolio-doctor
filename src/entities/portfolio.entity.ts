@@ -6,6 +6,9 @@ export class Portfolio {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column()
+  userId: number;
+
   @Column({ length: 100 })
   name: string;
 

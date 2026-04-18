@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
+import { AuthModule } from './auth/auth.module';
 import { PortfoliosModule } from './portfolios/portfolios.module';
 import { SecuritiesModule } from './securities/securities.module';
 import { PricesModule } from './prices/prices.module';
@@ -26,6 +27,7 @@ import { AnalysisModule } from './analysis/analysis.module';
         synchronize: true,
       }),
     }),
+    AuthModule,
     PortfoliosModule,
     SecuritiesModule,
     PricesModule,

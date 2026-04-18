@@ -1,5 +1,15 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+function getToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token');
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function getSecurities(query?: string) {
   const url = query
     ? `${API_BASE_URL}/securities?q=${encodeURIComponent(query)}`
@@ -13,7 +23,7 @@ export async function getSecurities(query?: string) {
 export async function createPortfolio(name: string) {
   const res = await fetch(`${API_BASE_URL}/portfolios`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ name }),
   });
   if (!res.ok) throw new Error('Failed to create portfolio');
@@ -27,7 +37,7 @@ export async function addPortfolioItem(
 ) {
   const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/items`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ securityId, ...options }),
   });
   if (!res.ok) throw new Error('Failed to add portfolio item');
@@ -44,7 +54,10 @@ export async function getDataFreshness(): Promise<{
 }
 
 export async function getPortfolios() {
-  const res = await fetch(`${API_BASE_URL}/portfolios`, { cache: 'no-store' });
+  const res = await fetch(`${API_BASE_URL}/portfolios`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error('Failed to fetch portfolios');
   return res.json();
 }
@@ -52,13 +65,17 @@ export async function getPortfolios() {
 export async function deletePortfolio(portfolioId: number) {
   const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}`, {
     method: 'DELETE',
+    headers: authHeaders(),
   });
   if (!res.ok) throw new Error(`DELETE /portfolios/${portfolioId} → ${res.status}`);
   return res.json();
 }
 
 export async function getPortfolioItems(portfolioId: number) {
-  const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/items`, { cache: 'no-store' });
+  const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/items`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error('Failed to fetch portfolio items');
   return res.json();
 }
@@ -70,7 +87,7 @@ export async function analyzePortfolio(
 ) {
   const res = await fetch(`${API_BASE_URL}/analysis/portfolios/${portfolioId}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ period, benchmarkCode }),
   });
   if (!res.ok) throw new Error('Failed to analyze portfolio');

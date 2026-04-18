@@ -50,6 +50,34 @@ export default function AnalyzerPage() {
   const [lastPriceDate, setLastPriceDate] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'input' | 'result'>('input');
 
+  // ── ticker → 한글명 룩업 ──────────────────────────────────────────────────
+  const tickerNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const item of items) {
+      map[item.ticker] = item.displayNameKo ?? item.name ?? item.ticker;
+    }
+    return map;
+  }, [items]);
+
+  // ── 섹터 한글 매핑 ─────────────────────────────────────────────────────────
+  const sectorKo: Record<string, string> = {
+    'Information Technology': 'IT',
+    'Financials': '금융',
+    'Health Care': '헬스케어',
+    'Consumer Discretionary': '경기소비재',
+    'Communication Services': '커뮤니케이션',
+    'Industrials': '산업재',
+    'Consumer Staples': '필수소비재',
+    'Energy': '에너지',
+    'Materials': '소재',
+    'Real Estate': '부동산',
+    'Utilities': '유틸리티',
+    'Unknown': '기타',
+    'ETF': 'ETF',
+    'Cash': '현금',
+  };
+  const sectorLabel = (s: string) => sectorKo[s] ?? s;
+
   // ── 합산 ──────────────────────────────────────────────────────────────────
   const totalAmount = useMemo(
     () => items.reduce((sum, item) => sum + Number(item.amount || 0), 0),
@@ -667,7 +695,7 @@ export default function AnalyzerPage() {
                     <div className="space-y-2 pt-1 border-t border-indigo-900/50">
                       {analysis.personalReturns.map((r: PersonalReturn) => (
                         <div key={r.ticker} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400 font-semibold w-20 shrink-0">{r.ticker}</span>
+                          <span className="text-gray-400 font-semibold w-24 shrink-0 truncate">{tickerNameMap[r.ticker] || r.ticker}</span>
                           <div className="flex-1 mx-2 h-1.5 bg-gray-800 rounded-full overflow-hidden">
                             <div
                               className={`h-1.5 rounded-full ${r.returnPct >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
@@ -690,7 +718,7 @@ export default function AnalyzerPage() {
                     {analysis.sectorExposure.map((s) => (
                       <div key={s.sector}>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-300">{s.sector}</span>
+                          <span className="text-gray-300">{sectorLabel(s.sector)}</span>
                           <span className="text-white font-semibold">{Number(s.weight).toFixed(1)}%</span>
                         </div>
                         <div className="h-1.5 bg-gray-800 rounded-full">

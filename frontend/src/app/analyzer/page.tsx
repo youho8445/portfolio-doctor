@@ -858,42 +858,80 @@ export default function AnalyzerPage() {
                     )}
 
                     {/* ── 5. 상세 리밸런싱 (프리미엄 잠금) ── */}
-                    {analysis.rebalanceResult && (
-                      <div className="relative rounded-xl border border-emerald-900 bg-emerald-950/20 overflow-hidden">
-                        {/* 콘텐츠 (프리미엄일 때만 완전 표시) */}
-                        <div className={isPremium ? '' : 'select-none pointer-events-none'}>
-                          <div className={`p-4 space-y-3 ${isPremium ? '' : 'blur-sm'}`}>
-                            <div className="text-sm font-bold text-emerald-300">🔄 상세 리밸런싱 가이드</div>
-                            <p className="text-sm text-gray-200">{analysis.rebalanceResult.summary}</p>
-                            {analysis.rebalanceResult.actions.map((action: RebalanceAction, i: number) => (
-                              <div key={action.ticker} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 border ${action.type === 'reduce' ? 'border-red-900/60 bg-red-950/25' : 'border-emerald-900/60 bg-emerald-950/25'}`}>
-                                <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${action.type === 'reduce' ? 'bg-red-900 text-red-300' : 'bg-emerald-900 text-emerald-300'}`}>{i + 1}</div>
-                                <span className="text-sm text-white font-medium flex-1">{action.text}</span>
-                                <span className={`shrink-0 font-bold ${action.type === 'reduce' ? 'text-red-400' : 'text-emerald-400'}`}>{action.type === 'reduce' ? '↓' : '↑'}</span>
+                    {analysis.rebalanceResult && (() => {
+                      const scoreDelta = analysis.rebalanceResult!.improvedScore - analysis.rebalanceResult!.currentScore;
+                      return (
+                        <div className="rounded-xl border border-gray-700 overflow-hidden">
+
+                          {/* 개선 효과 예고 — 잠금 여부 관계없이 항상 노출 */}
+                          <div className="bg-gradient-to-r from-purple-950/70 to-emerald-950/70 border-b border-gray-700 px-4 py-3">
+                            {scoreDelta > 0 ? (
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-[11px] text-gray-400 mb-0.5">이대로 바꾸면</div>
+                                  <div className="text-white font-bold text-sm">
+                                    분산도&nbsp;
+                                    <span className="text-red-400 font-black">{analysis.rebalanceResult!.currentScore}</span>
+                                    <span className="text-gray-500 mx-1.5">→</span>
+                                    <span className="text-emerald-400 font-black">{analysis.rebalanceResult!.improvedScore}</span>
+                                    <span className="text-emerald-300 font-black ml-2">(+{scoreDelta}점)</span>
+                                  </div>
+                                  <div className="text-[11px] text-gray-400 mt-0.5">리스크가 크게 줄어듭니다</div>
+                                </div>
+                                <div className="text-center shrink-0 ml-4 bg-emerald-950/60 border border-emerald-800 rounded-xl px-3 py-2">
+                                  <div className="text-2xl font-black text-emerald-400 leading-none">+{scoreDelta}</div>
+                                  <div className="text-[10px] text-emerald-600 mt-0.5">개선 가능</div>
+                                </div>
                               </div>
-                            ))}
-                            <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-4 py-3">
-                              <div className="text-xs text-gray-500 mb-1">개선 효과</div>
-                              <div className="text-sm text-white font-semibold">{analysis.rebalanceResult.beforeAfterSummary}</div>
+                            ) : (
+                              <div className="text-sm text-gray-300 font-semibold">포트폴리오가 이미 최적화되어 있습니다</div>
+                            )}
+                          </div>
+
+                          {/* 콘텐츠 + 오버레이 */}
+                          <div className="relative">
+                            {/* 블러 미리보기 */}
+                            <div className="select-none pointer-events-none">
+                              <div className="blur-[3px] p-4 space-y-2.5 opacity-50">
+                                <div className="text-sm font-bold text-emerald-300">🔄 단계별 실행 계획</div>
+                                {analysis.rebalanceResult!.actions.map((action: RebalanceAction, i: number) => (
+                                  <div key={action.ticker} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 border ${action.type === 'reduce' ? 'border-red-900/60 bg-red-950/25' : 'border-emerald-900/60 bg-emerald-950/25'}`}>
+                                    <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${action.type === 'reduce' ? 'bg-red-900 text-red-300' : 'bg-emerald-900 text-emerald-300'}`}>{i + 1}</div>
+                                    <span className="text-sm text-white flex-1">{action.text}</span>
+                                  </div>
+                                ))}
+                                <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-4 py-3">
+                                  <div className="text-xs text-gray-500 mb-1">Before / After 시뮬레이션</div>
+                                  <div className="text-sm text-white font-semibold">{analysis.rebalanceResult!.beforeAfterSummary}</div>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500 leading-relaxed">
-                              <span className="text-gray-400 font-semibold">💡 </span>{analysis.rebalanceResult.whyItMatters}
-                            </div>
+
+                            {/* 잠금 오버레이 */}
+                            {!isPremium && (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-950/75 backdrop-blur-[1px]">
+                                <div className="text-center px-5">
+                                  {scoreDelta > 0 && (
+                                    <div className="mb-3 inline-flex items-center gap-1.5 bg-emerald-950 border border-emerald-700 rounded-full px-3 py-1">
+                                      <span className="text-emerald-400 text-xs">점수</span>
+                                      <span className="text-emerald-300 font-black text-sm">+{scoreDelta} 개선 가능</span>
+                                    </div>
+                                  )}
+                                  <div className="text-white font-bold text-sm mb-1">더 안전한 포트폴리오로 변경</div>
+                                  <div className="text-gray-400 text-xs mb-4 leading-relaxed">
+                                    구체적 비율 · Before/After 시뮬레이션<br />미래 리스크 분석 포함
+                                  </div>
+                                  <button className="w-full bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold px-5 py-2.5 rounded-xl transition-all text-sm mb-1.5">
+                                    프리미엄으로 보기 — ₩2,900
+                                  </button>
+                                  <div className="text-[10px] text-gray-600">단건 결제 · 구독 아님 · 즉시 열람</div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        {/* 프리미엄 오버레이 */}
-                        {!isPremium && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-950/80 backdrop-blur-[2px] rounded-xl">
-                            <div className="text-2xl mb-2">🔒</div>
-                            <div className="text-white font-bold text-sm mb-1">상세 리밸런싱 가이드</div>
-                            <div className="text-gray-400 text-xs mb-4 text-center px-6">포트폴리오 최적화 전략과<br />예상 개선 효과를 확인하세요</div>
-                            <button className="bg-purple-600 hover:bg-purple-500 text-white text-sm font-bold px-5 py-2 rounded-lg transition-colors">
-                              프리미엄 업그레이드
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })()}
 
                   </div>
                 )}

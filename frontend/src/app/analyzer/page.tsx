@@ -733,79 +733,65 @@ export default function AnalyzerPage() {
                   </div>
                 )}
 
-                {/* 리밸런싱 추천 엔진 */}
+                {/* 리밸런싱 가이드 */}
                 {analysis.rebalanceResult && (
                   <div className="rounded-xl border border-emerald-900 bg-emerald-950/20 p-4 space-y-4">
 
-                    {/* 헤더 + 점수 개선 */}
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-bold text-emerald-300">🔄 리밸런싱 가이드</div>
-                      <div className="flex items-center gap-1.5 text-xs">
-                        <span className="text-gray-500">{analysis.rebalanceResult.currentScore}점</span>
-                        <span className="text-gray-600">→</span>
-                        <span className="text-emerald-400 font-bold">{analysis.rebalanceResult.improvedScore}점</span>
-                      </div>
-                    </div>
+                    {/* 헤더 */}
+                    <div className="text-sm font-bold text-emerald-300">🔄 리밸런싱 가이드</div>
 
                     {/* 한 줄 요약 */}
-                    <div className="rounded-lg bg-emerald-950/40 border border-emerald-800/50 px-4 py-3">
-                      <div className="text-sm text-white font-medium">{analysis.rebalanceResult.finalConclusion}</div>
-                    </div>
+                    <p className="text-sm text-gray-200">{analysis.rebalanceResult.summary}</p>
 
-                    {/* 핵심: 추천 변경 액션 */}
-                    {analysis.rebalanceResult.actions.length > 0 && (
-                      <div>
-                        <div className="text-xs text-gray-400 font-semibold mb-2">📌 추천 변경</div>
-                        <div className="space-y-2">
-                          {analysis.rebalanceResult.actions.map((action: RebalanceAction) => (
-                            <div
-                              key={action.ticker}
-                              className={`flex items-center justify-between rounded-lg px-3 py-2.5 border ${
-                                action.type === 'reduce'
-                                  ? 'border-red-900/60 bg-red-950/30'
-                                  : 'border-emerald-900/60 bg-emerald-950/30'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className={`text-base shrink-0 ${action.type === 'reduce' ? 'text-red-400' : 'text-emerald-400'}`}>
-                                  {action.type === 'reduce' ? '↓' : '↑'}
-                                </span>
-                                <div className="min-w-0">
-                                  <span className="font-bold text-white text-sm">{action.ticker}</span>
-                                  {action.isNew ?? action.from === 0 ? (
-                                    <span className="ml-1.5 text-[10px] bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded">NEW</span>
-                                  ) : null}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-sm font-semibold shrink-0">
-                                {action.from > 0 && (
-                                  <span className="text-gray-500">{action.from}%</span>
-                                )}
-                                {action.from > 0 && <span className="text-gray-700">→</span>}
-                                <span className={action.type === 'reduce' ? 'text-red-400' : 'text-emerald-400'}>
-                                  {action.to}%
-                                </span>
-                                <span className={`text-xs ml-1 ${action.type === 'reduce' ? 'text-red-600' : 'text-emerald-600'}`}>
-                                  ({action.delta > 0 ? '+' : ''}{action.delta}%)
-                                </span>
-                              </div>
+                    {/* 지금 해야 할 행동 */}
+                    {analysis.rebalanceResult.actions.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">지금 해야 할 행동</div>
+                        {analysis.rebalanceResult.actions.map((action: RebalanceAction, i: number) => (
+                          <div
+                            key={action.ticker}
+                            className={`flex items-center gap-3 rounded-lg px-3 py-3 border ${
+                              action.type === 'reduce'
+                                ? 'border-red-900/60 bg-red-950/25'
+                                : 'border-emerald-900/60 bg-emerald-950/25'
+                            }`}
+                          >
+                            {/* 번호 */}
+                            <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                              action.type === 'reduce' ? 'bg-red-900 text-red-300' : 'bg-emerald-900 text-emerald-300'
+                            }`}>
+                              {i + 1}
                             </div>
-                          ))}
-                        </div>
+                            {/* 설명 */}
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm text-white font-medium">{action.text}</span>
+                              {action.from === 0 && (
+                                <span className="ml-2 text-[10px] bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded align-middle">신규</span>
+                              )}
+                            </div>
+                            {/* 화살표 표시 */}
+                            <div className={`shrink-0 text-base font-bold ${action.type === 'reduce' ? 'text-red-400' : 'text-emerald-400'}`}>
+                              {action.type === 'reduce' ? '↓' : '↑'}
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">현재 구성을 유지하세요.</p>
                     )}
 
                     {/* 개선 효과 */}
-                    <div className="rounded-lg bg-gray-900/60 px-4 py-3">
-                      <div className="text-xs text-gray-500 mb-1 font-medium">결과</div>
-                      <div className="text-sm text-emerald-300 font-semibold">{analysis.rebalanceResult.beforeAfterSummary}</div>
+                    <div className="rounded-lg border border-gray-800 bg-gray-900/60 px-4 py-3">
+                      <div className="text-xs text-gray-500 mb-1.5 font-semibold uppercase tracking-wide">개선 효과</div>
+                      <div className="text-sm text-white font-semibold">{analysis.rebalanceResult.beforeAfterSummary}</div>
                     </div>
 
-                    {/* Why it matters */}
-                    <div className="text-xs text-gray-500 leading-relaxed border-t border-gray-800 pt-3">
-                      <span className="text-gray-400 font-medium">💡 왜 중요할까요? </span>
+                    {/* 왜 중요한가 */}
+                    <div className="text-xs text-gray-500 leading-relaxed">
+                      <span className="text-gray-400 font-semibold">💡 한 줄 요약  </span>
                       {analysis.rebalanceResult.whyItMatters}
                     </div>
+
                   </div>
                 )}
 

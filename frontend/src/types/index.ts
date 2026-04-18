@@ -50,20 +50,20 @@ export type RebalanceSuggestion = {
 
 export type RebalanceAction = {
   ticker: string;
+  label: string;
   type: 'reduce' | 'add';
   from: number;
   to: number;
   delta: number;
+  text: string;
 };
 
 export type RebalanceResult = {
   currentScore: number;
   improvedScore: number;
-  recommendations: string[];
-  suggestedPortfolio: RebalanceSuggestion[];
   actions: RebalanceAction[];
-  finalConclusion: string;
-  topActions: string[];
+  suggestedPortfolio: RebalanceSuggestion[];
+  summary: string;
   beforeAfterSummary: string;
   whyItMatters: string;
 };

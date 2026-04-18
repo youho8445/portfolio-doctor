@@ -42,6 +42,19 @@ export type SavedPortfolioItem = {
   };
 };
 
+export type RebalanceSuggestion = {
+  ticker: string;
+  weight: number;
+  isNew: boolean;
+};
+
+export type RebalanceResult = {
+  currentScore: number;
+  improvedScore: number;
+  recommendations: string[];
+  suggestedPortfolio: RebalanceSuggestion[];
+};
+
 export type ScoreRule = {
   label: string;
   passed: boolean;
@@ -73,4 +86,5 @@ export type AnalysisResult = {
   insights: string[];
   rebalanceHints: string[];
   portfolioStyle: string;
+  rebalanceResult: RebalanceResult | null;
 };

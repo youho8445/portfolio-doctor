@@ -8,6 +8,7 @@ import { Benchmark } from '../entities/benchmark.entity';
 import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { computeScore, ItemMeta } from './score.engine';
 import { computeInsights } from './insights.engine';
+import { computeRebalance } from './rebalance.engine';
 
 @Injectable()
 export class AnalysisService {
@@ -214,6 +215,13 @@ export class AnalysisService {
         benchmarkReturn,
       });
 
+    // ── 리밸런싱 엔진 ──
+    const rebalanceResult = computeRebalance({
+      items: itemMetas,
+      currentScore: diversificationScore,
+      sectorExposure,
+    });
+
     return {
       portfolioId,
       portfolioName: portfolio.name,
@@ -233,6 +241,7 @@ export class AnalysisService {
       insights,
       rebalanceHints,
       portfolioStyle,
+      rebalanceResult,
     };
   }
 

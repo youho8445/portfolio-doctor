@@ -1,5 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Security } from '../entities/security.entity';
@@ -20,8 +19,9 @@ export interface FetchResult {
 }
 
 @Injectable()
-export class PriceFetchService {
+export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PriceFetchService.name);
+  private timer: ReturnType<typeof setInterval> | null = null;
 
   private result: FetchResult = {
     status: 'idle',
@@ -44,15 +44,29 @@ export class PriceFetchService {
     private readonly dataSource: DataSource,
   ) {}
 
-  getStatus(): FetchResult {
-    return { ...this.result };
+  onModuleInit() {
+    // 1시간마다 체크 — 평일 오전 8시 UTC(한국 오후 5시)에 실행
+    this.timer = setInterval(() => this.checkAndRun(), 60 * 60 * 1000);
+    this.logger.log('PriceFetchService 스케줄러 시작 (1시간 간격 체크)');
   }
 
-  // 평일 오전 8시 (UTC) = 한국시간 오후 5시 (장 마감 후)
-  @Cron('0 8 * * 1-5')
-  async scheduledFetch() {
-    this.logger.log('[Cron] 자동 가격 수집 시작');
-    await this.runFetch();
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  private checkAndRun() {
+    const now = new Date();
+    const day = now.getUTCDay(); // 0=일, 6=토
+    const hour = now.getUTCHours();
+    // 평일(1~5) 오전 8시 UTC
+    if (day >= 1 && day <= 5 && hour === 8) {
+      this.logger.log('[Cron] 자동 가격 수집 시작');
+      void this.runFetch();
+    }
+  }
+
+  getStatus(): FetchResult {
+    return { ...this.result };
   }
 
   async runFetch(): Promise<FetchResult> {
@@ -80,10 +94,7 @@ export class PriceFetchService {
       for (const sec of securities) {
         try {
           const rows = await this.fetchSecurityPrice(sec.ticker);
-          if (rows.length === 0) {
-            this.result.skipped++;
-            continue;
-          }
+          if (rows.length === 0) { this.result.skipped++; continue; }
           await this.upsertPrices(sec.id, rows);
           this.result.success++;
           this.result.totalRows += rows.length;
@@ -95,10 +106,7 @@ export class PriceFetchService {
         }
       }
 
-      // SP500 벤치마크
-      const benchRows = await this.fetchBenchmark();
-      this.result.totalRows += benchRows;
-
+      this.result.totalRows += await this.fetchBenchmark();
       this.result.status = 'done';
     } catch (e) {
       this.result.status = 'error';
@@ -113,17 +121,15 @@ export class PriceFetchService {
 
   private async fetchSecurityPrice(ticker: string): Promise<{ tradeDate: string; close: number; volume: number }[]> {
     const { default: yahooFinance } = await import('yahoo-finance2');
-    const data = await (yahooFinance as any).historical(ticker, {
+    const data: any[] = await (yahooFinance as any).historical(ticker, {
       period1: this.oneYearAgo(),
       period2: new Date(),
       interval: '1d',
     }, { validateResult: false }).catch(() => []);
 
-    if (!data || data.length === 0) return [];
-
     return data
-      .filter((d: any) => d.close != null)
-      .map((d: any) => ({
+      .filter((d) => d.close != null)
+      .map((d) => ({
         tradeDate: new Date(d.date).toISOString().slice(0, 10),
         close: Math.round(d.close * 10000) / 10000,
         volume: d.volume ?? 0,
@@ -131,7 +137,7 @@ export class PriceFetchService {
   }
 
   private async upsertPrices(securityId: number, rows: { tradeDate: string; close: number; volume: number }[]) {
-    if (rows.length === 0) return;
+    if (!rows.length) return;
     await this.dataSource.query(
       `INSERT INTO price_daily (securityId, tradeDate, close, volume)
        VALUES ${rows.map(() => '(?,?,?,?)').join(',')}
@@ -142,40 +148,33 @@ export class PriceFetchService {
 
   private async fetchBenchmark(): Promise<number> {
     try {
-      let benchmark = await this.benchmarkRepo.findOne({ where: { code: 'SP500' } });
-      if (!benchmark) {
-        benchmark = await this.benchmarkRepo.save(this.benchmarkRepo.create({ code: 'SP500', name: 'S&P 500' }));
-      }
+      let bm = await this.benchmarkRepo.findOne({ where: { code: 'SP500' } });
+      if (!bm) bm = await this.benchmarkRepo.save(this.benchmarkRepo.create({ code: 'SP500', name: 'S&P 500' }));
 
       const { default: yahooFinance } = await import('yahoo-finance2');
-      const data = await (yahooFinance as any).historical('^GSPC', {
+      const data: any[] = await (yahooFinance as any).historical('^GSPC', {
         period1: this.oneYearAgo(),
         period2: new Date(),
         interval: '1d',
       }, { validateResult: false }).catch(() => []);
 
-      if (!data || data.length === 0) return 0;
+      const rows = data.filter((d) => d.close != null).map((d) => ({
+        tradeDate: new Date(d.date).toISOString().slice(0, 10),
+        close: Math.round(d.close * 10000) / 10000,
+      }));
 
-      const rows = data
-        .filter((d: any) => d.close != null)
-        .map((d: any) => ({
-          tradeDate: new Date(d.date).toISOString().slice(0, 10),
-          close: Math.round(d.close * 10000) / 10000,
-        }));
-
-      if (rows.length > 0) {
+      if (rows.length) {
         await this.dataSource.query(
           `INSERT INTO benchmark_price_daily (benchmarkId, tradeDate, close)
            VALUES ${rows.map(() => '(?,?,?)').join(',')}
            ON DUPLICATE KEY UPDATE close = VALUES(close)`,
-          rows.flatMap((r: any) => [benchmark!.id, r.tradeDate, r.close]),
+          rows.flatMap((r) => [bm!.id, r.tradeDate, r.close]),
         );
       }
-
-      this.logger.log(`[OK] SP500 벤치마크 — ${rows.length}건`);
+      this.logger.log(`[OK] SP500 — ${rows.length}건`);
       return rows.length;
     } catch (e) {
-      this.logger.error(`[ERROR] SP500 벤치마크: ${e}`);
+      this.logger.error(`SP500 벤치마크 오류: ${e}`);
       return 0;
     }
   }

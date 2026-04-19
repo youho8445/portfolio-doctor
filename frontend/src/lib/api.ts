@@ -133,6 +133,34 @@ export async function setAdminBillingMode(mode: 'FREE' | 'SOFT_PAYWALL' | 'PAID'
   if (!res.ok) throw new Error('Failed to set billing mode');
 }
 
+export interface PriceFetchStatus {
+  status: 'idle' | 'running' | 'done' | 'error';
+  startedAt: string | null;
+  finishedAt: string | null;
+  success: number;
+  failed: number;
+  skipped: number;
+  totalRows: number;
+  failedTickers: string[];
+  errorMessage: string | null;
+}
+
+export async function getPriceFetchStatus(): Promise<PriceFetchStatus> {
+  const res = await fetch(`${API_BASE_URL}/admin/prices/status`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch status');
+  return res.json();
+}
+
+export async function runPriceFetch(): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/admin/prices/run`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to start price fetch');
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

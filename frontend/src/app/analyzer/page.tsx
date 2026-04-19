@@ -29,90 +29,91 @@ import { useAuth } from '@/contexts/AuthContext';
 type InputMode = 'amount' | 'weight';
 
 // ── 아이콘 ────────────────────────────────────────────────────────────────────
-function IconGrid({ className = '' }: { className?: string }) {
+type IconProps = { className?: string; style?: React.CSSProperties };
+function IconGrid({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
       <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
     </svg>
   );
 }
-function IconPieChart({ className = '' }: { className?: string }) {
+function IconPieChart({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
     </svg>
   );
 }
-function IconShield({ className = '' }: { className?: string }) {
+function IconShield({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
     </svg>
   );
 }
-function IconBarChart({ className = '' }: { className?: string }) {
+function IconBarChart({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
       <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
     </svg>
   );
 }
-function IconLogOut({ className = '' }: { className?: string }) {
+function IconLogOut({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
       <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
     </svg>
   );
 }
-function IconPlus({ className = '' }: { className?: string }) {
+function IconPlus({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
     </svg>
   );
 }
-function IconTrash({ className = '' }: { className?: string }) {
+function IconTrash({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
     </svg>
   );
 }
-function IconX({ className = '' }: { className?: string }) {
+function IconX({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   );
 }
-function IconCheck({ className = '' }: { className?: string }) {
+function IconCheck({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12"/>
     </svg>
   );
 }
-function IconWarning({ className = '' }: { className?: string }) {
+function IconWarning({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
       <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
   );
 }
-function IconLock({ className = '' }: { className?: string }) {
+function IconLock({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
   );
 }
-function IconArrowRight({ className = '' }: { className?: string }) {
+function IconArrowRight({ className = '', style }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
     </svg>
   );
@@ -506,7 +507,10 @@ export default function AnalyzerPage() {
           </div>
 
           {/* ── 콘텐츠 ── */}
-          <div className="flex-1 px-6 lg:px-10 py-6">
+          <div className="flex-1 px-6 lg:px-10 py-6 flex gap-6 items-start">
+
+            {/* ── 메인 콘텐츠 (탭) ── */}
+            <div className="flex-1 min-w-0">
 
             {/* ── 입력 탭 ── */}
             {activeTab === 'input' && (
@@ -976,83 +980,86 @@ export default function AnalyzerPage() {
                     </div>
                   )}
 
-                  {/* ── 시장 뉴스 ── */}
-                  <div className="rounded-2xl overflow-hidden" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div>
-                        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Market News</div>
-                        <div className="text-sm font-bold text-white mt-0.5">주식 · 투자 최신 뉴스</div>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#10b981' }} />
-                        <span className="text-[10px] font-semibold" style={{ color: '#10b981' }}>LIVE</span>
-                      </div>
-                    </div>
-
-                    {newsLoading ? (
-                      <div className="px-5 py-8 space-y-3">
-                        {[1,2,3,4,5].map((i) => (
-                          <div key={i} className="h-4 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.05)', width: `${70 + i * 5}%` }} />
-                        ))}
-                      </div>
-                    ) : news.length === 0 ? (
-                      <div className="px-5 py-8 text-center text-sm" style={{ color: '#4b5563' }}>뉴스를 불러오는 중입니다...</div>
-                    ) : (
-                      <div>
-                        {news.map((item, i) => (
-                          <a
-                            key={i}
-                            href={item.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-start gap-3 px-5 py-4 transition-all group"
-                            style={{ borderBottom: i < news.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
-                            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.06)')}
-                            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
-                          >
-                            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'rgba(139,92,246,0.12)', minWidth: 24 }}>
-                              <span className="text-[10px] font-black" style={{ color: '#8b5cf6' }}>{i + 1}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium leading-snug transition-colors" style={{ color: '#e5e7eb' }}
-                                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#c4b5fd')}
-                                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#e5e7eb')}
-                              >
-                                {item.title}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                {item.source && <span className="text-[10px] font-semibold" style={{ color: '#6b7280' }}>{item.source}</span>}
-                                {item.pubDate && (
-                                  <span className="text-[10px]" style={{ color: '#374151' }}>
-                                    {(() => {
-                                      try {
-                                        const d = new Date(item.pubDate);
-                                        const now = new Date();
-                                        const diff = Math.floor((now.getTime() - d.getTime()) / 60000);
-                                        if (diff < 60) return `${diff}분 전`;
-                                        if (diff < 1440) return `${Math.floor(diff / 60)}시간 전`;
-                                        return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-                                      } catch { return ''; }
-                                    })()}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                              className="shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              style={{ width: 14, height: 14, color: '#8b5cf6' }}>
-                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                            </svg>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
                 </div>
               );
             })()}
+
+            </div>{/* end flex-1 min-w-0 */}
+
+            {/* ── 뉴스 사이드 컬럼 (항상 표시) ── */}
+            <div className="hidden lg:block shrink-0 sticky top-14" style={{ width: 300 }}>
+              <div className="rounded-2xl overflow-hidden" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Market News</div>
+                    <div className="text-sm font-bold text-white mt-0.5">주식 · 투자 뉴스</div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#10b981' }} />
+                    <span className="text-[10px] font-semibold" style={{ color: '#10b981' }}>LIVE</span>
+                  </div>
+                </div>
+
+                {newsLoading ? (
+                  <div className="px-4 py-6 space-y-4">
+                    {[90, 75, 85, 70, 80].map((w, i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="h-3.5 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.06)', width: `${w}%` }} />
+                        <div className="h-3 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)', width: '50%' }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : news.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-xs" style={{ color: '#4b5563' }}>뉴스를 불러올 수 없습니다</div>
+                ) : (
+                  <div>
+                    {news.map((item, i) => (
+                      <a
+                        key={i}
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-2.5 px-4 py-3.5 transition-all group"
+                        style={{ borderBottom: i < news.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.07)')}
+                        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                      >
+                        <span className="text-xs font-black shrink-0 mt-0.5 w-4" style={{ color: '#4b5563' }}>{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium leading-snug" style={{ color: '#d1d5db' }}>
+                            {item.title}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1.5">
+                            {item.source && (
+                              <span className="text-[10px] font-semibold truncate" style={{ color: '#6b7280' }}>{item.source}</span>
+                            )}
+                            {item.pubDate && (
+                              <span className="text-[10px] shrink-0" style={{ color: '#374151' }}>
+                                {(() => {
+                                  try {
+                                    const d = new Date(item.pubDate);
+                                    const diff = Math.floor((Date.now() - d.getTime()) / 60000);
+                                    if (diff < 60) return `${diff}분 전`;
+                                    if (diff < 1440) return `${Math.floor(diff / 60)}시간 전`;
+                                    return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                                  } catch { return ''; }
+                                })()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ width: 12, height: 12, color: '#7c3aed' }}>
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
           </div>
         </div>

@@ -1054,7 +1054,7 @@ export default function AnalyzerPage() {
                         <div className="text-xs" style={{ color: '#4b5563' }}>현재 포트폴리오가 이미 잘 분산되어 있어요</div>
                       )}
 
-                      {isPremium && analysis.rebalanceResult?.actions?.length > 0 && (
+                      {analysis.rebalanceResult?.actions?.length > 0 && (
                         <button
                           onClick={handleApplyRebalance}
                           disabled={applyingRebalance}
@@ -1063,11 +1063,6 @@ export default function AnalyzerPage() {
                         >
                           {applyingRebalance ? '적용 중...' : '이 비율로 포트폴리오 재설정'}
                         </button>
-                      )}
-                      {!isPremium && analysis.rebalanceResult?.actions?.length > 0 && (
-                        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
-                          <div className="text-[10px]" style={{ color: '#a78bfa' }}>프리미엄에서 재설정 가능</div>
-                        </div>
                       )}
                     </div>
                   </div>

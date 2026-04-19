@@ -161,6 +161,36 @@ export async function runPriceFetch(): Promise<void> {
   if (!res.ok) throw new Error('Failed to start price fetch');
 }
 
+export interface AdminUser {
+  id: number;
+  email: string;
+  name: string;
+  createdAt: string;
+}
+
+export async function getAdminUsers(): Promise<AdminUser[]> {
+  const res = await fetch(`${API_BASE_URL}/admin/users`, { headers: authHeaders() });
+  if (!res.ok) throw new Error('Failed to fetch users');
+  return res.json();
+}
+
+export async function changeAdminUserPassword(userId: number, password: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) throw new Error('Failed to change password');
+}
+
+export async function deleteAdminUser(userId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to delete user');
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

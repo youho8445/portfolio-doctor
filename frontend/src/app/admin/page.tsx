@@ -8,6 +8,10 @@ import {
   getPriceFetchStatus,
   runPriceFetch,
   PriceFetchStatus,
+  getAdminUsers,
+  changeAdminUserPassword,
+  deleteAdminUser,
+  AdminUser,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -79,6 +83,14 @@ export default function AdminPage() {
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Users
+  const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [pwModal, setPwModal] = useState<{ id: number; email: string } | null>(null);
+  const [newPw, setNewPw] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
   useEffect(() => {
     if (isLoading) return;
     if (!isLoggedIn) { router.replace('/login'); return; }
@@ -87,8 +99,8 @@ export default function AdminPage() {
       setBillingMsg({ type: 'error', text: '관리자 권한이 없거나 서버 오류입니다.' });
     });
 
-    // 수집 상태 초기 로드
     loadFetchStatus();
+    getAdminUsers().then(setUsers).catch(() => {});
   }, [isLoading, isLoggedIn]);
 
   const loadFetchStatus = async () => {
@@ -140,6 +152,26 @@ export default function AdminPage() {
     } catch {
       setFetchMsg('수집 시작에 실패했습니다.');
     } finally { setStarting(false); }
+  };
+
+  const handleChangePassword = async () => {
+    if (!pwModal || !newPw.trim()) return;
+    try {
+      setPwSaving(true); setPwMsg(null);
+      await changeAdminUserPassword(pwModal.id, newPw);
+      setPwMsg({ type: 'success', text: '비밀번호가 변경되었습니다.' });
+      setNewPw('');
+    } catch {
+      setPwMsg({ type: 'error', text: '변경에 실패했습니다.' });
+    } finally { setPwSaving(false); }
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    try {
+      await deleteAdminUser(id);
+      setUsers((prev) => prev?.filter((u) => u.id !== id) ?? null);
+      setDeleteConfirm(null);
+    } catch { /* ignore */ }
   };
 
   if (isLoading || mode === null) {
@@ -289,6 +321,99 @@ export default function AdminPage() {
             자동 스케줄: 매주 월~금 오후 5시(KST) · 주말·공휴일 자동 스킵
           </p>
         </div>
+
+        {/* ── 유저 관리 ── */}
+        <div className="rounded-2xl p-6 space-y-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>User Management</h2>
+              <p className="text-sm text-white font-bold mt-0.5">
+                유저 관리
+                {users && <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>{users.length}명</span>}
+              </p>
+            </div>
+          </div>
+
+          {users === null ? (
+            <div className="text-xs" style={{ color: '#4b5563' }}>불러오는 중...</div>
+          ) : users.length === 0 ? (
+            <div className="text-xs" style={{ color: '#4b5563' }}>가입된 유저가 없습니다.</div>
+          ) : (
+            <div className="space-y-2">
+              {users.map((u) => (
+                <div key={u.id} className="rounded-xl px-4 py-3 flex items-center justify-between gap-3" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-white truncate">{u.name}</div>
+                    <div className="text-xs truncate mt-0.5" style={{ color: '#6b7280' }}>{u.email}</div>
+                    <div className="text-[10px] mt-0.5" style={{ color: '#374151' }}>
+                      가입: {new Date(u.createdAt).toLocaleDateString('ko-KR')}
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => { setPwModal({ id: u.id, email: u.email }); setPwMsg(null); setNewPw(''); }}
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
+                      style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
+                    >
+                      비밀번호
+                    </button>
+                    {deleteConfirm === u.id ? (
+                      <div className="flex gap-1">
+                        <button onClick={() => handleDeleteUser(u.id)} className="text-xs px-2 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}>확인</button>
+                        <button onClick={() => setDeleteConfirm(null)} className="text-xs px-2 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#9ca3af' }}>취소</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setDeleteConfirm(u.id)} className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>삭제</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 비밀번호 변경 모달 */}
+        {pwModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+            <div className="rounded-2xl p-6 w-full max-w-sm space-y-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div>
+                <h3 className="text-base font-bold text-white">비밀번호 변경</h3>
+                <p className="text-xs mt-1" style={{ color: '#6b7280' }}>{pwModal.email}</p>
+              </div>
+              <input
+                type="password"
+                placeholder="새 비밀번호"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()}
+                className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none"
+                style={{ background: '#141418', border: '1.5px solid rgba(255,255,255,0.08)' }}
+              />
+              {pwMsg && (
+                <div className={`text-xs px-3 py-2 rounded-lg ${pwMsg.type === 'success' ? 'bg-emerald-950/50 text-emerald-300' : 'bg-red-950/50 text-red-300'}`}>
+                  {pwMsg.text}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={pwSaving || !newPw.trim()}
+                  className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                >
+                  {pwSaving ? '변경 중...' : '변경'}
+                </button>
+                <button
+                  onClick={() => { setPwModal(null); setPwMsg(null); setNewPw(''); }}
+                  className="flex-1 rounded-xl py-2.5 text-sm font-bold"
+                  style={{ background: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <button
           onClick={() => router.push('/analyzer')}

@@ -1054,7 +1054,7 @@ export default function AnalyzerPage() {
                         <div className="text-xs" style={{ color: '#4b5563' }}>현재 포트폴리오가 이미 잘 분산되어 있어요</div>
                       )}
 
-                      {analysis.rebalanceResult?.actions?.length > 0 && (
+                      {(analysis.rebalanceResult?.actions?.length ?? 0) > 0 && (
                         isPremium ? (
                           <button
                             onClick={handleApplyRebalance}

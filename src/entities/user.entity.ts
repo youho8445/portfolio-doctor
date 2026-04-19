@@ -14,6 +14,9 @@ export class User {
   @Column({ type: 'varchar', length: 200 })
   password: string;
 
+  @Column({ type: 'datetime', nullable: true, default: null })
+  trialEndsAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

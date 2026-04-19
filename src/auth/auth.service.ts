@@ -21,10 +21,13 @@ export class AuthService {
       throw new BadRequestException('이미 사용 중인 이메일입니다');
     }
     const hashed = await bcrypt.hash(dto.password, 10);
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
     const user = this.userRepository.create({
       name: dto.name,
       email: dto.email,
       password: hashed,
+      trialEndsAt,
     });
     const saved = await this.userRepository.save(user);
     return this.issueToken(saved);
@@ -42,6 +45,12 @@ export class AuthService {
     return this.issueToken(user);
   }
 
+  async findById(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) throw new UnauthorizedException('유저를 찾을 수 없습니다.');
+    return user;
+  }
+
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('유저를 찾을 수 없습니다.');
@@ -55,7 +64,12 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
     return {
       access_token: this.jwtService.sign(payload),
-      user: { id: user.id, email: user.email, name: user.name },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        trialEndsAt: user.trialEndsAt ?? null,
+      },
     };
   }
 }

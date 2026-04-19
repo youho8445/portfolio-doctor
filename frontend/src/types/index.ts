@@ -120,4 +120,7 @@ export type AnalysisResult = {
   rebalanceResult: RebalanceResult | null;
   history: PortfolioHistory;
   isPremium: boolean;
+  isTrial: boolean;
+  trialEndsAt: string | null;
+  diversificationPercentile: number;
 };

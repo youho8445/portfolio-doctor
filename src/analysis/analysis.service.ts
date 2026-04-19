@@ -262,17 +262,34 @@ export class AnalysisService {
       : { trend: [], alerts: [], change: null };
 
     const billingMode = await this.adminService.getBillingMode();
+
+    // 트라이얼 체크
+    let isTrial = false;
+    let trialEndsAt: Date | null = null;
+    if (userId > 0) {
+      const { User } = await import('../entities/user.entity');
+      // Use dataSource-free approach: check via historyService's repo or pass user directly
+      // We'll inject UserRepository instead — for now use a lightweight query via portfolioRepository's dataSource
+      const userRow = await this.portfolioRepository.manager.findOne(User, { where: { id: userId } });
+      if (userRow?.trialEndsAt && new Date(userRow.trialEndsAt) > new Date()) {
+        isTrial = true;
+        trialEndsAt = userRow.trialEndsAt;
+      }
+    }
+
     let isPremium: boolean;
-    if (billingMode === 'FREE') {
+    if (billingMode === 'FREE' || isTrial) {
       isPremium = true;
     } else if (billingMode === 'SOFT_PAYWALL') {
-      isPremium = false; // 페이월 UI 노출, 데이터는 그대로 반환
+      isPremium = false;
     } else {
-      // PAID: 실제 결제 여부 확인
       isPremium = userId > 0
         ? await this.paymentsService.isUnlocked(portfolioId, userId)
         : false;
     }
+
+    // 상대 순위 (분산도 기준) — 최근 스냅샷들과 비교
+    const diversificationPercentile = await this.computePercentile(diversificationScore);
 
     return {
       portfolioId,
@@ -296,7 +313,32 @@ export class AnalysisService {
       rebalanceResult,
       history,
       isPremium,
+      isTrial,
+      trialEndsAt,
+      diversificationPercentile,
     };
+  }
+
+  /** 분산도 점수 기준 상위 몇 % 인지 반환 (스냅샷 전체 비교) */
+  private async computePercentile(score: number): Promise<number> {
+    try {
+      const result = await this.portfolioRepository.manager.query(
+        `SELECT
+           COUNT(*) AS total,
+           SUM(CASE WHEN diversificationScore < ? THEN 1 ELSE 0 END) AS below
+         FROM (
+           SELECT diversificationScore FROM portfolio_snapshots
+           GROUP BY portfolioId ORDER BY NULL
+         ) t`,
+        [score],
+      );
+      const total = Number(result[0]?.total ?? 0);
+      const below = Number(result[0]?.below ?? 0);
+      if (total < 5) return 0; // 데이터 부족 시 표시 안 함
+      return Math.round((below / total) * 100);
+    } catch {
+      return 0;
+    }
   }
 
   /** 가격 데이터가 없는 종목을 yfinance에서 실시간 fetch해 DB에 저장 */

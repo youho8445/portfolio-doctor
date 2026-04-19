@@ -127,8 +127,8 @@ function ScoreRing({ score, size = 120, label }: { score: number; size?: number;
   const cx = size / 2;
   const circ = 2 * Math.PI * r;
   const prog = (Math.max(0, Math.min(100, score)) / 100) * circ;
-  const color = score >= 80 ? '#8b5cf6' : score >= 50 ? '#f59e0b' : '#ef4444';
-  const trackColor = score >= 80 ? 'rgba(139,92,246,0.15)' : score >= 50 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
+  const color = score >= 80 ? '#8b5cf6' : score >= 60 ? '#f59e0b' : '#ef4444';
+  const trackColor = score >= 80 ? 'rgba(139,92,246,0.15)' : score >= 60 ? 'rgba(245,158,11,0.15)' : 'rgba(239,68,68,0.15)';
   const statusLabel = score >= 80 ? 'OPTIMAL' : score >= 60 ? 'GOOD' : score >= 40 ? 'FAIR' : 'RISK';
   return (
     <div className="flex flex-col items-center">
@@ -559,10 +559,10 @@ export default function AnalyzerPage() {
 
               {/* 분석 결과 스탯 카드 */}
               {analysis && (
-                <div className="flex gap-3 shrink-0">
+                <div className="flex gap-3 shrink-0 flex-wrap">
                   <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#6b7280' }}>건강 점수</div>
-                    <div className="font-black" style={{ fontSize: 28, color: analysis.healthScore >= 80 ? '#8b5cf6' : analysis.healthScore >= 50 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
+                    <div className="font-black" style={{ fontSize: 28, color: analysis.healthScore >= 80 ? '#8b5cf6' : analysis.healthScore >= 60 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
                       {analysis.healthScore}
                     </div>
                   </div>
@@ -571,7 +571,18 @@ export default function AnalyzerPage() {
                     <div className="font-black" style={{ fontSize: 28, color: '#10b981', lineHeight: 1 }}>
                       {analysis.diversificationScore}
                     </div>
+                    {analysis.diversificationPercentile > 0 && (
+                      <div className="text-[10px] mt-0.5" style={{ color: '#6b7280' }}>상위 {100 - analysis.diversificationPercentile}%</div>
+                    )}
                   </div>
+                  {analysis.isTrial && analysis.trialEndsAt && (
+                    <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}>
+                      <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#a78bfa' }}>무료 체험</div>
+                      <div className="font-black text-white" style={{ fontSize: 18, lineHeight: 1 }}>
+                        D-{Math.max(0, Math.ceil((new Date(analysis.trialEndsAt).getTime() - Date.now()) / 86400000))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -831,6 +842,11 @@ export default function AnalyzerPage() {
                         <div className="rounded-xl p-3" style={{ background: '#141418' }}>
                           <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>분산도</div>
                           <div className="text-sm font-bold" style={{ color: '#10b981' }}>{analysis.diversificationScore}</div>
+                          {analysis.diversificationPercentile > 0 && (
+                            <div className="text-[10px] mt-0.5" style={{ color: '#4b5563' }}>
+                              전체 유저 상위 {100 - analysis.diversificationPercentile}%
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1065,7 +1081,7 @@ export default function AnalyzerPage() {
                             {analysis.history.trend.map((point: { date: string; healthScore: number; diversificationScore: number }, i: number) => {
                               const isLatest = i === analysis.history.trend.length - 1;
                               const hPct = Math.max(4, point.healthScore);
-                              const barColor = point.healthScore >= 80 ? '#8b5cf6' : point.healthScore >= 50 ? '#f59e0b' : '#ef4444';
+                              const barColor = point.healthScore >= 80 ? '#8b5cf6' : point.healthScore >= 60 ? '#f59e0b' : '#ef4444';
                               return (
                                 <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
                                   <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">

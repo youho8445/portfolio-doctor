@@ -224,6 +224,40 @@ export default function AnalyzerPage() {
     fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
   }, [authLoading, isLoggedIn]);
 
+  const [applyingRebalance, setApplyingRebalance] = useState(false);
+
+  const handleApplyRebalance = async () => {
+    if (!analysis?.rebalanceResult || !currentPortfolioId) return;
+    try {
+      setApplyingRebalance(true);
+      const suggested = analysis.rebalanceResult.suggestedPortfolio;
+      const newItems: PortfolioInputItem[] = [];
+
+      for (const s of suggested) {
+        const existing = items.find((i) => i.ticker === s.ticker);
+        if (existing) {
+          newItems.push({ ...existing, weight: s.weight });
+        } else {
+          try {
+            const results = await getSecurities(s.ticker);
+            const sec = results.find((r: Security) => r.ticker === s.ticker);
+            if (sec) newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: s.weight, amount: 0, avgCost: 0 });
+          } catch { /* skip */ }
+        }
+      }
+
+      if (!newItems.length) return;
+      setItems(newItems);
+      setInputMode('weight');
+      await clearPortfolioItems(currentPortfolioId);
+      for (const item of newItems) {
+        await addPortfolioItem(currentPortfolioId, item.securityId, { weight: item.weight });
+      }
+      setAnalysis(null);
+      setActiveTab('input');
+    } catch { /* ignore */ } finally { setApplyingRebalance(false); }
+  };
+
   const handleChangeMyPassword = async () => {
     if (!pwNew.trim() || pwNew !== pwConfirm) {
       setPwMsg({ type: 'error', text: '새 비밀번호와 확인이 일치하지 않습니다.' });
@@ -904,7 +938,7 @@ export default function AnalyzerPage() {
                     </div>
                   )}
 
-                  {/* ── Row 2: 리밸런싱 + 시장 성과 ── */}
+                  {/* ── Row 2: 리밸런싱 + 포트폴리오 미리보기 ── */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
                     {/* 리밸런싱 가이드 (2/3) */}
@@ -982,33 +1016,59 @@ export default function AnalyzerPage() {
                       </div>
                     )}
 
-                    {/* 시장 성과 (1/3) */}
-                    <div className="rounded-2xl p-5" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#6b7280' }}>Market Performance</div>
-                      <div className="space-y-4">
-                        {[
-                          { label: '내 포트폴리오', sub: '보유 비중 가중 수익률', value: analysis.portfolioReturn },
-                          { label: 'S&P 500', sub: '벤치마크', value: analysis.benchmarkReturn },
-                          { label: '초과 수익률', sub: '포트폴리오 − 벤치마크', value: analysis.excessReturn },
-                        ].map(({ label, sub, value }) => (
-                          <div key={label}>
-                            <div className="flex justify-between items-baseline mb-1">
-                              <div>
-                                <div className="text-xs font-medium text-white">{label}</div>
-                                <div className="text-[10px]" style={{ color: '#4b5563' }}>{sub}</div>
-                              </div>
-                              <div className={`text-lg font-black ${retColor(value)}`}>{value > 0 ? '+' : ''}{value}%</div>
-                            </div>
-                            <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                              <div className="h-1 rounded-full" style={{ width: `${Math.min(Math.abs(value), 50) * 2}%`, background: value >= 0 ? '#10b981' : '#ef4444' }} />
-                            </div>
-                          </div>
-                        ))}
-                        <div className="rounded-xl px-3 py-2.5 mt-2" style={{ background: '#141418' }}>
-                          <div className="text-[10px] mb-1" style={{ color: '#4b5563' }}>상위 3종목 집중도</div>
-                          <div className="text-lg font-black text-white">{analysis.top3Concentration}%</div>
-                        </div>
+                    {/* 포트폴리오 미리보기 (1/3) */}
+                    <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#6b7280' }}>Portfolio Preview</div>
+                        <div className="text-sm font-bold text-white">변경 후 비중</div>
                       </div>
+
+                      {analysis.rebalanceResult?.suggestedPortfolio?.length ? (
+                        <div className="space-y-2 flex-1">
+                          {analysis.rebalanceResult.suggestedPortfolio.map((s) => {
+                            const current = items.find((i) => i.ticker === s.ticker);
+                            const currentW = current?.weight ?? 0;
+                            const delta = s.weight - currentW;
+                            const isNew = s.isNew;
+                            return (
+                              <div key={s.ticker}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold" style={{ color: '#d1d5db' }}>{s.ticker}</span>
+                                    {isNew && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>NEW</span>}
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    {!isNew && <span className="text-[10px]" style={{ color: '#4b5563' }}>{currentW}% →</span>}
+                                    <span className="text-xs font-black" style={{ color: delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : '#9ca3af' }}>{s.weight}%</span>
+                                    {delta !== 0 && <span className="text-[10px] font-bold" style={{ color: delta > 0 ? '#10b981' : '#ef4444' }}>{delta > 0 ? `+${delta.toFixed(1)}` : delta.toFixed(1)}</span>}
+                                  </div>
+                                </div>
+                                <div className="h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${s.weight}%`, background: isNew ? '#10b981' : delta < 0 ? '#f59e0b' : '#8b5cf6' }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-xs" style={{ color: '#4b5563' }}>현재 포트폴리오가 이미 잘 분산되어 있어요</div>
+                      )}
+
+                      {isPremium && analysis.rebalanceResult?.actions?.length > 0 && (
+                        <button
+                          onClick={handleApplyRebalance}
+                          disabled={applyingRebalance}
+                          className="w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50 transition-all"
+                          style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                        >
+                          {applyingRebalance ? '적용 중...' : '이 비율로 포트폴리오 재설정'}
+                        </button>
+                      )}
+                      {!isPremium && analysis.rebalanceResult?.actions?.length > 0 && (
+                        <div className="rounded-xl px-3 py-2.5 text-center" style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
+                          <div className="text-[10px]" style={{ color: '#a78bfa' }}>프리미엄에서 재설정 가능</div>
+                        </div>
+                      )}
                     </div>
                   </div>
 

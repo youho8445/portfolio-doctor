@@ -278,11 +278,10 @@ export class AnalysisService {
     }
 
     let isPremium: boolean;
-    if (billingMode === 'FREE' || isTrial) {
+    if (billingMode === 'FREE' || isTrial || billingMode === 'SOFT_PAYWALL') {
       isPremium = true;
-    } else if (billingMode === 'SOFT_PAYWALL') {
-      isPremium = false;
     } else {
+      // PAID: 실제 결제 여부 확인
       isPremium = userId > 0
         ? await this.paymentsService.isUnlocked(portfolioId, userId)
         : false;

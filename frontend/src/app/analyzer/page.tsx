@@ -1055,14 +1055,24 @@ export default function AnalyzerPage() {
                       )}
 
                       {analysis.rebalanceResult?.actions?.length > 0 && (
-                        <button
-                          onClick={handleApplyRebalance}
-                          disabled={applyingRebalance}
-                          className="w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50 transition-all"
-                          style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
-                        >
-                          {applyingRebalance ? '적용 중...' : '이 비율로 포트폴리오 재설정'}
-                        </button>
+                        isPremium ? (
+                          <button
+                            onClick={handleApplyRebalance}
+                            disabled={applyingRebalance}
+                            className="w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50 transition-all"
+                            style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                          >
+                            {applyingRebalance ? '적용 중...' : '이 비율로 포트폴리오 재설정'}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={handleCheckout}
+                            className="w-full rounded-xl py-2.5 text-sm font-bold text-white transition-all"
+                            style={{ background: 'rgba(124,58,237,0.3)', border: '1px solid rgba(124,58,237,0.4)' }}
+                          >
+                            🔒 프리미엄으로 재설정하기
+                          </button>
+                        )
                       )}
                     </div>
                   </div>

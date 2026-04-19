@@ -26,6 +26,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (stored && storedUser) {
       setToken(stored);
       setUser(JSON.parse(storedUser));
+      // /auth/me로 최신 유저 정보(trialEndsAt 포함) 갱신
+      fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${stored}` },
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((u) => {
+          if (u) {
+            setUser(u);
+            localStorage.setItem('auth_user', JSON.stringify(u));
+          }
+        })
+        .catch(() => {});
     }
     setIsLoading(false);
   }, []);

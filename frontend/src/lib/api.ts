@@ -195,6 +195,15 @@ export async function changeAdminUserPassword(userId: number, password: string):
   if (!res.ok) throw new Error('Failed to change password');
 }
 
+export async function grantAdminTrial(userId: number, days = 7): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/trial`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ days }),
+  });
+  if (!res.ok) throw new Error('Failed to grant trial');
+}
+
 export async function deleteAdminUser(userId: number): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
     method: 'DELETE',

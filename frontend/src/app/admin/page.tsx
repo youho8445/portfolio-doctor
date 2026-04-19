@@ -11,6 +11,7 @@ import {
   getAdminUsers,
   changeAdminUserPassword,
   deleteAdminUser,
+  grantAdminTrial,
   AdminUser,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -356,6 +357,14 @@ export default function AdminPage() {
                       style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
                     >
                       비밀번호
+                    </button>
+                    <button
+                      onClick={() => grantAdminTrial(u.id, 7).then(() => getAdminUsers().then(setUsers)).catch(() => {})}
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
+                      style={{ background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.2)' }}
+                      title="7일 무료 체험 부여"
+                    >
+                      체험
                     </button>
                     {deleteConfirm === u.id ? (
                       <div className="flex gap-1">

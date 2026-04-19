@@ -413,6 +413,19 @@ export default function AnalyzerPage() {
 
       {/* 하단 유저 정보 */}
       <div className="px-4 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        {/* 트라이얼 뱃지 */}
+        {user?.trialEndsAt && new Date(user.trialEndsAt) > new Date() && (() => {
+          const daysLeft = Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / 86400000));
+          return (
+            <div className="mb-3 rounded-xl px-3 py-2 flex items-center justify-between" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#a78bfa' }}>무료 체험 중</div>
+                <div className="text-xs font-bold text-white mt-0.5">{daysLeft}일 남음</div>
+              </div>
+              <div className="text-2xl font-black" style={{ color: '#7c3aed' }}>D-{daysLeft}</div>
+            </div>
+          );
+        })()}
         {lastPriceDate && (
           <div className="text-[10px] mb-3 px-1" style={{ color: '#374151' }}>
             데이터 기준: {lastPriceDate}

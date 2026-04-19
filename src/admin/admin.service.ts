@@ -37,6 +37,15 @@ export class AdminService {
     await this.userRepo.save(user);
   }
 
+  async grantTrial(userId: number, days: number): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + days);
+    user.trialEndsAt = trialEndsAt;
+    await this.userRepo.save(user);
+  }
+
   async deleteUser(userId: number): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');

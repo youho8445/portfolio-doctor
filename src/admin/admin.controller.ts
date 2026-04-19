@@ -65,6 +65,17 @@ export class AdminController {
     return { message: '비밀번호가 변경되었습니다.' };
   }
 
+  @Post('users/:id/trial')
+  async grantTrial(
+    @Req() req: { user: { email: string } },
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { days?: number },
+  ) {
+    this.checkAdmin(req.user.email);
+    await this.adminService.grantTrial(id, body.days ?? 7);
+    return { message: `트라이얼 ${body.days ?? 7}일 부여 완료` };
+  }
+
   @Delete('users/:id')
   async deleteUser(
     @Req() req: { user: { email: string } },

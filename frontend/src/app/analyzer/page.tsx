@@ -1055,19 +1055,36 @@ export default function AnalyzerPage() {
                       {/* 점수 산출 근거 */}
                       {analysis.scoreBreakdown.length > 0 && (
                         <div className="rounded-2xl p-5" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
-                          <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#6b7280' }}>Score Breakdown</div>
-                          <div className="space-y-2.5">
-                            {analysis.scoreBreakdown.map((rule: ScoreRule) => (
-                              <div key={rule.label} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: rule.passed ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }}>
-                                    {rule.passed ? <IconCheck className="w-3 h-3" style={{ color: '#10b981' }} /> : <IconX className="w-3 h-3" style={{ color: '#ef4444' }} />}
+                          <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#6b7280' }}>투자 체크리스트</div>
+                          <div className="space-y-3">
+                            {analysis.scoreBreakdown.map((rule: ScoreRule) => {
+                              const grade = rule.passed ? 'good'
+                                : Math.abs(rule.delta) >= 20 ? 'risky'
+                                : 'okay';
+                              const gradeStyle = {
+                                good:  { label: '양호', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.25)', text: '#10b981' },
+                                okay:  { label: '주의', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.25)',  text: '#f59e0b' },
+                                risky: { label: '위험', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.25)',   text: '#ef4444' },
+                              }[grade];
+                              return (
+                                <div key={rule.label} className="rounded-xl p-3.5 space-y-2" style={{ background: gradeStyle.bg, border: `1px solid ${gradeStyle.border}` }}>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-semibold text-white leading-snug">{rule.label}</span>
+                                    <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: `${gradeStyle.border}`, color: gradeStyle.text }}>{gradeStyle.label}</span>
                                   </div>
-                                  <span className="text-sm" style={{ color: rule.passed ? '#d1d5db' : '#6b7280' }}>{rule.label}</span>
+                                  {!rule.passed && (
+                                    <div className="space-y-1.5">
+                                      <p className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>
+                                        <span className="font-semibold" style={{ color: '#d1d5db' }}>왜 문제인가요?</span> {rule.why}
+                                      </p>
+                                      <p className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>
+                                        <span className="font-semibold" style={{ color: '#a78bfa' }}>어떻게 하면 좋을까요?</span> {rule.action}
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
-                                {!rule.passed && <span className="text-sm font-bold" style={{ color: '#ef4444' }}>{rule.delta}</span>}
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}

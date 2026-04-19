@@ -63,42 +63,42 @@ export function computeInsights(input: InsightInput): InsightOutput {
 
   if (topSectorWeight >= 60) {
     insights.push(
-      `${topSectorName} 섹터에 ${topSectorWeight.toFixed(0)}%가 집중돼 있어요. 섹터 리스크를 인지하고 투자하세요`,
+      `비슷한 업종 주식에 ${topSectorWeight.toFixed(0)}%가 몰려 있어요. 그 업종이 어려워지면 한꺼번에 타격받을 수 있어요`,
     );
   } else if (topSectorWeight >= 35) {
     insights.push(
-      `${topSectorName} 섹터가 주요 비중(${topSectorWeight.toFixed(0)}%)을 차지해요`,
+      `같은 업종 주식이 전체의 ${topSectorWeight.toFixed(0)}%를 차지해요`,
     );
   }
 
   if (top3Concentration >= 75) {
     insights.push(
-      `상위 3개 종목에 ${top3Concentration.toFixed(0)}%가 집중돼 있어요`,
+      `가장 많이 보유한 종목 3개에 ${top3Concentration.toFixed(0)}%가 몰려 있어요`,
     );
   }
 
   if (etfWeight >= 20) {
     insights.push(
-      `ETF ${etfWeight.toFixed(0)}% 편입으로 자연스러운 분산 효과를 얻고 있어요`,
+      `수백 개 회사에 한 번에 분산 투자하는 펀드가 ${etfWeight.toFixed(0)}% 포함돼 있어요. 자연스럽게 위험이 분산되고 있어요`,
     );
   }
 
   if (uniqueSectorCount >= 5) {
-    insights.push(`${uniqueSectorCount}개 섹터에 분산돼 있어 특정 산업 충격에 강한 구조예요`);
+    insights.push(`${uniqueSectorCount}가지 다른 분야에 투자하고 있어요. 한 분야가 어려워도 다른 분야가 버텨줄 수 있어요`);
   }
 
   if (stockItems.length === 0 && etfItems.length > 0) {
-    insights.push('ETF 중심 포트폴리오로, 낮은 비용으로 폭넓은 분산이 가능해요');
+    insights.push('펀드만으로 구성된 포트폴리오예요. 적은 비용으로 넓게 분산된 투자를 하고 있어요');
   }
 
   const excessReturn = portfolioReturn - benchmarkReturn;
   if (excessReturn > 5) {
     insights.push(
-      `S&P 500 대비 ${excessReturn.toFixed(1)}% 높은 수익률을 기록하고 있어요`,
+      `미국 시장 평균보다 ${excessReturn.toFixed(1)}% 높은 수익을 내고 있어요`,
     );
   } else if (excessReturn < -5) {
     insights.push(
-      `S&P 500 대비 ${Math.abs(excessReturn).toFixed(1)}% 낮은 수익률이에요. 장기적으로 분산 전략이 도움될 수 있어요`,
+      `미국 시장 평균보다 ${Math.abs(excessReturn).toFixed(1)}% 낮은 수익이에요. 다양한 곳에 나눠 투자하면 장기적으로 도움이 될 수 있어요`,
     );
   }
 
@@ -107,24 +107,24 @@ export function computeInsights(input: InsightInput): InsightOutput {
 
   if (topSectorWeight >= 65) {
     rebalanceHints.push(
-      `${topSectorName} 외 다른 섹터 종목을 1~2개 추가하면 급락 리스크를 줄일 수 있어요`,
+      `다른 분야 주식이나 펀드를 1~2개 추가하면 한 분야가 어려워져도 충격이 줄어들어요`,
     );
   }
 
   if (uniqueSectorCount <= 2 && stockItems.length > 0) {
-    rebalanceHints.push('소비재, 헬스케어, 금융 등 다른 섹터를 1개만 추가해도 분산 효과가 생겨요');
+    rebalanceHints.push('음식·의료·은행 같은 다른 분야를 1개만 추가해도 위험이 분산되는 효과가 생겨요');
   }
 
   if (top3Concentration >= 75) {
-    rebalanceHints.push('집중된 종목 비중을 조금 낮추고 새 종목을 추가하면 변동성을 줄일 수 있어요');
+    rebalanceHints.push('많이 보유한 종목의 비중을 조금 줄이고 새 종목을 추가하면 안정성이 높아져요');
   }
 
   if (etfWeight === 0 && stockItems.length >= 1) {
-    rebalanceHints.push('VOO, QQQ 같은 ETF를 10~20% 편입하면 손쉽게 분산 효과를 높일 수 있어요');
+    rebalanceHints.push('VOO, SPY 같은 "미국 전체 시장 펀드"를 10~20% 추가하면 수백 개 회사에 자동으로 분산돼요');
   }
 
   if (nonCash.length < 3) {
-    rebalanceHints.push('종목을 1~2개 더 추가하면 한 종목 급락에도 전체 충격이 줄어들어요');
+    rebalanceHints.push('종목을 1~2개 더 추가하면 한 종목이 크게 떨어져도 전체 충격이 줄어들어요');
   }
 
   // ── Portfolio Style ───────────────────────────────────────────────────────

@@ -72,6 +72,8 @@ export type ScoreRule = {
   label: string;
   passed: boolean;
   delta: number;
+  why: string;
+  action: string;
 };
 
 export type PersonalReturn = {

@@ -139,7 +139,7 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
     }
   }
 
-  // ── Rule 2: ETF 비중이 20% 미만이면 VOO 추가 ──────────────────────────────
+  // ── Rule 2: 분산 펀드 비중이 20% 미만이면 VOO 추가 ──────────────────────────────
   const etfShortfall = Math.max(0, 20 - etfWeight);
   if (etfShortfall > 0 && stockItems.length >= 1) {
     const addPct = r1(Math.min(etfShortfall, freedWeight > 0 ? freedWeight : etfShortfall));
@@ -149,34 +149,34 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
     if (voo) {
       voo.weight = toPct;
     } else {
-      weightMap.set('VOO', { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: 'VOO (미국 전체 시장 ETF)' });
+      weightMap.set('VOO', { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: 'VOO (미국 전체 시장 펀드)' });
     }
     freedWeight = r1(Math.max(0, freedWeight - addPct));
     actions.push({
       ticker: 'VOO',
-      label: 'VOO (미국 전체 시장 ETF)',
+      label: 'VOO (미국 전체 시장 펀드)',
       type: 'add',
       from: fromPct,
       to: toPct,
       delta: addPct,
-      text: `VOO ETF ${fromPct > 0 ? `${fromPct}% → ${toPct}%로 늘리기` : `${toPct}% 추가하기`} (+${addPct}%)`,
+      text: `VOO 미국 전체 시장 펀드 ${fromPct > 0 ? `${fromPct}% → ${toPct}%로 늘리기` : `${toPct}% 추가하기`} (+${addPct}%)`,
     });
   }
 
-  // ── Rule 3: 섹터 집중도 > 60% 또는 섹터 수 ≤ 2 → XLV 추가 ───────────────
+  // ── Rule 3: 같은 업종 집중 또는 업종 수 ≤ 2 → XLV 추가 ───────────────
   const needsSectorDiv = (topSectorWeight > 60 || uniqueSectorCount <= 2) && stockItems.length >= 1;
   if (needsSectorDiv && !weightMap.has('XLV')) {
     const addPct = freedWeight >= 10 ? 10 : r1(Math.min(10, 10));
-    weightMap.set('XLV', { weight: addPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: 'XLV (헬스케어 ETF)' });
+    weightMap.set('XLV', { weight: addPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: 'XLV (의료·헬스케어 펀드)' });
     freedWeight = r1(Math.max(0, freedWeight - addPct));
     actions.push({
       ticker: 'XLV',
-      label: 'XLV (헬스케어 ETF)',
+      label: 'XLV (의료·헬스케어 펀드)',
       type: 'add',
       from: 0,
       to: addPct,
       delta: addPct,
-      text: `XLV 헬스케어 ETF ${addPct}% 추가하기 (+${addPct}%)`,
+      text: `XLV 의료·헬스케어 펀드 ${addPct}% 추가하기 (+${addPct}%)`,
     });
   }
 
@@ -225,27 +225,27 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
   // ── 텍스트 생성 ───────────────────────────────────────────────────────────
   let summary: string;
   if (actions.length === 0) {
-    summary = '포트폴리오가 잘 분산되어 있습니다. 현재 구성을 유지하세요.';
+    summary = '여러 곳에 잘 나눠서 투자하고 있어요. 지금 구성을 유지하세요.';
   } else if (topSectorWeight > 60) {
-    summary = `${topSectorName} 업종에 ${r1(topSectorWeight)}%가 집중되어 있습니다. 분산이 필요합니다.`;
+    summary = `비슷한 업종 주식에 ${r1(topSectorWeight)}%가 몰려 있어요. 다른 분야도 추가해 보세요.`;
   } else if (stockItems.some((i) => i.weight > 30)) {
-    summary = '일부 종목이 30%를 초과해 포트폴리오가 편중되어 있습니다.';
+    summary = '한 종목에 너무 많은 돈이 들어가 있어요. 조금 나눠서 투자해 보세요.';
   } else {
-    summary = 'ETF와 다른 섹터를 추가해 더 안정적인 구조로 개선할 수 있습니다.';
+    summary = '미국 전체 시장 펀드나 다른 분야 주식을 추가하면 더 안정적인 투자가 될 수 있어요.';
   }
 
   const beforeAfterSummary =
     improvedScore > currentScore
       ? `현재 점수: ${currentScore}점(${scoreLabel(currentScore)}) → 개선 후: ${improvedScore}점(${scoreLabel(improvedScore)})`
-      : `현재 점수: ${currentScore}점(${scoreLabel(currentScore)}) — 이미 잘 분산되어 있습니다`;
+      : `현재 점수: ${currentScore}점(${scoreLabel(currentScore)}) — 이미 잘 분산되어 있어요`;
 
   let whyItMatters: string;
   if (etfShortfall > 0) {
-    whyItMatters = 'ETF 하나로 수백 개 기업에 분산 투자하는 효과를 얻을 수 있습니다. 한 종목이 크게 떨어져도 전체 손실이 줄어듭니다.';
+    whyItMatters = '미국 전체 시장 펀드 하나로 수백 개 회사에 동시에 투자하는 효과를 얻을 수 있어요. 한 종목이 크게 떨어져도 전체 손실이 줄어들어요.';
   } else if (topSectorWeight > 60) {
-    whyItMatters = '특정 업종이 어려울 때 다른 업종이 포트폴리오를 지켜줍니다. 업종을 나누면 한 번의 나쁜 뉴스로 전체가 흔들리는 상황을 피할 수 있습니다.';
+    whyItMatters = '한 분야가 어려울 때 다른 분야가 버텨주는 역할을 해요. 분야를 나누면 한 번의 나쁜 뉴스로 전체가 흔들리는 상황을 피할 수 있어요.';
   } else {
-    whyItMatters = '분산 투자는 위험을 줄이고 장기적으로 안정적인 수익을 만들어주는 가장 기본적인 방법입니다.';
+    whyItMatters = '여러 곳에 나눠서 투자하면 위험이 줄고 장기적으로 더 안정적인 결과를 만들어요.';
   }
 
   return {

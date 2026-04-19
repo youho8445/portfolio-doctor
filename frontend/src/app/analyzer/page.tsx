@@ -175,6 +175,8 @@ export default function AnalyzerPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [news, setNews] = useState<{ title: string; link: string; pubDate: string; source: string }[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
 
   const tickerNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -210,6 +212,8 @@ export default function AnalyzerPage() {
     if (!isLoggedIn) { router.replace('/login'); return; }
     loadSavedPortfolios();
     getDataFreshness().then((d) => setLastPriceDate(d.lastPriceDate)).catch(() => {});
+    setNewsLoading(true);
+    fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
   }, [authLoading, isLoggedIn]);
 
   const handleSearch = async () => {
@@ -971,6 +975,81 @@ export default function AnalyzerPage() {
                       )}
                     </div>
                   )}
+
+                  {/* ── 시장 뉴스 ── */}
+                  <div className="rounded-2xl overflow-hidden" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Market News</div>
+                        <div className="text-sm font-bold text-white mt-0.5">주식 · 투자 최신 뉴스</div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#10b981' }} />
+                        <span className="text-[10px] font-semibold" style={{ color: '#10b981' }}>LIVE</span>
+                      </div>
+                    </div>
+
+                    {newsLoading ? (
+                      <div className="px-5 py-8 space-y-3">
+                        {[1,2,3,4,5].map((i) => (
+                          <div key={i} className="h-4 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.05)', width: `${70 + i * 5}%` }} />
+                        ))}
+                      </div>
+                    ) : news.length === 0 ? (
+                      <div className="px-5 py-8 text-center text-sm" style={{ color: '#4b5563' }}>뉴스를 불러오는 중입니다...</div>
+                    ) : (
+                      <div>
+                        {news.map((item, i) => (
+                          <a
+                            key={i}
+                            href={item.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-3 px-5 py-4 transition-all group"
+                            style={{ borderBottom: i < news.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+                            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.06)')}
+                            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                          >
+                            <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: 'rgba(139,92,246,0.12)', minWidth: 24 }}>
+                              <span className="text-[10px] font-black" style={{ color: '#8b5cf6' }}>{i + 1}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium leading-snug transition-colors" style={{ color: '#e5e7eb' }}
+                                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#c4b5fd')}
+                                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = '#e5e7eb')}
+                              >
+                                {item.title}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                {item.source && <span className="text-[10px] font-semibold" style={{ color: '#6b7280' }}>{item.source}</span>}
+                                {item.pubDate && (
+                                  <span className="text-[10px]" style={{ color: '#374151' }}>
+                                    {(() => {
+                                      try {
+                                        const d = new Date(item.pubDate);
+                                        const now = new Date();
+                                        const diff = Math.floor((now.getTime() - d.getTime()) / 60000);
+                                        if (diff < 60) return `${diff}분 전`;
+                                        if (diff < 1440) return `${Math.floor(diff / 60)}시간 전`;
+                                        return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                                      } catch { return ''; }
+                                    })()}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                              className="shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              style={{ width: 14, height: 14, color: '#8b5cf6' }}>
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               );
             })()}

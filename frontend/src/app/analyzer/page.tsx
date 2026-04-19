@@ -543,6 +543,16 @@ export default function AnalyzerPage() {
                       onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
                       placeholder="AAPL · 애플 · Apple · 삼성..."
                     />
+                    {(search || searchResults.length > 0) && (
+                      <button
+                        onClick={() => { setSearch(''); setSearchResults([]); }}
+                        className="rounded-xl px-3 py-3 text-sm font-bold transition-all"
+                        style={{ background: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}
+                        title="검색 취소"
+                      >
+                        ✕
+                      </button>
+                    )}
                     <button
                       onClick={handleSearch}
                       disabled={loadingSearch}
@@ -555,6 +565,10 @@ export default function AnalyzerPage() {
 
                   {searchResults.length > 0 && (
                     <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+                        <span className="text-xs" style={{ color: '#6b7280' }}>검색결과 {searchResults.length}개</span>
+                        <button onClick={() => { setSearchResults([]); setSearch(''); }} className="text-xs px-2 py-0.5 rounded-lg transition-all" style={{ color: '#9ca3af', background: 'rgba(255,255,255,0.05)' }}>취소</button>
+                      </div>
                       {searchResults.map((s) => (
                         <button key={s.id} onClick={() => addItem(s)}
                           className="w-full flex items-center justify-between px-4 py-3 text-left transition-all"

@@ -120,7 +120,8 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async fetchSecurityPrice(ticker: string): Promise<{ tradeDate: string; close: number; volume: number }[]> {
-    const { default: yahooFinance } = await import('yahoo-finance2');
+    const { default: YahooFinance } = await import('yahoo-finance2');
+    const yahooFinance = new (YahooFinance as any)({ suppressNotices: ['ripHistorical'] });
     const data: any[] = await (yahooFinance as any).historical(ticker, {
       period1: this.oneYearAgo(),
       period2: new Date(),
@@ -151,7 +152,8 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
       let bm = await this.benchmarkRepo.findOne({ where: { code: 'SP500' } });
       if (!bm) bm = await this.benchmarkRepo.save(this.benchmarkRepo.create({ code: 'SP500', name: 'S&P 500' }));
 
-      const { default: yahooFinance } = await import('yahoo-finance2');
+      const { default: YahooFinance } = await import('yahoo-finance2');
+      const yahooFinance = new (YahooFinance as any)({ suppressNotices: ['ripHistorical'] });
       const data: any[] = await (yahooFinance as any).historical('^GSPC', {
         period1: this.oneYearAgo(),
         period2: new Date(),

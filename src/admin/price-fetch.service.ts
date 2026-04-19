@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Security } from '../entities/security.entity';
-import { PriceDaily } from '../entities/price-daily.entity';
-import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { Benchmark } from '../entities/benchmark.entity';
 
 export type FetchStatus = 'idle' | 'running' | 'done' | 'error';
@@ -40,12 +38,9 @@ export class PriceFetchService {
   constructor(
     @InjectRepository(Security)
     private readonly securityRepo: Repository<Security>,
-    @InjectRepository(PriceDaily)
-    private readonly priceRepo: Repository<PriceDaily>,
     @InjectRepository(Benchmark)
     private readonly benchmarkRepo: Repository<Benchmark>,
-    @InjectRepository(BenchmarkPriceDaily)
-    private readonly benchmarkPriceRepo: Repository<BenchmarkPriceDaily>,
+    @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {}
 

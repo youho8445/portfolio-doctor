@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Security } from '../entities/security.entity';
 import { PriceDaily } from '../entities/price-daily.entity';
 import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { Benchmark } from '../entities/benchmark.entity';
-import yahooFinance from 'yahoo-finance2';
 
 export type FetchStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -118,7 +117,7 @@ export class PriceFetchService {
   }
 
   private async fetchSecurityPrice(ticker: string): Promise<{ tradeDate: string; close: number; volume: number }[]> {
-    // yahoo-finance2: suppressNotices 옵션으로 경고 억제
+    const { default: yahooFinance } = await import('yahoo-finance2');
     const data = await (yahooFinance as any).historical(ticker, {
       period1: this.oneYearAgo(),
       period2: new Date(),
@@ -153,6 +152,7 @@ export class PriceFetchService {
         benchmark = await this.benchmarkRepo.save(this.benchmarkRepo.create({ code: 'SP500', name: 'S&P 500' }));
       }
 
+      const { default: yahooFinance } = await import('yahoo-finance2');
       const data = await (yahooFinance as any).historical('^GSPC', {
         period1: this.oneYearAgo(),
         period2: new Date(),

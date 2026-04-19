@@ -28,6 +28,66 @@ import { useAuth } from '@/contexts/AuthContext';
 
 type InputMode = 'amount' | 'weight';
 
+// ── SVG 아이콘 ─────────────────────────────────────────────────────────────
+function IconWarning({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+  );
+}
+function IconCheck({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  );
+}
+function IconX({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  );
+}
+function IconLock({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  );
+}
+function IconBarChart({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+    </svg>
+  );
+}
+
+// ── 원형 점수 게이지 ────────────────────────────────────────────────────────
+function ScoreRing({ score, size = 80 }: { score: number; size?: number }) {
+  const sw = 7;
+  const r = (size - sw * 2) / 2;
+  const cx = size / 2;
+  const circ = 2 * Math.PI * r;
+  const prog = (Math.max(0, Math.min(100, score)) / 100) * circ;
+  const color = score >= 80 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+  const fs = Math.round(size * 0.26);
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#1f2937" strokeWidth={sw} />
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={sw}
+        strokeDasharray={`${prog} ${circ}`} strokeLinecap="round"
+        transform={`rotate(-90 ${cx} ${cx})`} />
+      <text x={cx} y={cx} textAnchor="middle" dominantBaseline="middle"
+        fill="white" fontSize={fs} fontWeight="800">{score}</text>
+    </svg>
+  );
+}
+
 export default function AnalyzerPage() {
   const router = useRouter();
   const { user, logout, isLoggedIn, isLoading: authLoading } = useAuth();
@@ -310,13 +370,7 @@ export default function AnalyzerPage() {
   };
 
   // ── 결과 색상 ─────────────────────────────────────────────────────────────
-  const scoreColor = analysis
-    ? analysis.healthScore >= 80
-      ? 'text-green-400'
-      : analysis.healthScore >= 50
-        ? 'text-yellow-400'
-        : 'text-red-400'
-    : 'text-purple-400';
+
 
   const retColor = (v: number) =>
     v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-300';
@@ -337,58 +391,60 @@ export default function AnalyzerPage() {
 
   // ── 렌더 ──────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-4 sm:p-6">
-      <div className="mx-auto max-w-screen-xl">
+    <main className="min-h-screen bg-[#0d0d14] text-white">
 
-        {/* 헤더 */}
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-              Portfolio <span className="text-purple-400">Doctor</span>
-            </h1>
-            <p className="text-gray-500 text-xs sm:text-sm mt-0.5">건강진단 · 리밸런싱 · 벤치마크 비교</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {lastPriceDate && (
-              <div className="hidden sm:block rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-right">
-                <div className="text-xs text-gray-500">데이터 업데이트</div>
-                <div className="text-sm font-semibold text-gray-300">{lastPriceDate}</div>
-              </div>
-            )}
-            <div className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2">
-              <span className="text-xs text-gray-400 hidden sm:inline">{user?.name}</span>
-              <button
-                onClick={() => { logout(); router.push('/login'); }}
-                className="text-xs text-gray-500 hover:text-red-400 transition-colors"
-              >
-                로그아웃
-              </button>
+      {/* ── 상단 헤더 (sticky) ── */}
+      <header className="sticky top-0 z-20 border-b border-white/5 bg-[#0d0d14]/90 backdrop-blur-md">
+        <div className="mx-auto max-w-screen-xl px-4 sm:px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-500 to-violet-700 flex items-center justify-center shadow-lg shadow-purple-900/40">
+              <IconBarChart className="w-3.5 h-3.5 text-white" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-white text-sm">Portfolio Doctor</span>
+              {lastPriceDate && (
+                <span className="hidden sm:inline text-[11px] text-gray-600 bg-gray-800/60 px-2 py-0.5 rounded-full">
+                  {lastPriceDate} 기준
+                </span>
+              )}
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-400 hidden sm:inline">{user?.name}</span>
+            <button
+              onClick={() => { logout(); router.push('/login'); }}
+              className="text-xs px-3 py-1.5 rounded-lg border border-gray-800 text-gray-500 hover:text-white hover:border-gray-600 transition-colors"
+            >
+              로그아웃
+            </button>
+          </div>
         </div>
+      </header>
+
+      <div className="mx-auto max-w-screen-xl px-4 sm:px-6 py-5">
 
         {/* 모바일 탭 */}
-        <div className="flex lg:hidden mb-4 rounded-xl overflow-hidden border border-gray-800">
+        <div className="flex lg:hidden mb-5 bg-gray-900/80 p-1 rounded-xl gap-1 border border-gray-800/50">
           <button
             onClick={() => setActiveTab('input')}
-            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${activeTab === 'input' ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400'}`}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'input' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
           >
             종목 입력
           </button>
           <button
             onClick={() => setActiveTab('result')}
-            className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${activeTab === 'result' ? 'bg-purple-600 text-white' : 'bg-gray-900 text-gray-400'}`}
+            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${activeTab === 'result' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-300'}`}
           >
-            분석 결과{analysis && <span className="ml-1.5 text-[10px] bg-purple-800 text-purple-200 px-1.5 py-0.5 rounded-full align-middle">NEW</span>}
+            분석 결과{analysis && <span className="ml-1.5 text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full align-middle">NEW</span>}
           </button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_1fr] gap-6">
 
           {/* ── 저장된 포트폴리오 사이드바 ── */}
-          <div className={`${activeTab !== 'input' ? 'hidden lg:flex' : 'flex'} rounded-2xl border border-gray-800 bg-gray-900 p-5 flex-col gap-3 h-fit`}>
+          <div className={`${activeTab !== 'input' ? 'hidden lg:flex' : 'flex'} rounded-2xl border border-gray-800/60 bg-gray-900/60 p-4 flex-col gap-3 h-fit`}>
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">저장된 포트폴리오</h2>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">내 포트폴리오</span>
               <button
                 onClick={() => {
                   setPortfolioName('새 포트폴리오');
@@ -397,50 +453,59 @@ export default function AnalyzerPage() {
                   setAnalysis(null);
                   setActiveTab('input');
                 }}
-                className="text-xs bg-purple-700 hover:bg-purple-600 text-white px-2.5 py-1 rounded-lg transition-colors"
+                className="text-[11px] bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-800/50 px-2.5 py-1 rounded-lg transition-colors font-medium"
               >
                 + 새로 만들기
               </button>
             </div>
 
             {sidebarError && (
-              <p className="text-xs text-red-400 bg-red-950/40 border border-red-800 rounded px-2 py-1.5">
+              <p className="text-xs text-red-400 bg-red-950/40 border border-red-800/50 rounded-lg px-3 py-2">
                 {sidebarError}
               </p>
             )}
 
             {savedPortfolios.length === 0 ? (
-              <p className="text-xs text-gray-600 py-4 text-center">아직 저장된 포트폴리오가 없습니다.</p>
+              <div className="text-center py-8 text-gray-700 text-xs">아직 저장된 포트폴리오가 없습니다</div>
             ) : (
-              <ul className="space-y-2">
+              <div className="space-y-1.5">
                 {savedPortfolios.map((p) => (
-                  <li key={p.id} className="flex items-stretch gap-1">
+                  <div key={p.id} className="flex gap-1 group">
                     <button
                       onClick={() => handleLoadPortfolio(p)}
                       disabled={loadingPortfolioId === p.id}
-                      className="flex-1 text-left rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 hover:border-purple-600 hover:bg-gray-800 transition-colors disabled:opacity-50 min-w-0"
+                      className={`flex-1 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all border disabled:opacity-50 min-w-0 ${
+                        currentPortfolioId === p.id
+                          ? 'bg-purple-950/50 border-purple-700/50'
+                          : 'border-gray-800/60 bg-gray-900/30 hover:bg-gray-800/50 hover:border-gray-700'
+                      }`}
                     >
-                      <div className="text-sm font-semibold text-white truncate">{p.name}</div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {new Date(p.createdAt).toLocaleDateString('ko-KR')}
+                      <div className={`w-2 h-2 rounded-full shrink-0 transition-colors ${
+                        currentPortfolioId === p.id ? 'bg-purple-400' : 'bg-gray-700'
+                      }`} />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-white truncate">{p.name}</div>
+                        <div className="text-[11px] text-gray-600 mt-0.5">
+                          {new Date(p.createdAt).toLocaleDateString('ko-KR')}
+                        </div>
                       </div>
                     </button>
                     <button
                       onClick={(e) => handleDeletePortfolio(e, p)}
                       disabled={deletingPortfolioId === p.id}
-                      className="rounded-lg border border-gray-700 bg-gray-950 px-2 hover:border-red-700 hover:bg-red-950/40 hover:text-red-400 text-gray-600 transition-colors disabled:opacity-50"
+                      className="opacity-0 group-hover:opacity-100 w-8 shrink-0 flex items-center justify-center rounded-xl border border-gray-800/60 bg-gray-900/30 text-gray-600 hover:text-red-400 hover:border-red-900/50 hover:bg-red-950/30 transition-all"
                       title="삭제"
                     >
-                      {deletingPortfolioId === p.id ? '…' : '×'}
+                      <IconX className="w-3 h-3" />
                     </button>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
 
           {/* ── 입력 패널 ── */}
-          <div className={`${activeTab !== 'input' ? 'hidden lg:block' : ''} rounded-2xl border border-gray-800 bg-gray-900 p-4 sm:p-6 space-y-6`}>
+          <div className={`${activeTab !== 'input' ? 'hidden lg:block' : ''} rounded-2xl border border-gray-800/60 bg-gray-900/60 p-4 sm:p-6 space-y-6`}>
 
             {/* 포트폴리오 이름 */}
             <div>
@@ -639,19 +704,24 @@ export default function AnalyzerPage() {
           </div>
 
           {/* ── 결과 패널 ── */}
-          <div className={`${activeTab !== 'result' ? 'hidden lg:block' : ''} rounded-2xl border border-gray-800 bg-gray-900 p-4 sm:p-6`}>
-            <h2 className="text-xl font-bold mb-6 text-gray-200">분석 결과</h2>
+          <div className={`${activeTab !== 'result' ? 'hidden lg:block' : ''} rounded-2xl border border-gray-800/60 bg-gray-900/60 p-4 sm:p-6`}>
+            <h2 className="text-base font-semibold mb-5 text-gray-300">분석 결과</h2>
 
             {!analysis ? (
-              <div className="flex flex-col items-center justify-center h-64 text-gray-600 border border-dashed border-gray-800 rounded-xl px-4">
-                <div className="text-5xl mb-3">📊</div>
-                <p className="text-center text-sm">종목을 추가하고<br /><span className="text-purple-500 font-semibold">포트폴리오 분석하기</span>를 눌러보세요</p>
-                <p className="text-center text-xs mt-2 text-gray-700">건강점수 · 리밸런싱 · 벤치마크 비교 제공</p>
+              <div className="flex flex-col items-center justify-center h-64 rounded-2xl border border-dashed border-gray-800 px-4 gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gray-800/80 flex items-center justify-center">
+                  <IconBarChart className="w-6 h-6 text-gray-600" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500">종목을 추가하고</p>
+                  <p className="text-sm text-purple-400 font-semibold mt-0.5">포트폴리오 분석하기</p>
+                  <p className="text-xs text-gray-700 mt-1">건강점수 · 리밸런싱 · 벤치마크 비교</p>
+                </div>
                 <button
                   onClick={() => setActiveTab('input')}
-                  className="lg:hidden mt-4 text-xs text-purple-400 border border-purple-800 rounded-lg px-4 py-2 hover:bg-purple-950/40 transition-colors"
+                  className="lg:hidden text-xs text-purple-400 border border-purple-800/50 rounded-lg px-4 py-1.5 hover:bg-purple-950/30 transition-colors"
                 >
-                  ← 종목 입력하러 가기
+                  종목 입력하러 가기
                 </button>
               </div>
             ) : (() => {
@@ -665,37 +735,42 @@ export default function AnalyzerPage() {
               <div className="space-y-3">
 
                 {/* ── 1. 상단 요약 카드 ── */}
-                <div className={`rounded-xl border ${risk.border} ${risk.bg} p-4`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${risk.border} ${risk.color}`}>
-                      {risk.label}
-                    </span>
+                <div className={`rounded-2xl border ${risk.border} ${risk.bg} p-4`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full border ${risk.border} ${risk.color} mb-2`}>
+                        {risk.label}
+                      </span>
+                      <p className="text-white font-semibold text-sm leading-snug">{conclusion}</p>
+                    </div>
                     {analysis.history?.alerts?.length > 0 && (
-                      <span className="text-xs text-orange-400 font-semibold">⚠️ 알림 {analysis.history.alerts.length}개</span>
+                      <div className="flex items-center gap-1 bg-amber-950/50 border border-amber-800/40 rounded-lg px-2 py-1 shrink-0 ml-3">
+                        <IconWarning className="w-3 h-3 text-amber-400" />
+                        <span className="text-[11px] text-amber-400 font-semibold">{analysis.history.alerts.length}</span>
+                      </div>
                     )}
                   </div>
-                  <p className="text-white font-semibold text-sm leading-snug mb-3">{conclusion}</p>
-                  <div className="flex items-center gap-5">
-                    <div>
-                      <div className="text-[10px] text-gray-500 mb-0.5">건강 점수</div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className={`text-3xl font-black ${scoreColor}`}>{analysis.healthScore}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <ScoreRing score={analysis.healthScore} size={72} />
+                      <div>
+                        <div className="text-[11px] text-gray-500 mb-1">건강 점수</div>
                         {analysis.history?.change && deltaDisplay(analysis.history.change.healthScoreDelta)}
                       </div>
                     </div>
-                    <div className="w-px h-8 bg-gray-800" />
-                    <div>
-                      <div className="text-[10px] text-gray-500 mb-0.5">분산도</div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className={`text-3xl font-black ${analysis.diversificationScore >= 70 ? 'text-blue-400' : analysis.diversificationScore >= 40 ? 'text-yellow-400' : 'text-red-400'}`}>
-                          {analysis.diversificationScore}
-                        </span>
+                    <div className="w-px h-12 bg-white/10 mx-1" />
+                    <div className="flex items-center gap-2">
+                      <ScoreRing score={analysis.diversificationScore} size={72} />
+                      <div>
+                        <div className="text-[11px] text-gray-500 mb-1">분산도</div>
                         {analysis.history?.change && deltaDisplay(analysis.history.change.diversificationScoreDelta)}
                       </div>
                     </div>
-                    <div className="ml-auto text-right">
-                      <div className="text-[10px] text-gray-500 mb-0.5">스타일</div>
-                      <div className="text-xs font-semibold text-gray-300">{analysis.portfolioStyle}</div>
+                    <div className="ml-auto text-right shrink-0">
+                      <div className="text-[11px] text-gray-500 mb-1">투자 스타일</div>
+                      <span className="text-xs font-semibold text-gray-200 bg-black/20 border border-white/10 px-2.5 py-1.5 rounded-lg inline-block">
+                        {analysis.portfolioStyle}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -704,9 +779,9 @@ export default function AnalyzerPage() {
                 {analysis.history?.alerts?.length > 0 && (
                   <div className="space-y-1.5">
                     {analysis.history.alerts.map((alert, i) => (
-                      <div key={i} className="flex items-start gap-2 rounded-lg border border-orange-800/60 bg-orange-950/30 px-3 py-2">
-                        <span className="text-orange-400 text-xs shrink-0 mt-0.5">⚠️</span>
-                        <span className="text-orange-200 text-xs">{alert}</span>
+                      <div key={i} className="flex items-start gap-2.5 rounded-xl border border-amber-800/40 bg-amber-950/20 px-3 py-2.5">
+                        <IconWarning className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <span className="text-amber-200 text-xs leading-relaxed">{alert}</span>
                       </div>
                     ))}
                   </div>
@@ -769,7 +844,10 @@ export default function AnalyzerPage() {
                                   <span className="text-emerald-300 font-black text-sm">+{scoreDelta} 개선 가능</span>
                                 </div>
                               )}
-                              <div className="text-white font-bold text-sm mb-1">더 안전한 포트폴리오로 변경</div>
+                              <div className="w-10 h-10 rounded-2xl bg-purple-900/60 border border-purple-700/40 flex items-center justify-center mx-auto mb-3">
+                                <IconLock className="w-5 h-5 text-purple-300" />
+                              </div>
+                              <div className="text-white font-bold text-sm mb-1">리밸런싱 가이드 잠금</div>
                               <div className="text-gray-400 text-xs mb-4 leading-relaxed">
                                 구체적 비율 · Before/After 시뮬레이션<br />미래 리스크 분석 포함
                               </div>
@@ -844,10 +922,14 @@ export default function AnalyzerPage() {
                           {analysis.scoreBreakdown.map((rule: ScoreRule) => (
                             <div key={rule.label} className="flex items-center justify-between text-sm">
                               <div className="flex items-center gap-2">
-                                <span>{rule.passed ? '✅' : '❌'}</span>
+                                <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${rule.passed ? 'bg-emerald-900/60' : 'bg-red-900/40'}`}>
+                                  {rule.passed
+                                    ? <IconCheck className="w-2.5 h-2.5 text-emerald-400" />
+                                    : <IconX className="w-2.5 h-2.5 text-red-400" />}
+                                </span>
                                 <span className={rule.passed ? 'text-gray-300' : 'text-gray-500'}>{rule.label}</span>
                               </div>
-                              <span className={rule.passed ? 'text-gray-600' : 'text-red-400 font-semibold'}>{rule.passed ? '—' : `${rule.delta}`}</span>
+                              <span className={rule.passed ? 'text-gray-700' : 'text-red-400 font-semibold'}>{rule.passed ? '' : `${rule.delta}`}</span>
                             </div>
                           ))}
                         </div>
@@ -959,3 +1041,4 @@ export default function AnalyzerPage() {
     </main>
   );
 }
+

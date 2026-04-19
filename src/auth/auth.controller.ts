@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -22,5 +22,15 @@ export class AuthController {
   @Get('me')
   me(@Req() req: { user: { id: number; email: string } }) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('password')
+  async changePassword(
+    @Req() req: { user: { id: number } },
+    @Body() body: { currentPassword: string; newPassword: string },
+  ) {
+    await this.authService.changePassword(req.user.id, body.currentPassword, body.newPassword);
+    return { message: '비밀번호가 변경되었습니다.' };
   }
 }

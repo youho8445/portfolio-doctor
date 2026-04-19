@@ -168,6 +168,18 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export async function changeMyPassword(currentPassword: string, newPassword: string): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/auth/password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to change password');
+  }
+}
+
 export async function getAdminUsers(): Promise<AdminUser[]> {
   const res = await fetch(`${API_BASE_URL}/admin/users`, { headers: authHeaders() });
   if (!res.ok) throw new Error('Failed to fetch users');

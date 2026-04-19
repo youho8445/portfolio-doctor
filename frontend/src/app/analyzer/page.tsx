@@ -7,6 +7,7 @@ import {
   analyzePortfolio,
   clearPortfolioItems,
   createPortfolio,
+  changeMyPassword,
   deletePortfolio,
   getDataFreshness,
   getPortfolioItems,
@@ -178,6 +179,12 @@ export default function AnalyzerPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [news, setNews] = useState<{ title: string; link: string; pubDate: string; source: string }[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
+  const [pwModalOpen, setPwModalOpen] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState('');
+  const [pwNew, setPwNew] = useState('');
+  const [pwConfirm, setPwConfirm] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const tickerNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -216,6 +223,21 @@ export default function AnalyzerPage() {
     setNewsLoading(true);
     fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
   }, [authLoading, isLoggedIn]);
+
+  const handleChangeMyPassword = async () => {
+    if (!pwNew.trim() || pwNew !== pwConfirm) {
+      setPwMsg({ type: 'error', text: '새 비밀번호와 확인이 일치하지 않습니다.' });
+      return;
+    }
+    try {
+      setPwSaving(true); setPwMsg(null);
+      await changeMyPassword(pwCurrent, pwNew);
+      setPwMsg({ type: 'success', text: '비밀번호가 변경되었습니다.' });
+      setPwCurrent(''); setPwNew(''); setPwConfirm('');
+    } catch (e: any) {
+      setPwMsg({ type: 'error', text: e.message || '변경에 실패했습니다.' });
+    } finally { setPwSaving(false); }
+  };
 
   const handleSearch = async () => {
     if (!search.trim()) return;
@@ -401,16 +423,28 @@ export default function AnalyzerPage() {
             <div className="text-sm font-medium truncate" style={{ color: '#d1d5db' }}>{user?.name || user?.email}</div>
             <div className="text-[11px] truncate" style={{ color: '#4b5563' }}>{user?.email}</div>
           </div>
-          <button
-            onClick={() => { logout(); router.push('/login'); }}
-            className="ml-2 shrink-0 p-1.5 rounded-lg transition-all"
-            style={{ color: '#6b7280' }}
-            title="로그아웃"
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#d1d5db'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#6b7280'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-          >
-            <IconLogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1 ml-2 shrink-0">
+            <button
+              onClick={() => { setPwModalOpen(true); setPwMsg(null); setPwCurrent(''); setPwNew(''); setPwConfirm(''); }}
+              className="p-1.5 rounded-lg transition-all"
+              style={{ color: '#6b7280' }}
+              title="비밀번호 변경"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#d1d5db'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#6b7280'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
+            </button>
+            <button
+              onClick={() => { logout(); router.push('/login'); }}
+              className="p-1.5 rounded-lg transition-all"
+              style={{ color: '#6b7280' }}
+              title="로그아웃"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#d1d5db'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#6b7280'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            >
+              <IconLogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -435,6 +469,62 @@ export default function AnalyzerPage() {
           <aside className="relative z-10 flex flex-col" style={{ width: 260, background: '#0d0d12', borderRight: '1px solid rgba(255,255,255,0.05)' }}>
             <SidebarContent />
           </aside>
+        </div>
+      )}
+
+      {/* ── 비밀번호 변경 모달 ── */}
+      {pwModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className="rounded-2xl p-6 w-full max-w-sm space-y-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 className="text-base font-bold text-white">비밀번호 변경</h3>
+            <input
+              type="password"
+              placeholder="현재 비밀번호"
+              value={pwCurrent}
+              onChange={(e) => setPwCurrent(e.target.value)}
+              className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none"
+              style={{ background: '#141418', border: '1.5px solid rgba(255,255,255,0.08)' }}
+            />
+            <input
+              type="password"
+              placeholder="새 비밀번호"
+              value={pwNew}
+              onChange={(e) => setPwNew(e.target.value)}
+              className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none"
+              style={{ background: '#141418', border: '1.5px solid rgba(255,255,255,0.08)' }}
+            />
+            <input
+              type="password"
+              placeholder="새 비밀번호 확인"
+              value={pwConfirm}
+              onChange={(e) => setPwConfirm(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleChangeMyPassword()}
+              className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none"
+              style={{ background: '#141418', border: '1.5px solid rgba(255,255,255,0.08)' }}
+            />
+            {pwMsg && (
+              <div className={`text-xs px-3 py-2 rounded-lg ${pwMsg.type === 'success' ? 'bg-emerald-950/50 text-emerald-300 border border-emerald-800' : 'bg-red-950/50 text-red-300 border border-red-800'}`}>
+                {pwMsg.text}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button
+                onClick={handleChangeMyPassword}
+                disabled={pwSaving || !pwCurrent.trim() || !pwNew.trim() || !pwConfirm.trim()}
+                className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+              >
+                {pwSaving ? '변경 중...' : '변경'}
+              </button>
+              <button
+                onClick={() => setPwModalOpen(false)}
+                className="flex-1 rounded-xl py-2.5 text-sm font-bold"
+                style={{ background: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

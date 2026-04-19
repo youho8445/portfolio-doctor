@@ -42,6 +42,15 @@ export class AuthService {
     return this.issueToken(user);
   }
 
+  async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('유저를 찾을 수 없습니다.');
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) throw new UnauthorizedException('현재 비밀번호가 올바르지 않습니다.');
+    user.password = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.save(user);
+  }
+
   private issueToken(user: User) {
     const payload = { sub: user.id, email: user.email };
     return {

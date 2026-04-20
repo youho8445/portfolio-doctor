@@ -1426,24 +1426,33 @@ export default function AnalyzerPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-end gap-1.5 h-20">
-                          {trend.map((point: { date: string; healthScore: number; diversificationScore: number }, i: number) => {
-                            const isLatest = i === trend.length - 1;
-                            const hPct = Math.max(6, point.healthScore);
-                            const barColor = point.healthScore >= 80 ? '#8b5cf6' : point.healthScore >= 60 ? '#f59e0b' : '#ef4444';
-                            return (
-                              <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                                <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
-                                  <div className="text-xs rounded px-2 py-1 whitespace-nowrap" style={{ background: '#2a2a38', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                    건강 {point.healthScore} · 분산 {point.diversificationScore}
+                        {(() => {
+                          const BAR_MAX_PX = 72;
+                          const DATE_PX = 14;
+                          const maxScore = Math.max(...trend.map((p: { healthScore: number }) => p.healthScore), 1);
+                          return (
+                            <div className="flex items-end gap-1" style={{ height: BAR_MAX_PX + DATE_PX + 4 }}>
+                              {trend.map((point: { date: string; healthScore: number; diversificationScore: number }, i: number) => {
+                                const isLatest = i === trend.length - 1;
+                                const barH = Math.max(4, Math.round((point.healthScore / maxScore) * BAR_MAX_PX));
+                                const barColor = point.healthScore >= 80 ? '#8b5cf6' : point.healthScore >= 60 ? '#f59e0b' : '#ef4444';
+                                return (
+                                  <div key={i} className="group relative" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                    <div className="absolute z-10 pointer-events-none hidden group-hover:flex flex-col items-center" style={{ bottom: DATE_PX + 8 }}>
+                                      <div className="text-xs rounded px-2 py-1 whitespace-nowrap" style={{ background: '#2a2a38', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                        건강 {point.healthScore} · 분산 {point.diversificationScore}
+                                      </div>
+                                    </div>
+                                    <div style={{ width: '100%', height: barH, background: barColor, borderRadius: '3px 3px 0 0', opacity: isLatest ? 1 : 0.4, transition: 'height 0.3s' }} />
+                                    <div style={{ fontSize: 9, color: '#374151', height: DATE_PX, lineHeight: `${DATE_PX}px`, flexShrink: 0 }}>
+                                      {new Date(point.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                                    </div>
                                   </div>
-                                </div>
-                                <div className="w-full rounded-t transition-all" style={{ height: `${hPct}%`, background: barColor, opacity: isLatest ? 1 : 0.35 }} />
-                                <div className="text-[9px]" style={{ color: '#374151' }}>{new Date(point.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })()}

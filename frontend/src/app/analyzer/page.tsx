@@ -728,7 +728,7 @@ export default function AnalyzerPage() {
                   {searchDone && searchResults.length === 0 && !loadingSearch && (
                     <div className="mt-3 rounded-xl px-4 py-4 text-center" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
                       <p className="text-sm font-semibold text-white mb-0.5">검색 결과가 없어요</p>
-                      <p className="text-xs" style={{ color: '#6b7280' }}>영문 티커(예: PL)나 영문 이름으로 다시 검색해보세요</p>
+                      <p className="text-xs" style={{ color: '#6b7280' }}>DB와 Yahoo Finance 모두에서 찾지 못했어요<br/>영문 티커(예: PL · BYND)나 영문 회사명으로 검색해보세요</p>
                     </div>
                   )}
 

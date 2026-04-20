@@ -201,6 +201,13 @@ export default function AnalyzerPage() {
   };
   const sectorLabel = (s: string) => sectorKo[s] ?? s;
 
+  const divScoreLabel = (s: number) => {
+    if (s < 40) return { text: '위험', color: '#ef4444' };
+    if (s < 60) return { text: '보통', color: '#f59e0b' };
+    if (s < 80) return { text: '양호', color: '#a78bfa' };
+    return { text: '우수', color: '#10b981' };
+  };
+
   const totalAmount = useMemo(() => items.reduce((sum, item) => sum + Number(item.amount || 0), 0), [items]);
   const totalWeight = useMemo(() => items.reduce((sum, item) => sum + Number(item.weight || 0), 0), [items]);
 
@@ -225,11 +232,14 @@ export default function AnalyzerPage() {
   }, [authLoading, isLoggedIn]);
 
   const [applyingRebalance, setApplyingRebalance] = useState(false);
+  const [prevAnalysis, setPrevAnalysis] = useState<AnalysisResult | null>(null);
+  const [rebalanceAppliedAt, setRebalanceAppliedAt] = useState<Date | null>(null);
 
   const handleApplyRebalance = async () => {
     if (!analysis?.rebalanceResult || !currentPortfolioId) return;
     try {
       setApplyingRebalance(true);
+      const capturedPrev = analysis;
       const suggested = analysis.rebalanceResult.suggestedPortfolio;
       const newItems: PortfolioInputItem[] = [];
 
@@ -253,8 +263,11 @@ export default function AnalyzerPage() {
       for (const item of newItems) {
         await addPortfolioItem(currentPortfolioId, item.securityId, { weight: item.weight });
       }
-      setAnalysis(null);
-      setActiveTab('input');
+      const result = await analyzePortfolio(currentPortfolioId, '1Y', 'SP500');
+      setPrevAnalysis(capturedPrev);
+      setAnalysis(result);
+      setRebalanceAppliedAt(new Date());
+      await loadSavedPortfolios();
     } catch { /* ignore */ } finally { setApplyingRebalance(false); }
   };
 
@@ -926,6 +939,77 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
+                  {/* ── 지금 뭘 해야 하나요? ── */}
+                  {(() => {
+                    const failedRules = analysis.scoreBreakdown.filter((r: ScoreRule) => !r.passed);
+                    const primaryAction = failedRules.length === 0
+                      ? '지금 구성을 유지하세요. 1개월 후 다시 확인해보세요.'
+                      : failedRules.reduce((a: ScoreRule, b: ScoreRule) => Math.abs(a.delta) >= Math.abs(b.delta) ? a : b).action;
+                    const status = analysis.healthScore >= 80
+                      ? { emoji: '✓', label: '잘 관리되고 있어요', color: '#10b981', bg: 'rgba(16,185,129,0.07)', border: 'rgba(16,185,129,0.2)' }
+                      : analysis.healthScore >= 60
+                      ? { emoji: '!', label: '확인 포인트가 있어요', color: '#f59e0b', bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.2)' }
+                      : { emoji: '⚡', label: '조치가 필요해요', color: '#ef4444', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.2)' };
+                    return (
+                      <div className="rounded-2xl px-5 py-4 flex items-center gap-4" style={{ background: status.bg, border: `1px solid ${status.border}` }}>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-black shrink-0" style={{ background: status.border, color: status.color }}>
+                          {status.emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: status.color }}>지금 뭘 해야 하나요?</div>
+                          <div className="text-sm font-semibold text-white leading-snug">{primaryAction}</div>
+                        </div>
+                        {failedRules.length > 0 && (
+                          <div className="shrink-0 text-right">
+                            <div className="text-[10px]" style={{ color: '#6b7280' }}>개선 포인트</div>
+                            <div className="text-xl font-black" style={{ color: status.color }}>{failedRules.length}개</div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* ── 리밸런싱 완료 피드백 ── */}
+                  {prevAnalysis && rebalanceAppliedAt && (() => {
+                    const nextDate = new Date(rebalanceAppliedAt);
+                    nextDate.setMonth(nextDate.getMonth() + 1);
+                    const nextDateStr = nextDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+                    return (
+                      <div className="rounded-2xl p-5" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0" style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>✓</div>
+                          <span className="text-sm font-bold text-white">리밸런싱이 완료됐어요!</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          {[
+                            { label: '건강 점수', before: prevAnalysis.healthScore, after: analysis.healthScore, unit: '점', higherIsBetter: true },
+                            { label: '분산도', before: prevAnalysis.diversificationScore, after: analysis.diversificationScore, unit: '점', higherIsBetter: true },
+                            { label: '집중도', before: prevAnalysis.top3Concentration, after: analysis.top3Concentration, unit: '%', higherIsBetter: false },
+                          ].map(({ label, before, after, unit, higherIsBetter }) => {
+                            const delta = Number((after - before).toFixed(1));
+                            const improved = higherIsBetter ? delta > 0 : delta < 0;
+                            const neutral = delta === 0;
+                            const color = neutral ? '#9ca3af' : improved ? '#10b981' : '#ef4444';
+                            const sign = delta > 0 ? '+' : '';
+                            return (
+                              <div key={label} className="rounded-xl p-3 text-center" style={{ background: '#141418' }}>
+                                <div className="text-[10px] mb-1.5" style={{ color: '#6b7280' }}>{label}</div>
+                                <div className="text-xs font-medium" style={{ color: '#9ca3af' }}>{Math.round(before)}{unit}</div>
+                                <div className="text-xs my-0.5" style={{ color: '#374151' }}>↓</div>
+                                <div className="text-base font-black" style={{ color }}>{Math.round(after)}{unit}</div>
+                                {!neutral && <div className="text-[10px] font-bold mt-0.5" style={{ color }}>{sign}{delta}{unit}</div>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs" style={{ color: '#6b7280' }}>
+                          <span>📅</span>
+                          <span>다음 점검 추천일: <span className="font-semibold" style={{ color: '#9ca3af' }}>{nextDateStr}</span></span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* ── 경고 알림 ── */}
                   {analysis.history?.alerts?.length > 0 && (
                     <div className="space-y-2">
@@ -981,10 +1065,23 @@ export default function AnalyzerPage() {
                                 </span>
                               </div>
                             ))}
-                            {analysis.rebalanceResult.beforeAfterSummary && (
-                              <div className="rounded-xl px-4 py-3 mt-2" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div className="text-xs mb-1" style={{ color: '#4b5563' }}>Before / After 시뮬레이션</div>
-                                <div className="text-sm font-semibold text-white">{analysis.rebalanceResult.beforeAfterSummary}</div>
+                            {scoreDelta > 0 && (
+                              <div className="rounded-xl p-4 mt-2" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#4b5563' }}>Before / After 시뮬레이션</div>
+                                <div className="grid grid-cols-3 items-center gap-2 mb-3">
+                                  <div className="text-center">
+                                    <div className="text-[10px] mb-1" style={{ color: '#6b7280' }}>지금</div>
+                                    <div className="text-3xl font-black" style={{ color: divScoreLabel(analysis.rebalanceResult.currentScore).color }}>{analysis.rebalanceResult.currentScore}</div>
+                                    <div className="text-xs font-bold mt-0.5" style={{ color: divScoreLabel(analysis.rebalanceResult.currentScore).color }}>{divScoreLabel(analysis.rebalanceResult.currentScore).text}</div>
+                                  </div>
+                                  <div className="text-center text-xl" style={{ color: '#4b5563' }}>→</div>
+                                  <div className="text-center">
+                                    <div className="text-[10px] mb-1" style={{ color: '#6b7280' }}>리밸런싱 후</div>
+                                    <div className="text-3xl font-black" style={{ color: divScoreLabel(analysis.rebalanceResult.improvedScore).color }}>{analysis.rebalanceResult.improvedScore}</div>
+                                    <div className="text-xs font-bold mt-0.5" style={{ color: divScoreLabel(analysis.rebalanceResult.improvedScore).color }}>{divScoreLabel(analysis.rebalanceResult.improvedScore).text}</div>
+                                  </div>
+                                </div>
+                                <div className="text-xs text-center leading-relaxed" style={{ color: '#6b7280' }}>{analysis.rebalanceResult.whyItMatters}</div>
                               </div>
                             )}
                           </div>
@@ -1078,6 +1175,49 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
+                  {/* ── 다음 할 일 ── */}
+                  {(() => {
+                    const failedRules = analysis.scoreBreakdown.filter((r: ScoreRule) => !r.passed);
+                    const topSector = analysis.sectorExposure.filter(s => s.sector !== 'Cash' && s.sector !== 'ETF')[0];
+                    const nextCheckDate = (() => {
+                      const d = new Date(rebalanceAppliedAt ?? new Date());
+                      d.setMonth(d.getMonth() + 1);
+                      return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+                    })();
+                    const hasRebalanceActions = (analysis.rebalanceResult?.actions?.length ?? 0) > 0;
+                    const tasks = [
+                      ...(hasRebalanceActions && !rebalanceAppliedAt ? [{ done: false, text: '추천 비율로 포트폴리오 재설정하기', priority: true }] : []),
+                      ...(rebalanceAppliedAt ? [{ done: true, text: '포트폴리오 리밸런싱 완료', priority: false }] : []),
+                      ...failedRules.slice(0, 2).map((r: ScoreRule) => ({ done: false, text: r.action, priority: false })),
+                      { done: false, text: `${nextCheckDate}에 다시 분석하기`, priority: false },
+                      ...(topSector && topSector.weight > 50 ? [{ done: false, text: `${sectorLabel(topSector.sector)} 업종 뉴스 체크하기 (비중 ${topSector.weight.toFixed(0)}%)`, priority: false }] : []),
+                    ].slice(0, 4);
+                    return (
+                      <div className="rounded-2xl p-5" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#6b7280' }}>다음 할 일</div>
+                        <div className="space-y-3">
+                          {tasks.map((task, i) => (
+                            <div key={i} className="flex items-start gap-3">
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{
+                                background: task.done ? 'rgba(16,185,129,0.15)' : task.priority ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
+                                border: `1px solid ${task.done ? 'rgba(16,185,129,0.4)' : task.priority ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                              }}>
+                                {task.done
+                                  ? <span style={{ fontSize: 9, color: '#10b981' }}>✓</span>
+                                  : <span style={{ fontSize: 7, color: task.priority ? '#a78bfa' : '#6b7280' }}>●</span>
+                                }
+                              </div>
+                              <span className="text-sm leading-snug flex-1" style={{ color: task.done ? '#6b7280' : 'white', textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
+                              {task.priority && !task.done && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>추천</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* ── 개인 수익률 ── */}
                   {analysis.personalReturn !== null && (
                     <div className="rounded-2xl p-5" style={{ background: '#1c1c26', border: '1px solid rgba(99,102,241,0.2)' }}>
@@ -1103,6 +1243,52 @@ export default function AnalyzerPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* ── 포트폴리오 추이 ── */}
+                  {(analysis.history?.trend?.length ?? 0) > 1 && (() => {
+                    const trend = analysis.history.trend;
+                    const latest = trend[trend.length - 1];
+                    const first = trend[0];
+                    const hDelta = Math.round(latest.healthScore - first.healthScore);
+                    const isImproving = hDelta >= 0;
+                    return (
+                      <div className="rounded-2xl p-5" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#6b7280' }}>Portfolio Tracking</div>
+                            <div className="text-sm font-bold text-white">내 점수 추이</div>
+                          </div>
+                          <div className="flex items-center gap-1.5 rounded-full px-3 py-1" style={{
+                            background: isImproving ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                            border: `1px solid ${isImproving ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                          }}>
+                            <span style={{ color: isImproving ? '#10b981' : '#ef4444' }}>{isImproving ? '↑' : '↓'}</span>
+                            <span className="text-xs font-bold" style={{ color: isImproving ? '#10b981' : '#ef4444' }}>
+                              {hDelta > 0 ? `+${hDelta}` : hDelta}점
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-end gap-1.5 h-20">
+                          {trend.map((point: { date: string; healthScore: number; diversificationScore: number }, i: number) => {
+                            const isLatest = i === trend.length - 1;
+                            const hPct = Math.max(6, point.healthScore);
+                            const barColor = point.healthScore >= 80 ? '#8b5cf6' : point.healthScore >= 60 ? '#f59e0b' : '#ef4444';
+                            return (
+                              <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+                                <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
+                                  <div className="text-xs rounded px-2 py-1 whitespace-nowrap" style={{ background: '#2a2a38', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                    건강 {point.healthScore} · 분산 {point.diversificationScore}
+                                  </div>
+                                </div>
+                                <div className="w-full rounded-t transition-all" style={{ height: `${hPct}%`, background: barColor, opacity: isLatest ? 1 : 0.35 }} />
+                                <div className="text-[9px]" style={{ color: '#374151' }}>{new Date(point.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* ── 상세 분석 펼치기 버튼 ── */}
                   <button onClick={() => setShowDetails((v) => !v)}
@@ -1169,30 +1355,6 @@ export default function AnalyzerPage() {
                         </div>
                       )}
 
-                      {/* 점수 추이 */}
-                      {analysis.history?.trend?.length > 1 && (
-                        <div className="rounded-2xl p-5" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
-                          <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: '#6b7280' }}>Score History</div>
-                          <div className="flex items-end gap-1.5 h-16">
-                            {analysis.history.trend.map((point: { date: string; healthScore: number; diversificationScore: number }, i: number) => {
-                              const isLatest = i === analysis.history.trend.length - 1;
-                              const hPct = Math.max(4, point.healthScore);
-                              const barColor = point.healthScore >= 80 ? '#8b5cf6' : point.healthScore >= 60 ? '#f59e0b' : '#ef4444';
-                              return (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                                  <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10 pointer-events-none">
-                                    <div className="text-xs rounded px-2 py-1 whitespace-nowrap" style={{ background: '#2a2a38', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                      건강 {point.healthScore} · 분산 {point.diversificationScore}
-                                    </div>
-                                  </div>
-                                  <div className="w-full rounded-t transition-all" style={{ height: `${hPct}%`, background: barColor, opacity: isLatest ? 1 : 0.4 }} />
-                                  <div className="text-[10px]" style={{ color: '#374151' }}>{new Date(point.date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 

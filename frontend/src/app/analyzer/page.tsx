@@ -242,6 +242,10 @@ export default function AnalyzerPage() {
       setApplyingRebalance(true);
       const capturedPrev = analysis;
 
+      // ── 원금 총액 캡처 (금액 모드였을 때만 유효) ──
+      const capturedTotalAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
+      const hasAmounts = capturedTotalAmount > 0;
+
       // ── 1. 기존 포트폴리오 백업 복사본 생성 ──
       const today = new Date();
       const dateStr = `${today.getMonth() + 1}.${today.getDate()}`;
@@ -262,23 +266,43 @@ export default function AnalyzerPage() {
 
       for (const s of suggested) {
         const existing = items.find((i) => i.ticker === s.ticker);
+
+        // 비중에 맞는 금액 자동 계산
+        let calcAmount = 0;
+        if (hasAmounts) {
+          const targetAmt = capturedTotalAmount * (s.weight / 100);
+          const isKorean = s.ticker.endsWith('.KS') || s.ticker.endsWith('.KQ');
+          const costPerShare = Number(existing?.avgCost || 0);
+          if (isKorean && costPerShare > 0) {
+            // 국내주식: 1주 단위 반올림
+            const shares = Math.max(1, Math.round(targetAmt / costPerShare));
+            calcAmount = shares * costPerShare;
+          } else {
+            // 미국주식 / 기타: 10원 단위
+            calcAmount = Math.round(targetAmt / 10) * 10;
+          }
+        }
+
         if (existing) {
-          newItems.push({ ...existing, weight: s.weight });
+          newItems.push({ ...existing, weight: s.weight, amount: calcAmount });
         } else {
           try {
             const results = await getSecurities(s.ticker);
             const sec = results.find((r: Security) => r.ticker === s.ticker);
-            if (sec) newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: s.weight, amount: 0, avgCost: 0 });
+            if (sec) newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: s.weight, amount: calcAmount, avgCost: 0 });
           } catch { /* skip */ }
         }
       }
 
       if (!newItems.length) return;
       setItems(newItems);
-      setInputMode('weight');
+      setInputMode(hasAmounts ? 'amount' : 'weight');
       await clearPortfolioItems(currentPortfolioId);
       for (const item of newItems) {
-        await addPortfolioItem(currentPortfolioId, item.securityId, { weight: item.weight });
+        const opts = hasAmounts
+          ? { amount: item.amount, ...(Number(item.avgCost) > 0 ? { avgCost: Number(item.avgCost) } : {}) }
+          : { weight: item.weight };
+        await addPortfolioItem(currentPortfolioId, item.securityId, opts);
       }
       const result = await analyzePortfolio(currentPortfolioId, '1Y', 'SP500');
       setPrevAnalysis(capturedPrev);

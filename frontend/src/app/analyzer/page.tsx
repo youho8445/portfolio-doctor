@@ -294,7 +294,8 @@ export default function AnalyzerPage() {
             // 국내주식: 1주 단위 반올림 (KRW)
             const costPerShare = Number(existing?.avgCost || 0);
             if (costPerShare > 0) {
-              calcAmount = Math.max(costPerShare, Math.round(targetAmtKRW / costPerShare)) * costPerShare;
+              const shares = Math.max(1, Math.round(targetAmtKRW / costPerShare));
+              calcAmount = shares * costPerShare;
             } else {
               calcAmount = Math.round(targetAmtKRW / 1000) * 1000;
             }
@@ -1356,60 +1357,82 @@ export default function AnalyzerPage() {
                   {/* ── 개인 수익률 ── */}
                   {analysis.personalReturn !== null && (() => {
                     const rate = effectiveRate();
-                    const itemProfitKRW: Record<string, number> = {};
+                    // per-item KRW 투자원금 + 수익
+                    const itemData: Record<string, { investedKRW: number; profitKRW: number }> = {};
+                    let totalInvestedKRW = 0;
                     let totalProfitKRW = 0;
                     for (const r of analysis.personalReturns) {
                       const it = items.find((i) => i.ticker === r.ticker);
                       if (!it || !it.amount) continue;
                       const amtKRW = isUS(it.ticker) ? Number(it.amount) * rate : Number(it.amount);
                       const p = amtKRW * r.returnPct / 100;
-                      itemProfitKRW[r.ticker] = p;
+                      itemData[r.ticker] = { investedKRW: amtKRW, profitKRW: p };
+                      totalInvestedKRW += amtKRW;
                       totalProfitKRW += p;
                     }
-                    const hasProfitData = totalProfitKRW !== 0 || Object.keys(itemProfitKRW).length > 0;
+                    const totalCurrentKRW = totalInvestedKRW + totalProfitKRW;
+                    const hasSummary = totalInvestedKRW > 0;
+                    const fmtKRW = (n: number) => `₩${Math.round(n).toLocaleString('ko-KR')}`;
                     const fmtProfit = (krw: number) => {
-                      const abs = Math.abs(krw);
                       const sign = krw >= 0 ? '+' : '-';
-                      if (abs >= 100_000_000) return `${sign}₩${(abs / 100_000_000).toFixed(1)}억`;
-                      if (abs >= 10_000) return `${sign}₩${Math.round(abs / 10_000)}만`;
-                      return `${sign}₩${Math.round(abs).toLocaleString('ko-KR')}`;
+                      return `${sign}${fmtKRW(Math.abs(krw))}`;
                     };
+                    const profitColor = (v: number) => v > 0 ? '#10b981' : v < 0 ? '#ef4444' : '#9ca3af';
                     return (
                     <div className="rounded-2xl p-5" style={{ background: '#1c1c26', border: '1px solid rgba(99,102,241,0.2)' }}>
+                      {/* 헤더 */}
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#6b7280' }}>내 투자 수익률</div>
-                          <div className="text-[11px]" style={{ color: '#4b5563' }}>평단가 입력 기준 · 미국주식 평단가는 달러($)로 입력</div>
-                          {hasProfitData && totalAmount > 0 && (
-                            <div className="flex items-center gap-3 mt-2">
-                              <div>
-                                <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#4b5563' }}>원금</div>
-                                <div className="text-sm font-bold text-white">₩{formatAmount(Math.round(totalAmount))}</div>
-                              </div>
-                              <div className="text-gray-600">→</div>
-                              <div>
-                                <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: '#4b5563' }}>평가수익</div>
-                                <div className="text-sm font-bold" style={{ color: totalProfitKRW >= 0 ? '#10b981' : '#ef4444' }}>{fmtProfit(totalProfitKRW)}</div>
-                              </div>
-                            </div>
-                          )}
+                          <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#6b7280' }}>내 투자 수익률</div>
+                          <div className="text-[11px]" style={{ color: '#4b5563' }}>평단가 기준 · 미국주식 평단가는 달러($)로 입력</div>
                         </div>
                         <div className={`text-3xl font-black shrink-0 ${retColor(analysis.personalReturn)}`}>
                           {analysis.personalReturn > 0 ? '+' : ''}{analysis.personalReturn}%
                         </div>
                       </div>
-                      <div className="space-y-2.5">
+
+                      {/* 원금 → 평가금액 요약 */}
+                      {hasSummary && (
+                        <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{
+                          background: totalProfitKRW >= 0 ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)',
+                          border: `1px solid ${totalProfitKRW >= 0 ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                        }}>
+                          <div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#6b7280' }}>투자원금</div>
+                            <div className="text-sm font-bold text-white">{fmtKRW(totalInvestedKRW)}</div>
+                          </div>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                          <div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#6b7280' }}>평가금액</div>
+                            <div className="text-sm font-bold text-white">{fmtKRW(totalCurrentKRW)}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#6b7280' }}>평가손익</div>
+                            <div className="text-sm font-bold" style={{ color: profitColor(totalProfitKRW) }}>{fmtProfit(totalProfitKRW)}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 종목별 */}
+                      <div className="space-y-3">
                         {analysis.personalReturns.map((r: PersonalReturn) => {
-                          const profit = itemProfitKRW[r.ticker];
+                          const d = itemData[r.ticker];
+                          const currentVal = d ? d.investedKRW + d.profitKRW : null;
                           return (
-                          <div key={r.ticker} className="flex items-center gap-3">
-                            <span className="text-sm font-bold w-20 shrink-0 truncate" style={{ color: '#d1d5db' }}>{tickerNameMap[r.ticker] || r.ticker}</span>
-                            <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                              <div className="h-1.5 rounded-full" style={{ width: `${Math.min(Math.abs(r.returnPct), 100)}%`, background: r.returnPct >= 0 ? '#10b981' : '#ef4444' }} />
+                          <div key={r.ticker}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-bold truncate max-w-[140px]" style={{ color: '#d1d5db' }}>{tickerNameMap[r.ticker] || r.ticker}</span>
+                              <div className="text-right shrink-0 ml-3">
+                                {currentVal != null
+                                  ? <div className="text-sm font-bold text-white">{fmtKRW(currentVal)}</div>
+                                  : null}
+                                <div className="text-xs" style={{ color: profitColor(r.returnPct) }}>
+                                  {d ? `${fmtProfit(d.profitKRW)} ` : ''}{r.returnPct > 0 ? '+' : ''}{r.returnPct}%
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-right shrink-0 w-24">
-                              <div className={`text-sm font-bold ${retColor(r.returnPct)}`}>{r.returnPct > 0 ? '+' : ''}{r.returnPct}%</div>
-                              {profit != null && <div className="text-[10px]" style={{ color: profit >= 0 ? '#10b981' : '#ef4444' }}>{fmtProfit(profit)}</div>}
+                            <div className="h-1 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                              <div className="h-1 rounded-full" style={{ width: `${Math.min(r.weight, 100)}%`, background: r.returnPct >= 0 ? '#10b981' : '#ef4444' }} />
                             </div>
                           </div>
                           );

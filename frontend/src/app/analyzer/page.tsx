@@ -162,6 +162,7 @@ export default function AnalyzerPage() {
   const [inputMode, setInputMode] = useState<InputMode>('amount');
   const [search, setSearch] = useState('');
   const [searchResults, setSearchResults] = useState<Security[]>([]);
+  const [searchDone, setSearchDone] = useState(false);
   const [items, setItems] = useState<PortfolioInputItem[]>([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
@@ -288,15 +289,15 @@ export default function AnalyzerPage() {
 
   const handleSearch = async () => {
     if (!search.trim()) return;
-    try { setError(null); setLoadingSearch(true); setSearchResults(await getSecurities(search)); }
-    catch { setError('종목 검색에 실패했습니다.'); }
+    try { setError(null); setLoadingSearch(true); setSearchDone(false); setSearchResults(await getSecurities(search)); setSearchDone(true); }
+    catch { setError('종목 검색에 실패했습니다.'); setSearchDone(true); }
     finally { setLoadingSearch(false); }
   };
 
   const addItem = (security: Security) => {
     if (items.some((item) => item.securityId === security.id)) return;
     setItems((prev) => [...prev, { securityId: security.id, ticker: security.ticker, name: security.name, displayNameKo: security.displayNameKo, weight: 0, amount: 0, avgCost: 0 }]);
-    setSearchResults([]); setSearch('');
+    setSearchResults([]); setSearch(''); setSearchDone(false);
   };
 
   const updateAmount = (id: number, amount: number) => setItems((prev) => prev.map((i) => i.securityId === id ? { ...i, amount } : i));
@@ -706,7 +707,7 @@ export default function AnalyzerPage() {
                     />
                     {(search || searchResults.length > 0) && (
                       <button
-                        onClick={() => { setSearch(''); setSearchResults([]); }}
+                        onClick={() => { setSearch(''); setSearchResults([]); setSearchDone(false); }}
                         className="rounded-xl px-3 py-3 text-sm font-bold transition-all"
                         style={{ background: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}
                         title="검색 취소"
@@ -723,6 +724,13 @@ export default function AnalyzerPage() {
                       {loadingSearch ? '...' : '검색'}
                     </button>
                   </div>
+
+                  {searchDone && searchResults.length === 0 && !loadingSearch && (
+                    <div className="mt-3 rounded-xl px-4 py-4 text-center" style={{ border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+                      <p className="text-sm font-semibold text-white mb-0.5">검색 결과가 없어요</p>
+                      <p className="text-xs" style={{ color: '#6b7280' }}>영문 티커(예: PL)나 영문 이름으로 다시 검색해보세요</p>
+                    </div>
+                  )}
 
                   {searchResults.length > 0 && (
                     <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>

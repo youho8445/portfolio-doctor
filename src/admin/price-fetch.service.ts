@@ -45,7 +45,7 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    // 1시간마다 체크 — 평일 오전 8시 UTC(한국 오후 5시)에 실행
+    // 1시간마다 체크
     this.timer = setInterval(() => this.checkAndRun(), 60 * 60 * 1000);
     this.logger.log('PriceFetchService 스케줄러 시작 (1시간 간격 체크)');
   }
@@ -58,15 +58,59 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
     const now = new Date();
     const day = now.getUTCDay(); // 0=일, 6=토
     const hour = now.getUTCHours();
-    // 평일(1~5) 오전 8시 UTC
-    if (day >= 1 && day <= 5 && hour === 8) {
-      this.logger.log('[Cron] 자동 가격 수집 시작');
+    if (day < 1 || day > 5) return; // 주말 스킵
+
+    // 매 시간 quote 빠른 갱신 (UTC 0~23시 평일)
+    this.logger.log('[Cron] 시간별 quote 갱신 시작');
+    void this.runQuoteSync();
+
+    // 하루 1번 전체 히스토리 갱신 — UTC 8시 (한국 오후 5시)
+    if (hour === 8) {
+      this.logger.log('[Cron] 일별 전체 히스토리 수집 시작');
       void this.runFetch();
     }
   }
 
   getStatus(): FetchResult {
     return { ...this.result };
+  }
+
+  async runQuoteSync(): Promise<void> {
+    const securities = await this.securityRepo.find({ order: { id: 'ASC' } });
+    const today = new Date().toISOString().slice(0, 10);
+    const BATCH = 100;
+
+    this.logger.log(`[QuoteSync] ${securities.length}개 종목 현재가 갱신 시작`);
+    let updated = 0;
+
+    for (let i = 0; i < securities.length; i += BATCH) {
+      const batch = securities.slice(i, i + BATCH);
+      const tickers = batch.map((s) => s.ticker);
+      try {
+        const { default: YahooFinance } = await import('yahoo-finance2');
+        const yf = new (YahooFinance as any)({ suppressNotices: ['ripHistorical'] });
+        const raw = await (yf as any).quote(tickers, {}, { validateResult: false }).catch(() => []);
+        const quotes: any[] = Array.isArray(raw) ? raw : [raw];
+
+        for (const q of quotes) {
+          const price = q?.regularMarketPrice;
+          if (!price) continue;
+          const sec = batch.find((s) => s.ticker === q.symbol);
+          if (!sec) continue;
+          await this.dataSource.query(
+            `INSERT INTO price_daily (securityId, tradeDate, close, volume)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE close = VALUES(close), volume = VALUES(volume)`,
+            [sec.id, today, price, q.regularMarketVolume ?? 0],
+          );
+          updated++;
+        }
+      } catch (e) {
+        this.logger.error(`[QuoteSync] 배치 오류 (${tickers[0]}~): ${e}`);
+      }
+    }
+
+    this.logger.log(`[QuoteSync] 완료 — ${updated}개 갱신`);
   }
 
   async runFetch(): Promise<FetchResult> {

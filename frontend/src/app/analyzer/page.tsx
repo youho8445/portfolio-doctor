@@ -738,10 +738,12 @@ export default function AnalyzerPage() {
                           onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
                         >
                           <div>
-                            <span className="font-bold text-white text-sm">{s.ticker}</span>
-                            <span className="text-sm ml-2" style={{ color: '#9ca3af' }}>{s.displayNameKo ?? s.name}</span>
+                            <span className="font-bold text-white text-sm">{s.displayNameKo ?? s.name}</span>
+                            <span className="text-xs ml-2" style={{ color: '#6b7280' }}>{s.ticker}</span>
                           </div>
-                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.06)', color: '#6b7280' }}>{s.sector ?? 'N/A'}</span>
+                          {s.sector && s.sector !== 'N/A' && (
+                            <span className="text-xs px-2 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(255,255,255,0.06)', color: '#6b7280' }}>{sectorLabel(s.sector)}</span>
+                          )}
                         </button>
                       ))}
                     </div>

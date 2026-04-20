@@ -278,8 +278,9 @@ export default function AnalyzerPage() {
             const shares = Math.max(1, Math.round(targetAmt / costPerShare));
             calcAmount = shares * costPerShare;
           } else {
-            // 미국주식 / 기타: 10원 단위
-            calcAmount = Math.round(targetAmt / 10) * 10;
+            // 미국주식: 최소 $1 단위 (1달러 ≈ 1,400원)
+            const USD_KRW = 1400;
+            calcAmount = Math.max(USD_KRW, Math.round(targetAmt / USD_KRW) * USD_KRW);
           }
         }
 

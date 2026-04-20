@@ -210,14 +210,6 @@ export default function AnalyzerPage() {
     return { text: '우수', color: '#10b981' };
   };
 
-  const totalAmount = useMemo(() => items.reduce((sum, item) => sum + Number(item.amount || 0), 0), [items]);
-  const totalWeight = useMemo(() => items.reduce((sum, item) => sum + Number(item.weight || 0), 0), [items]);
-
-  const getItemWeight = (item: PortfolioInputItem): number => {
-    if (inputMode === 'amount' && totalAmount > 0) return (Number(item.amount || 0) / totalAmount) * 100;
-    return Number(item.weight || 0);
-  };
-
   const formatAmount = (n: number) => n > 0 ? n.toLocaleString('ko-KR') : '';
 
   const loadSavedPortfolios = async () => {
@@ -240,14 +232,33 @@ export default function AnalyzerPage() {
   const [usdKrw, setUsdKrw] = useState<{ rate: number; midRate: number } | null>(null);
   const [customUsdKrw, setCustomUsdKrw] = useState<string>('');
 
+  const isUS = (ticker: string) => !ticker.endsWith('.KS') && !ticker.endsWith('.KQ');
+  const effectiveRate = () => customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
+  const toKRW = (item: PortfolioInputItem) => isUS(item.ticker) ? Number(item.amount || 0) * effectiveRate() : Number(item.amount || 0);
+
+  const totalAmount = useMemo(() => {
+    const rate = customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
+    return items.reduce((sum, item) => {
+      const amt = Number(item.amount || 0);
+      return sum + (isUS(item.ticker) ? amt * rate : amt);
+    }, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, usdKrw, customUsdKrw]);
+  const totalWeight = useMemo(() => items.reduce((sum, item) => sum + Number(item.weight || 0), 0), [items]);
+
+  const getItemWeight = (item: PortfolioInputItem): number => {
+    if (inputMode === 'amount' && totalAmount > 0) return (toKRW(item) / totalAmount) * 100;
+    return Number(item.weight || 0);
+  };
+
   const handleApplyRebalance = async () => {
     if (!analysis?.rebalanceResult || !currentPortfolioId) return;
     try {
       setApplyingRebalance(true);
       const capturedPrev = analysis;
 
-      // ── 원금 총액 캡처 (금액 모드였을 때만 유효) ──
-      const capturedTotalAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
+      // ── 원금 총액 캡처 (금액 모드, KRW 환산) ──
+      const capturedTotalAmount = totalAmount; // already in KRW (US converted by effectiveRate)
       const hasAmounts = capturedTotalAmount > 0;
 
       // ── 1. 기존 포트폴리오 백업 복사본 생성 ──
@@ -258,8 +269,10 @@ export default function AnalyzerPage() {
       const weightSum = items.reduce((s, i) => s + getItemWeight(i), 0);
       for (const item of items) {
         const w = weightSum > 0 ? Math.round((getItemWeight(item) / weightSum) * 1000) / 10 : getItemWeight(item);
+        const storedAmt = toKRW(item);
         await addPortfolioItem(backup.id, item.securityId, {
           weight: w,
+          ...(storedAmt > 0 ? { amount: storedAmt } : {}),
           ...(Number(item.avgCost) > 0 ? { avgCost: Number(item.avgCost) } : {}),
         });
       }
@@ -272,19 +285,22 @@ export default function AnalyzerPage() {
         const existing = items.find((i) => i.ticker === s.ticker);
 
         // 비중에 맞는 금액 자동 계산
-        let calcAmount = 0;
+        let calcAmount = 0; // state에 저장할 값: KR=KRW, US=USD
         if (hasAmounts) {
-          const targetAmt = capturedTotalAmount * (s.weight / 100);
-          const isKorean = s.ticker.endsWith('.KS') || s.ticker.endsWith('.KQ');
-          const costPerShare = Number(existing?.avgCost || 0);
-          if (isKorean && costPerShare > 0) {
-            // 국내주식: 1주 단위 반올림
-            const shares = Math.max(1, Math.round(targetAmt / costPerShare));
-            calcAmount = shares * costPerShare;
+          const targetAmtKRW = capturedTotalAmount * (s.weight / 100);
+          const rate = effectiveRate();
+          if (!isUS(s.ticker)) {
+            // 국내주식: 1주 단위 반올림 (KRW)
+            const costPerShare = Number(existing?.avgCost || 0);
+            if (costPerShare > 0) {
+              calcAmount = Math.max(costPerShare, Math.round(targetAmtKRW / costPerShare)) * costPerShare;
+            } else {
+              calcAmount = Math.round(targetAmtKRW / 1000) * 1000;
+            }
           } else {
-            // 미국주식: 최소 $1 단위 (실시간 환율 기준)
-            const USD_KRW = customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
-            calcAmount = Math.max(USD_KRW, Math.round(targetAmt / USD_KRW) * USD_KRW);
+            // 미국주식: $1 단위, USD로 저장 (표시용)
+            const targetUSD = targetAmtKRW / rate;
+            calcAmount = Math.max(1, Math.round(targetUSD));
           }
         }
 
@@ -304,8 +320,9 @@ export default function AnalyzerPage() {
       setInputMode(hasAmounts ? 'amount' : 'weight');
       await clearPortfolioItems(currentPortfolioId);
       for (const item of newItems) {
+        const storedAmt = isUS(item.ticker) ? item.amount * effectiveRate() : item.amount;
         const opts = hasAmounts
-          ? { amount: item.amount, ...(Number(item.avgCost) > 0 ? { avgCost: Number(item.avgCost) } : {}) }
+          ? { amount: storedAmt, ...(Number(item.avgCost) > 0 ? { avgCost: Number(item.avgCost) } : {}) }
           : { weight: item.weight };
         await addPortfolioItem(currentPortfolioId, item.securityId, opts);
       }
@@ -371,7 +388,8 @@ export default function AnalyzerPage() {
       }
       for (const item of items) {
         const avgCost = Number(item.avgCost) > 0 ? Number(item.avgCost) : undefined;
-        const options = inputMode === 'amount' ? { amount: Number(item.amount), avgCost } : { weight: Number(item.weight), avgCost };
+        const storedAmount = toKRW(item); // US stocks converted to KRW for backend weight calc
+        const options = inputMode === 'amount' ? { amount: storedAmount, avgCost } : { weight: Number(item.weight), avgCost };
         await addPortfolioItem(portfolioId, item.securityId, options);
       }
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
@@ -388,7 +406,13 @@ export default function AnalyzerPage() {
       setPortfolioName(portfolio.name);
       const hasAmounts = data.some((item) => item.amount !== null && Number(item.amount) > 0);
       setInputMode(hasAmounts ? 'amount' : 'weight');
-      setItems(data.map((item) => ({ securityId: item.securityId, ticker: item.security.ticker, name: item.security.name, displayNameKo: item.security.displayNameKo, weight: Number(item.weight), amount: Number(item.amount ?? 0), avgCost: Number(item.avgCost ?? 0) })));
+      const rate = customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
+      setItems(data.map((item) => {
+        const ticker = item.security.ticker;
+        const storedAmt = Number(item.amount ?? 0);
+        const displayAmt = isUS(ticker) && storedAmt > 0 ? Math.round(storedAmt / rate * 100) / 100 : storedAmt;
+        return { securityId: item.securityId, ticker, name: item.security.name, displayNameKo: item.security.displayNameKo, weight: Number(item.weight), amount: displayAmt, avgCost: Number(item.avgCost ?? 0) };
+      }));
       setCurrentPortfolioId(portfolio.id); setAnalysis(null); setError(null); setActiveTab('input');
       setMobileSidebarOpen(false);
     } catch { setError('포트폴리오 불러오기에 실패했습니다.'); }
@@ -845,15 +869,30 @@ export default function AnalyzerPage() {
                           <div className="flex items-center gap-2">
                             {inputMode === 'amount' ? (
                               <>
-                                <input type="text" inputMode="numeric"
-                                  value={item.amount > 0 ? item.amount.toLocaleString('ko-KR') : ''}
-                                  onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); updateAmount(item.securityId, raw ? Number(raw) : 0); }}
-                                  className="flex-1 rounded-lg px-3 py-1.5 text-right text-white text-sm outline-none tabular-nums"
-                                  style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}
-                                  placeholder="0"
-                                  onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
-                                  onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
-                                />
+                                {isUS(item.ticker) ? (
+                                  <div className="flex-1 flex items-center rounded-lg" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <span className="pl-3 text-sm shrink-0" style={{ color: '#6b7280' }}>$</span>
+                                    <input type="text" inputMode="decimal"
+                                      value={item.amount > 0 ? item.amount.toString() : ''}
+                                      onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); updateAmount(item.securityId, raw ? Number(raw) : 0); }}
+                                      className="flex-1 rounded-lg px-2 py-1.5 text-right text-white text-sm outline-none tabular-nums"
+                                      style={{ background: 'transparent' }}
+                                      placeholder="0.00"
+                                      onFocus={(e) => { if (e.target.parentElement) e.target.parentElement.style.borderColor = '#7c3aed'; }}
+                                      onBlur={(e) => { if (e.target.parentElement) e.target.parentElement.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <input type="text" inputMode="numeric"
+                                    value={item.amount > 0 ? item.amount.toLocaleString('ko-KR') : ''}
+                                    onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); updateAmount(item.securityId, raw ? Number(raw) : 0); }}
+                                    className="flex-1 rounded-lg px-3 py-1.5 text-right text-white text-sm outline-none tabular-nums"
+                                    style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}
+                                    placeholder="0"
+                                    onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
+                                    onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
+                                  />
+                                )}
                                 <span className="text-xs w-12 text-right shrink-0" style={{ color: '#4b5563' }}>{getItemWeight(item).toFixed(1)}%</span>
                               </>
                             ) : (
@@ -868,12 +907,12 @@ export default function AnalyzerPage() {
                                 <span className="text-sm shrink-0" style={{ color: '#6b7280' }}>%</span>
                               </>
                             )}
-                            <input type="text" inputMode="numeric"
-                              value={item.avgCost > 0 ? item.avgCost.toLocaleString('ko-KR') : ''}
-                              onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); updateAvgCost(item.securityId, raw ? Number(raw) : 0); }}
+                            <input type="text" inputMode={isUS(item.ticker) ? 'decimal' : 'numeric'}
+                              value={item.avgCost > 0 ? (isUS(item.ticker) ? item.avgCost.toString() : item.avgCost.toLocaleString('ko-KR')) : ''}
+                              onChange={(e) => { const raw = isUS(item.ticker) ? e.target.value.replace(/[^0-9.]/g, '') : e.target.value.replace(/[^0-9]/g, ''); updateAvgCost(item.securityId, raw ? Number(raw) : 0); }}
                               className="w-24 rounded-lg px-2 py-1.5 text-right text-sm outline-none tabular-nums"
                               style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)', color: '#6b7280' }}
-                              placeholder="평단가"
+                              placeholder={isUS(item.ticker) ? '평단가($)' : '평단가'}
                               onFocus={(e) => (e.target.style.borderColor = '#3b82f6')}
                               onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
                             />

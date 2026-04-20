@@ -241,6 +241,22 @@ export default function AnalyzerPage() {
     try {
       setApplyingRebalance(true);
       const capturedPrev = analysis;
+
+      // ── 1. 기존 포트폴리오 백업 복사본 생성 ──
+      const today = new Date();
+      const dateStr = `${today.getMonth() + 1}.${today.getDate()}`;
+      const backupName = `${portfolioName} (원본 ${dateStr})`;
+      const backup = await createPortfolio(backupName);
+      const weightSum = items.reduce((s, i) => s + getItemWeight(i), 0);
+      for (const item of items) {
+        const w = weightSum > 0 ? Math.round((getItemWeight(item) / weightSum) * 1000) / 10 : getItemWeight(item);
+        await addPortfolioItem(backup.id, item.securityId, {
+          weight: w,
+          ...(Number(item.avgCost) > 0 ? { avgCost: Number(item.avgCost) } : {}),
+        });
+      }
+
+      // ── 2. 추천 비율로 현재 포트폴리오 재설정 ──
       const suggested = analysis.rebalanceResult.suggestedPortfolio;
       const newItems: PortfolioInputItem[] = [];
 

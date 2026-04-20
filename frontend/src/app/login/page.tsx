@@ -54,7 +54,7 @@ export default function LoginPage() {
       {/* 카드 */}
       <div
         className="relative w-full max-w-sm rounded-3xl p-8 shadow-2xl"
-        style={{ background: '#46464e' }}
+        style={{ background: '#ffffff', boxShadow: '0 8px 40px rgba(124,58,237,0.12)' }}
       >
         {/* 로고 */}
         <div className="flex items-center gap-2.5 mb-8">
@@ -63,13 +63,13 @@ export default function LoginPage() {
               <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
             </svg>
           </div>
-          <span className="text-white font-semibold text-base">Portfolio Doctor</span>
+          <span className="font-semibold text-base" style={{ color: '#1a1d2e' }}>Portfolio Doctor</span>
         </div>
 
         {/* 타이틀 */}
         <div className="mb-7">
-          <h1 className="text-white font-bold mb-2" style={{ fontSize: 30, letterSpacing: '-0.5px' }}>환영합니다</h1>
-          <p className="text-sm leading-relaxed" style={{ color: '#b0afc0' }}>
+          <h1 className="font-bold mb-2" style={{ fontSize: 30, letterSpacing: '-0.5px', color: '#1a1d2e' }}>환영합니다</h1>
+          <p className="text-sm leading-relaxed" style={{ color: '#64748b' }}>
             내 투자 포트폴리오를 진단하고<br />최적의 전략을 찾아보세요.
           </p>
         </div>
@@ -87,8 +87,8 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none transition-all"
-              style={{ background: '#38383f', border: '1.5px solid transparent' }}
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              style={{ background: '#f8fafc', border: '1.5px solid transparent' }}
               onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
               onBlur={(e) => (e.target.style.borderColor = 'transparent')}
               placeholder=""
@@ -98,7 +98,7 @@ export default function LoginPage() {
           {/* 비밀번호 */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold tracking-widest" style={{ color: '#9ca3af' }}>
+              <label className="text-xs font-semibold tracking-widest" style={{ color: '#64748b' }}>
                 비밀번호
               </label>
             </div>
@@ -109,8 +109,8 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full rounded-xl px-4 py-3 pr-11 text-sm text-white outline-none transition-all"
-                style={{ background: '#38383f', border: '1.5px solid transparent' }}
+                className="w-full rounded-xl px-4 py-3 pr-11 text-sm outline-none transition-all"
+                style={{ background: '#f8fafc', border: '1.5px solid transparent' }}
                 onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
                 onBlur={(e) => (e.target.style.borderColor = 'transparent')}
                 placeholder=""
@@ -157,15 +157,15 @@ export default function LoginPage() {
         {/* 소셜 로그인 */}
         <div className="mt-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="flex-1 h-px" style={{ background: '#e8ecf4' }} />
             <span className="text-xs tracking-widest font-semibold" style={{ color: '#6b7280' }}>또는</span>
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.08)' }} />
+            <div className="flex-1 h-px" style={{ background: '#e8ecf4' }} />
           </div>
           <button
             type="button"
             onClick={() => { window.location.href = `${API}/auth/google`; }}
             className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2.5 transition-opacity hover:opacity-80"
-            style={{ background: '#38383f' }}
+            style={{ background: '#f8fafc' }}
           >
             <svg viewBox="0 0 24 24" style={{ width: 18, height: 18 }}>
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

@@ -764,8 +764,8 @@ export default function AnalyzerPage() {
                         <div key={item.securityId} className="rounded-xl px-4 py-3 space-y-2.5" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
                           <div className="flex items-center justify-between">
                             <div>
-                              <span className="font-bold text-white text-sm">{item.ticker}</span>
-                              <span className="text-xs ml-2" style={{ color: '#6b7280' }}>{item.displayNameKo ?? item.name}</span>
+                              <span className="font-bold text-white text-sm">{item.displayNameKo ?? item.name}</span>
+                              <span className="text-xs ml-2" style={{ color: '#6b7280' }}>{item.ticker}</span>
                             </div>
                             <button onClick={() => removeItem(item.securityId)} style={{ color: '#374151' }}
                               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = '#f87171')}
@@ -1030,11 +1030,12 @@ export default function AnalyzerPage() {
                             const currentW = current?.weight ?? 0;
                             const delta = s.weight - currentW;
                             const isNew = s.isNew;
+                            const displayName = current?.displayNameKo ?? current?.name ?? s.ticker;
                             return (
                               <div key={s.ticker}>
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-bold" style={{ color: '#d1d5db' }}>{s.ticker}</span>
+                                    <span className="text-xs font-bold" style={{ color: '#d1d5db' }}>{displayName}</span>
                                     {isNew && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>NEW</span>}
                                   </div>
                                   <div className="flex items-center gap-1.5">

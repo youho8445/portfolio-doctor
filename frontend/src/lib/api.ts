@@ -44,6 +44,13 @@ export async function addPortfolioItem(
   return res.json();
 }
 
+export async function getCurrentPrices(securityIds: number[]): Promise<{ securityId: number; price: number }[]> {
+  if (!securityIds.length) return [];
+  const res = await fetch(`${API_BASE_URL}/prices/current?ids=${securityIds.join(',')}`, { cache: 'no-store' });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function getDataFreshness(): Promise<{
   lastPriceDate: string | null;
   lastBenchmarkDate: string | null;

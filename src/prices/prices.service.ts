@@ -56,6 +56,19 @@ export class PricesService {
     }
   }
 
+  async getCurrentPrices(securityIds: number[]): Promise<{ securityId: number; price: number }[]> {
+    if (!securityIds.length) return [];
+    const results: { securityId: number; price: number }[] = [];
+    for (const id of securityIds) {
+      const row = await this.priceDailyRepository.findOne({
+        where: { securityId: id },
+        order: { tradeDate: 'DESC' },
+      });
+      if (row) results.push({ securityId: id, price: Number(row.close) });
+    }
+    return results;
+  }
+
   async getDataFreshness() {
     const price = await this.priceDailyRepository
       .createQueryBuilder('p')

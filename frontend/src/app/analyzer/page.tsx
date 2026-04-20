@@ -9,6 +9,7 @@ import {
   createPortfolio,
   changeMyPassword,
   deletePortfolio,
+  getCurrentPrices,
   getDataFreshness,
   getExchangeRate,
   getPortfolioItems,
@@ -316,6 +317,22 @@ export default function AnalyzerPage() {
       }
 
       if (!newItems.length) return;
+
+      // 새로 추가된 종목(avgCost=0)에 현재가를 평단가로 자동 설정
+      const newSecIds = newItems.filter((i) => !i.avgCost).map((i) => i.securityId);
+      if (newSecIds.length) {
+        try {
+          const prices = await getCurrentPrices(newSecIds);
+          const priceMap: Record<number, number> = {};
+          for (const p of prices) priceMap[p.securityId] = p.price;
+          for (const item of newItems) {
+            if (!item.avgCost && priceMap[item.securityId]) {
+              item.avgCost = priceMap[item.securityId];
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
       setItems(newItems);
       setInputMode(hasAmounts ? 'amount' : 'weight');
       await clearPortfolioItems(currentPortfolioId);

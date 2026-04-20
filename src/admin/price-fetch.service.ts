@@ -48,6 +48,8 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
     // 1시간마다 체크
     this.timer = setInterval(() => this.checkAndRun(), 60 * 60 * 1000);
     this.logger.log('PriceFetchService 스케줄러 시작 (1시간 간격 체크)');
+    // 서버 재시작 시 즉시 quote 갱신 (배포 후 빈 구간 방지)
+    setTimeout(() => void this.runQuoteSync(), 10_000);
   }
 
   onModuleDestroy() {
@@ -76,16 +78,27 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
   }
 
   async runQuoteSync(): Promise<void> {
-    const securities = await this.securityRepo.find({ order: { id: 'ASC' } });
-    const today = new Date().toISOString().slice(0, 10);
-    const BATCH = 100;
+    // 실제 포트폴리오에 담긴 종목만 조회 (전체 13,879개 아님)
+    const rows: { securityId: number; ticker: string }[] = await this.dataSource.query(
+      `SELECT DISTINCT pi.securityId, s.ticker
+       FROM portfolio_items pi
+       JOIN securities s ON s.id = pi.securityId
+       WHERE s.assetType != 'CASH'`,
+    );
 
-    this.logger.log(`[QuoteSync] ${securities.length}개 종목 현재가 갱신 시작`);
+    if (!rows.length) {
+      this.logger.log('[QuoteSync] 활성 포트폴리오 종목 없음, 스킵');
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const BATCH = 50;
+    this.logger.log(`[QuoteSync] 활성 종목 ${rows.length}개 현재가 갱신 시작`);
     let updated = 0;
 
-    for (let i = 0; i < securities.length; i += BATCH) {
-      const batch = securities.slice(i, i + BATCH);
-      const tickers = batch.map((s) => s.ticker);
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH);
+      const tickers = batch.map((r) => r.ticker);
       try {
         const { default: YahooFinance } = await import('yahoo-finance2');
         const yf = new (YahooFinance as any)({ suppressNotices: ['ripHistorical'] });
@@ -95,13 +108,13 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
         for (const q of quotes) {
           const price = q?.regularMarketPrice;
           if (!price) continue;
-          const sec = batch.find((s) => s.ticker === q.symbol);
-          if (!sec) continue;
+          const row = batch.find((r) => r.ticker === q.symbol);
+          if (!row) continue;
           await this.dataSource.query(
             `INSERT INTO price_daily (securityId, tradeDate, close, volume)
              VALUES (?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE close = VALUES(close), volume = VALUES(volume)`,
-            [sec.id, today, price, q.regularMarketVolume ?? 0],
+            [row.securityId, today, price, q.regularMarketVolume ?? 0],
           );
           updated++;
         }
@@ -110,7 +123,7 @@ export class PriceFetchService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    this.logger.log(`[QuoteSync] 완료 — ${updated}개 갱신`);
+    this.logger.log(`[QuoteSync] 완료 — ${updated}/${rows.length}개 갱신`);
   }
 
   async runFetch(): Promise<FetchResult> {

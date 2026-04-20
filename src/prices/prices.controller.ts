@@ -26,4 +26,9 @@ export class PricesController {
   getDataFreshness() {
     return this.pricesService.getDataFreshness();
   }
+
+  @Get('exchange-rate')
+  getExchangeRate() {
+    return this.pricesService.getExchangeRate();
+  }
 }

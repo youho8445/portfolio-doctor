@@ -10,6 +10,7 @@ import {
   changeMyPassword,
   deletePortfolio,
   getDataFreshness,
+  getExchangeRate,
   getPortfolioItems,
   getPortfolios,
   getSecurities,
@@ -228,6 +229,7 @@ export default function AnalyzerPage() {
     if (!isLoggedIn) { router.replace('/login'); return; }
     loadSavedPortfolios();
     getDataFreshness().then((d) => setLastPriceDate(d.lastPriceDate)).catch(() => {});
+    getExchangeRate().then((r) => setUsdKrw({ rate: r.rate, midRate: r.midRate })).catch(() => {});
     setNewsLoading(true);
     fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
   }, [authLoading, isLoggedIn]);
@@ -235,6 +237,8 @@ export default function AnalyzerPage() {
   const [applyingRebalance, setApplyingRebalance] = useState(false);
   const [prevAnalysis, setPrevAnalysis] = useState<AnalysisResult | null>(null);
   const [rebalanceAppliedAt, setRebalanceAppliedAt] = useState<Date | null>(null);
+  const [usdKrw, setUsdKrw] = useState<{ rate: number; midRate: number } | null>(null);
+  const [customUsdKrw, setCustomUsdKrw] = useState<string>('');
 
   const handleApplyRebalance = async () => {
     if (!analysis?.rebalanceResult || !currentPortfolioId) return;
@@ -278,8 +282,8 @@ export default function AnalyzerPage() {
             const shares = Math.max(1, Math.round(targetAmt / costPerShare));
             calcAmount = shares * costPerShare;
           } else {
-            // 미국주식: 최소 $1 단위 (1달러 ≈ 1,400원)
-            const USD_KRW = 1400;
+            // 미국주식: 최소 $1 단위 (실시간 환율 기준)
+            const USD_KRW = customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
             calcAmount = Math.max(USD_KRW, Math.round(targetAmt / USD_KRW) * USD_KRW);
           }
         }
@@ -1170,6 +1174,30 @@ export default function AnalyzerPage() {
                         <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#6b7280' }}>Portfolio Preview</div>
                         <div className="text-sm font-bold text-white">변경 후 비중</div>
                       </div>
+
+                      {/* 환율 표시 + 직접 입력 */}
+                      {usdKrw && (
+                        <div className="rounded-xl px-3 py-2.5" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] font-semibold" style={{ color: '#6b7280' }}>미국주식 환율 기준</span>
+                            <span className="text-[10px]" style={{ color: '#374151' }}>매매기준율 {usdKrw.midRate.toLocaleString()}원</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs" style={{ color: '#9ca3af' }}>$1 =</span>
+                            <input
+                              type="number"
+                              value={customUsdKrw || usdKrw.rate}
+                              onChange={(e) => setCustomUsdKrw(e.target.value)}
+                              className="flex-1 rounded-lg px-2 py-1 text-sm text-white text-right outline-none tabular-nums"
+                              style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.08)' }}
+                              onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
+                              onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
+                            />
+                            <span className="text-xs shrink-0" style={{ color: '#9ca3af' }}>원</span>
+                          </div>
+                          <div className="text-[10px] mt-1" style={{ color: '#4b5563' }}>우대 환율 받으셨다면 직접 입력하세요</div>
+                        </div>
+                      )}
 
                       {analysis.rebalanceResult?.suggestedPortfolio?.length ? (
                         <div className="space-y-2 flex-1">

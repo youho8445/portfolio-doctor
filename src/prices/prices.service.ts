@@ -37,6 +37,25 @@ export class PricesService {
     return this.benchmarkRepository.find();
   }
 
+  async getExchangeRate(): Promise<{ rate: number; midRate: number; source: string; updatedAt: string }> {
+    try {
+      const { default: YahooFinance } = await import('yahoo-finance2');
+      const yf = new (YahooFinance as any)({ suppressNotices: ['ripHistorical'] });
+      const quote = await (yf as any).quote('USDKRW=X', {}, { validateResult: false });
+      const midRate = Math.round(quote.regularMarketPrice ?? 1400);
+      // 매매기준율 기준 살 때 환율 (mid + 약 1.75% 스프레드, 은행 평균)
+      const buyRate = Math.round(midRate * 1.0175);
+      return {
+        rate: buyRate,
+        midRate,
+        source: 'Yahoo Finance (USDKRW=X)',
+        updatedAt: new Date().toISOString(),
+      };
+    } catch {
+      return { rate: 1400, midRate: 1400, source: 'fallback', updatedAt: new Date().toISOString() };
+    }
+  }
+
   async getDataFreshness() {
     const price = await this.priceDailyRepository
       .createQueryBuilder('p')

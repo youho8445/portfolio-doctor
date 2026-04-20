@@ -53,6 +53,17 @@ export async function getDataFreshness(): Promise<{
   return res.json();
 }
 
+export async function getExchangeRate(): Promise<{
+  rate: number;
+  midRate: number;
+  source: string;
+  updatedAt: string;
+}> {
+  const res = await fetch(`${API_BASE_URL}/prices/exchange-rate`, { cache: 'no-store' });
+  if (!res.ok) return { rate: 1400, midRate: 1400, source: 'fallback', updatedAt: '' };
+  return res.json();
+}
+
 export async function getPortfolios() {
   const res = await fetch(`${API_BASE_URL}/portfolios`, {
     cache: 'no-store',

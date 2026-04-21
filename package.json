@@ -7,7 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "concurrently --kill-others --names \"BACK,FRONT\" --prefix-colors \"cyan,magenta\" \"npm run start:dev\" \"npm run --prefix frontend dev\"",
-    "build": "nest build",
+    "build": "npm install --include=dev && ./node_modules/.bin/nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

@@ -4,8 +4,42 @@ import { Repository } from 'typeorm';
 import { Security } from '../entities/security.entity';
 import { CreateSecurityDto } from './dto/create-security.dto';
 
+export interface TickerQuote {
+  ticker: string;
+  name: string;
+  price: number;
+  priceChange: number;
+  priceChangePct: number;
+  currency: string;
+  marketCap: number | null;
+  pe: number | null;
+  forwardPe: number | null;
+  eps: number | null;
+  revenueGrowth: number | null;
+  earningsGrowth: number | null;
+  profitMargin: number | null;
+  debtToEquity: number | null;
+  roe: number | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  fiftyDayAvg: number | null;
+  twoHundredDayAvg: number | null;
+  volume: number | null;
+  avgVolume: number | null;
+  sector: string | null;
+  industry: string | null;
+  dividendYield: number | null;
+  priceToBook: number | null;
+  history: { time: string; open: number; high: number; low: number; close: number; volume: number }[];
+  fetchedAt: string;
+}
+
 @Injectable()
 export class SecuritiesService {
+  // 15분 TTL 인메모리 캐시
+  private readonly quoteCache = new Map<string, { data: TickerQuote; expiresAt: number }>();
+  private readonly TTL_MS = 15 * 60 * 1000;
+
   constructor(
     @InjectRepository(Security)
     private readonly securityRepository: Repository<Security>,
@@ -45,7 +79,6 @@ export class SecuritiesService {
 
     if (dbResults.length > 0) return dbResults;
 
-    // DB에 없으면 Yahoo Finance에서 실시간 검색 후 자동 등록
     try {
       const { default: YahooFinance } = await import('yahoo-finance2');
       const yf = new (YahooFinance as any)({ suppressNotices: ['ripHistorical'] });
@@ -91,6 +124,80 @@ export class SecuritiesService {
       return results;
     } catch {
       return [];
+    }
+  }
+
+  async getTickerQuote(ticker: string): Promise<TickerQuote | null> {
+    const upper = ticker.toUpperCase();
+
+    const cached = this.quoteCache.get(upper);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
+    try {
+      const { default: YahooFinance } = await import('yahoo-finance2');
+      const yf = new (YahooFinance as any)({ suppressNotices: ['ripHistorical'] });
+
+      const [summary, history] = await Promise.all([
+        (yf as any).quoteSummary(upper, {
+          modules: ['price', 'financialData', 'defaultKeyStatistics', 'summaryDetail'],
+        }, { validateResult: false }).catch(() => null),
+        (yf as any).historical(upper, {
+          period1: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          period2: new Date().toISOString().split('T')[0],
+          interval: '1d',
+        }, { validateResult: false }).catch(() => []),
+      ]);
+
+      if (!summary) return null;
+
+      const p = summary.price ?? {};
+      const fd = summary.financialData ?? {};
+      const ks = summary.defaultKeyStatistics ?? {};
+      const sd = summary.summaryDetail ?? {};
+
+      const data: TickerQuote = {
+        ticker: upper,
+        name: p.longName ?? p.shortName ?? upper,
+        price: p.regularMarketPrice ?? 0,
+        priceChange: p.regularMarketChange ?? 0,
+        priceChangePct: (p.regularMarketChangePercent ?? 0) * 100,
+        currency: p.currency ?? 'USD',
+        marketCap: p.marketCap ?? null,
+        pe: sd.trailingPE ?? ks.trailingPE ?? null,
+        forwardPe: sd.forwardPE ?? null,
+        eps: ks.trailingEps ?? null,
+        revenueGrowth: fd.revenueGrowth != null ? fd.revenueGrowth * 100 : null,
+        earningsGrowth: fd.earningsGrowth != null ? fd.earningsGrowth * 100 : null,
+        profitMargin: fd.profitMargins != null ? fd.profitMargins * 100 : null,
+        debtToEquity: fd.debtToEquity ?? null,
+        roe: fd.returnOnEquity != null ? fd.returnOnEquity * 100 : null,
+        fiftyTwoWeekHigh: sd.fiftyTwoWeekHigh ?? ks.fiftyTwoWeekHigh ?? null,
+        fiftyTwoWeekLow: sd.fiftyTwoWeekLow ?? ks.fiftyTwoWeekLow ?? null,
+        fiftyDayAvg: sd.fiftyDayAverage ?? p.fiftyDayAverage ?? null,
+        twoHundredDayAvg: sd.twoHundredDayAverage ?? p.twoHundredDayAverage ?? null,
+        volume: p.regularMarketVolume ?? null,
+        avgVolume: sd.averageVolume ?? null,
+        sector: null,
+        industry: null,
+        dividendYield: sd.dividendYield != null ? sd.dividendYield * 100 : null,
+        priceToBook: ks.priceToBook ?? null,
+        history: (Array.isArray(history) ? history : []).map((h: any) => ({
+          time: new Date(h.date).toISOString().split('T')[0],
+          open: Number(h.open?.toFixed(2) ?? 0),
+          high: Number(h.high?.toFixed(2) ?? 0),
+          low: Number(h.low?.toFixed(2) ?? 0),
+          close: Number(h.close?.toFixed(2) ?? 0),
+          volume: h.volume ?? 0,
+        })).filter((h) => h.close > 0),
+        fetchedAt: new Date().toISOString(),
+      };
+
+      this.quoteCache.set(upper, { data, expiresAt: Date.now() + this.TTL_MS });
+      return data;
+    } catch {
+      return null;
     }
   }
 }

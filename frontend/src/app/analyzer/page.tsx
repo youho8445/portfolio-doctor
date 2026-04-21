@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const TickerModal = dynamic(() => import('@/components/TickerModal'), { ssr: false });
 import {
   addPortfolioItem,
   analyzePortfolio,
@@ -231,6 +234,7 @@ export default function AnalyzerPage() {
   const [applyingRebalance, setApplyingRebalance] = useState(false);
   const [prevAnalysis, setPrevAnalysis] = useState<AnalysisResult | null>(null);
   const [rebalanceAppliedAt, setRebalanceAppliedAt] = useState<Date | null>(null);
+  const [tickerModal, setTickerModal] = useState<{ ticker: string; displayName?: string; rebalanceAction?: RebalanceAction; drift?: BaselineDrift } | null>(null);
   const [usdKrw, setUsdKrw] = useState<{ rate: number; midRate: number } | null>(null);
   const [customUsdKrw, setCustomUsdKrw] = useState<string>('');
 
@@ -1204,7 +1208,7 @@ export default function AnalyzerPage() {
                                 const isNew = d.status === 'added';
                                 const isRemoved = d.status === 'removed';
                                 return (
-                                  <div key={d.ticker} className="flex items-center justify-between rounded-lg px-3 py-2" style={{
+                                  <div key={d.ticker} onClick={() => setTickerModal({ ticker: d.ticker, displayName: d.label, drift: d })} className="flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer hover:opacity-80 transition-opacity" style={{
                                     background: isNew ? 'rgba(16,185,129,0.06)' : isRemoved ? 'rgba(239,68,68,0.06)' : 'rgba(0,0,0,0.03)',
                                     border: `1px solid ${isNew ? 'rgba(16,185,129,0.15)' : isRemoved ? 'rgba(239,68,68,0.15)' : 'rgba(0,0,0,0.06)'}`,
                                   }}>
@@ -1239,7 +1243,8 @@ export default function AnalyzerPage() {
                           <div className={`p-5 space-y-3${!isPremium ? ' blur-[3px] select-none pointer-events-none' : ''}`}>
                             <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#94a3b8' }}>Recommended Actions</div>
                             {top3Actions.map((action: RebalanceAction, i: number) => (
-                              <div key={action.ticker} className="flex items-center gap-3 rounded-xl px-4 py-3" style={{
+                              <div key={action.ticker} onClick={() => action.ticker !== '_sector_div' && setTickerModal({ ticker: action.ticker, displayName: action.label, rebalanceAction: action })}
+                                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-opacity${action.ticker !== '_sector_div' ? ' cursor-pointer hover:opacity-75' : ''}`} style={{
                                 background: action.type === 'reduce' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
                                 border: `1px solid ${action.type === 'reduce' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`,
                               }}>
@@ -1248,9 +1253,11 @@ export default function AnalyzerPage() {
                                   color: action.type === 'reduce' ? '#f87171' : '#34d399',
                                 }}>{i + 1}</div>
                                 <span className="text-sm flex-1" style={{ color: "#1c1c1e" }}>{action.text}</span>
-                                <span className="font-black text-lg" style={{ color: action.type === 'reduce' ? '#ef4444' : '#10b981' }}>
-                                  {action.type === 'reduce' ? '↓' : '↑'}
-                                </span>
+                                {action.ticker !== '_sector_div' && (
+                                  <span className="font-black text-lg" style={{ color: action.type === 'reduce' ? '#ef4444' : '#10b981' }}>
+                                    {action.type === 'reduce' ? '↓' : '↑'}
+                                  </span>
+                                )}
                               </div>
                             ))}
                             {scoreDelta > 0 && (
@@ -1495,9 +1502,12 @@ export default function AnalyzerPage() {
                           const d = itemData[r.ticker];
                           const currentVal = d ? d.investedKRW + d.profitKRW : null;
                           return (
-                          <div key={r.ticker}>
+                          <div key={r.ticker} onClick={() => setTickerModal({ ticker: r.ticker, displayName: tickerNameMap[r.ticker] || r.ticker })} className="cursor-pointer hover:opacity-75 transition-opacity">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-bold truncate max-w-[140px]" style={{ color: '#374151' }}>{tickerNameMap[r.ticker] || r.ticker}</span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm font-bold truncate max-w-[130px]" style={{ color: '#374151' }}>{tickerNameMap[r.ticker] || r.ticker}</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 10, height: 10, color: '#cbd5e1', flexShrink: 0 }}><path d="M7 17L17 7M17 7H7M17 7v10" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </div>
                               <div className="text-right shrink-0 ml-3">
                                 {currentVal != null
                                   ? <div className="text-sm font-bold text-[#1c1c1e]">{fmtKRW(currentVal)}</div>
@@ -1725,6 +1735,19 @@ export default function AnalyzerPage() {
           </div>
         </div>
       </main>
+
+      {/* 티커 상세 모달 */}
+      {tickerModal && (
+        <TickerModal
+          ticker={tickerModal.ticker}
+          displayName={tickerModal.displayName}
+          accentHex={accent.hex}
+          accentLight={accent.light}
+          rebalanceAction={tickerModal.rebalanceAction}
+          drift={tickerModal.drift}
+          onClose={() => setTickerModal(null)}
+        />
+      )}
     </div>
   );
 }

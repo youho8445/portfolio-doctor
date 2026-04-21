@@ -1105,38 +1105,60 @@ export default function AnalyzerPage() {
 
                   {/* ── 지금 뭘 해야 하나요? ── */}
                   {(() => {
+                    const score = analysis.healthScore;
+                    const timing = score >= 80
+                      ? { days: 14, range: '7~14일', reason: '포트폴리오가 안정적이에요. 주 1회 확인으로 충분합니다.', color: '#10b981' }
+                      : score >= 60
+                      ? { days: 5, range: '3~7일', reason: '일부 위험 요소가 있어요. 며칠 안에 다시 확인해 보세요.', color: '#f59e0b' }
+                      : { days: 1, range: '지금 바로', reason: '위험 수준이 높아요. 지금 바로 조치가 필요합니다.', color: '#ef4444' };
+
                     const failedRules = analysis.scoreBreakdown.filter((r: ScoreRule) => !r.passed);
                     const primaryAction = failedRules.length === 0
-                      ? '지금 구성을 유지하세요. 1개월 후 다시 확인해보세요.'
+                      ? '지금 구성을 유지하세요.'
                       : failedRules.reduce((a: ScoreRule, b: ScoreRule) => Math.abs(a.delta) >= Math.abs(b.delta) ? a : b).action;
-                    const status = analysis.healthScore >= 80
+                    const status = score >= 80
                       ? { emoji: '✓', label: '잘 관리되고 있어요', color: '#10b981', bg: 'rgba(16,185,129,0.07)', border: 'rgba(16,185,129,0.2)' }
-                      : analysis.healthScore >= 60
+                      : score >= 60
                       ? { emoji: '!', label: '확인 포인트가 있어요', color: '#f59e0b', bg: 'rgba(245,158,11,0.07)', border: 'rgba(245,158,11,0.2)' }
                       : { emoji: '⚡', label: '조치가 필요해요', color: '#ef4444', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.2)' };
                     return (
-                      <div className="rounded-2xl px-5 py-4 flex items-center gap-4" style={{ background: status.bg, border: `1px solid ${status.border}` }}>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-black shrink-0" style={{ background: status.border, color: status.color }}>
-                          {status.emoji}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: status.color }}>지금 뭘 해야 하나요?</div>
-                          <div className="text-sm font-semibold text-[#1c1c1e] leading-snug">{primaryAction}</div>
-                        </div>
-                        {failedRules.length > 0 && (
-                          <div className="shrink-0 text-right">
-                            <div className="text-[10px]" style={{ color: '#94a3b8' }}>개선 포인트</div>
-                            <div className="text-xl font-black" style={{ color: status.color }}>{failedRules.length}개</div>
+                      <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${status.border}` }}>
+                        <div className="px-5 py-4 flex items-center gap-4" style={{ background: status.bg }}>
+                          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-black shrink-0" style={{ background: status.border, color: status.color }}>
+                            {status.emoji}
                           </div>
-                        )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: status.color }}>지금 뭘 해야 하나요?</div>
+                            <div className="text-sm font-semibold text-[#1c1c1e] leading-snug">{primaryAction}</div>
+                          </div>
+                          {failedRules.length > 0 && (
+                            <div className="shrink-0 text-right">
+                              <div className="text-[10px]" style={{ color: '#94a3b8' }}>개선 포인트</div>
+                              <div className="text-xl font-black" style={{ color: status.color }}>{failedRules.length}개</div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#f8fafc', borderTop: `1px solid ${status.border}` }}>
+                          <span className="text-xs leading-relaxed" style={{ color: '#64748b' }}>{timing.reason}</span>
+                          <div className="shrink-0 ml-3 text-right">
+                            <div className="text-[10px]" style={{ color: '#9ca3af' }}>다음 점검</div>
+                            <div className="text-xs font-black" style={{ color: timing.color }}>{timing.range}</div>
+                          </div>
+                        </div>
                       </div>
                     );
                   })()}
 
                   {/* ── 리밸런싱 완료 피드백 ── */}
                   {prevAnalysis && rebalanceAppliedAt && (() => {
+                    const score = analysis.healthScore;
+                    const timing = score >= 80
+                      ? { days: 14, range: '7~14일 후', label: '포트폴리오가 안정적이에요', color: '#10b981' }
+                      : score >= 60
+                      ? { days: 5, range: '3~7일 후', label: '조만간 다시 확인하세요', color: '#f59e0b' }
+                      : { days: 1, range: '지금 바로', label: '추가 조치가 필요해요', color: '#ef4444' };
                     const nextDate = new Date(rebalanceAppliedAt);
-                    nextDate.setMonth(nextDate.getMonth() + 1);
+                    nextDate.setDate(nextDate.getDate() + timing.days);
                     const nextDateStr = nextDate.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
                     return (
                       <div className="rounded-2xl p-5" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
@@ -1166,9 +1188,12 @@ export default function AnalyzerPage() {
                             );
                           })}
                         </div>
-                        <div className="flex items-center gap-2 text-xs" style={{ color: '#94a3b8' }}>
-                          <span>📅</span>
-                          <span>다음 점검 추천일: <span className="font-semibold" style={{ color: '#64748b' }}>{nextDateStr}</span></span>
+                        <div className="rounded-xl px-4 py-3 flex items-center justify-between" style={{ background: `${timing.color}10`, border: `1px solid ${timing.color}30` }}>
+                          <div>
+                            <div className="text-xs font-semibold" style={{ color: timing.color }}>{timing.label}</div>
+                            <div className="text-[10px] mt-0.5" style={{ color: '#94a3b8' }}>다음 점검 추천: {nextDateStr} ({timing.range})</div>
+                          </div>
+                          <div className="text-lg font-black" style={{ color: timing.color }}>📅</div>
                         </div>
                       </div>
                     );

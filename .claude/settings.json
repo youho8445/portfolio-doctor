@@ -6,7 +6,8 @@
       "Bash(python -m venv venv)",
       "Bash(py -3 --version)",
       "Bash(npx create-next-app@latest frontend --typescript --eslint --tailwind --src-dir --app --no-import-alias --yes)",
-      "Bash(curl -s http://localhost:3001/securities?q=AAPL)"
+      "Bash(curl -s http://localhost:3001/securities?q=AAPL)",
+      "Bash(node -e ' *)"
     ]
   }
 }

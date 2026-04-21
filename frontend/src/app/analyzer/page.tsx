@@ -129,8 +129,8 @@ function ScoreRing({ score, size = 120, label }: { score: number; size?: number;
   const cx = size / 2;
   const circ = 2 * Math.PI * r;
   const prog = (Math.max(0, Math.min(100, score)) / 100) * circ;
-  const color = score >= 80 ? '#8b5cf6' : score >= 60 ? '#f59e0b' : '#ef4444';
-  const trackColor = score >= 80 ? 'rgba(139,92,246,0.12)' : score >= 60 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
+  const color = score >= 80 ? '#059669' : score >= 60 ? '#f59e0b' : '#ef4444';
+  const trackColor = score >= 80 ? 'rgba(5,150,105,0.12)' : score >= 60 ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)';
   const statusLabel = score >= 80 ? 'OPTIMAL' : score >= 60 ? 'GOOD' : score >= 40 ? 'FAIR' : 'RISK';
   return (
     <div className="flex flex-col items-center">
@@ -140,7 +140,7 @@ function ScoreRing({ score, size = 120, label }: { score: number; size?: number;
           strokeDasharray={`${prog} ${circ}`} strokeLinecap="round"
           transform={`rotate(-90 ${cx} ${cx})`} />
         <text x={cx} y={cx - 4} textAnchor="middle" dominantBaseline="middle"
-          fill="#1a1d2e" fontSize={Math.round(size * 0.28)} fontWeight="800">{score}</text>
+          fill="#1c1c1e" fontSize={Math.round(size * 0.28)} fontWeight="800">{score}</text>
         <text x={cx} y={cx + Math.round(size * 0.2)} textAnchor="middle" dominantBaseline="middle"
           fill={color} fontSize={Math.round(size * 0.1)} fontWeight="700" letterSpacing="1">
           {statusLabel}
@@ -232,6 +232,20 @@ export default function AnalyzerPage() {
   const [rebalanceAppliedAt, setRebalanceAppliedAt] = useState<Date | null>(null);
   const [usdKrw, setUsdKrw] = useState<{ rate: number; midRate: number } | null>(null);
   const [customUsdKrw, setCustomUsdKrw] = useState<string>('');
+
+  const ACCENT_PRESETS = [
+    { name: 'Violet', hex: '#7c3aed', light: '#ede9fe', shadow: 'rgba(124,58,237,0.18)' },
+    { name: 'Emerald', hex: '#059669', light: '#d1fae5', shadow: 'rgba(5,150,105,0.18)' },
+    { name: 'Sky', hex: '#0284c7', light: '#e0f2fe', shadow: 'rgba(2,132,199,0.18)' },
+    { name: 'Rose', hex: '#e11d48', light: '#ffe4e6', shadow: 'rgba(225,29,72,0.18)' },
+    { name: 'Amber', hex: '#d97706', light: '#fef3c7', shadow: 'rgba(217,119,6,0.18)' },
+  ];
+  const [accentIdx, setAccentIdx] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    return Number(localStorage.getItem('accent_idx') ?? '0');
+  });
+  const accent = ACCENT_PRESETS[accentIdx] ?? ACCENT_PRESETS[0];
+  const setAccent = (i: number) => { setAccentIdx(i); localStorage.setItem('accent_idx', String(i)); };
 
   const isUS = (ticker: string) => !ticker.endsWith('.KS') && !ticker.endsWith('.KQ');
   const effectiveRate = () => customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
@@ -466,7 +480,7 @@ export default function AnalyzerPage() {
     } catch (e) { console.error('[Toss]', e); setError('결제 페이지 이동에 실패했습니다.'); setCheckoutLoading(false); }
   };
 
-  const retColor = (v: number) => v > 0 ? 'text-green-400' : v < 0 ? 'text-red-400' : 'text-gray-400';
+  const retColor = (v: number) => v > 0 ? 'text-green-600' : v < 0 ? 'text-red-600' : 'text-gray-400';
 
   const riskLabel = (score: number) => {
     if (score >= 80) return { text: '안전', color: '#10b981' };
@@ -479,12 +493,12 @@ export default function AnalyzerPage() {
   const SidebarContent = () => (
     <>
       {/* 로고 */}
-      <div className="px-5 py-5" style={{ borderBottom: '1px solid #e8ecf4' }}>
+      <div className="px-5 py-5" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}>
-            <IconBarChart className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent.hex }}>
+            <IconBarChart className="w-4 h-4 text-[#1c1c1e]" />
           </div>
-          <span className="font-bold text-white text-sm">Portfolio Doctor</span>
+          <span className="font-bold text-sm" style={{ color: '#1c1c1e' }}>Portfolio Doctor</span>
         </div>
       </div>
 
@@ -509,11 +523,11 @@ export default function AnalyzerPage() {
                   disabled={loadingPortfolioId === p.id}
                   className="flex-1 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-all min-w-0 disabled:opacity-50"
                   style={{
-                    background: currentPortfolioId === p.id ? 'rgba(124,58,237,0.2)' : 'transparent',
-                    color: currentPortfolioId === p.id ? '#7c3aed' : '#64748b',
+                    background: currentPortfolioId === p.id ? accent.light : 'transparent',
+                    color: currentPortfolioId === p.id ? accent.hex : '#64748b',
                   }}
                 >
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: currentPortfolioId === p.id ? '#8b5cf6' : '#374151' }} />
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: currentPortfolioId === p.id ? accent.hex : '#94a3b8' }} />
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate" style={{ color: currentPortfolioId === p.id ? '#1a1d2e' : '#374151' }}>{p.name}</div>
                     <div className="text-[10px]" style={{ color: '#94a3b8' }}>{new Date(p.createdAt).toLocaleDateString('ko-KR')}</div>
@@ -538,8 +552,8 @@ export default function AnalyzerPage() {
         <button
           onClick={() => { setPortfolioName('새 포트폴리오'); setItems([]); setCurrentPortfolioId(null); setAnalysis(null); setActiveTab('input'); setMobileSidebarOpen(false); }}
           className="flex items-center gap-2 w-full mt-3 px-2.5 py-2 rounded-lg text-xs font-semibold transition-all"
-          style={{ color: '#8b5cf6', border: '1px dashed rgba(139,92,246,0.3)' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(139,92,246,0.08)'; }}
+          style={{ color: accent.hex, border: `1px dashed ${accent.hex}50` }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = accent.light; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
         >
           <IconPlus className="w-3.5 h-3.5" /> 새 포트폴리오
@@ -547,17 +561,17 @@ export default function AnalyzerPage() {
       </div>
 
       {/* 하단 유저 정보 */}
-      <div className="px-4 py-4" style={{ borderTop: '1px solid #e8ecf4' }}>
+      <div className="px-4 py-4" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
         {/* 트라이얼 뱃지 */}
         {user?.trialEndsAt && new Date(user.trialEndsAt) > new Date() && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / 86400000));
           return (
-            <div className="mb-3 rounded-xl px-3 py-2 flex items-center justify-between" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}>
+            <div className="mb-3 rounded-xl px-3 py-2 flex items-center justify-between" style={{ background: accent.light, border: `1px solid ${accent.hex}40` }}>
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: '#a78bfa' }}>무료 체험 중</div>
-                <div className="text-xs font-bold text-white mt-0.5">{daysLeft}일 남음</div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: accent.hex }}>무료 체험 중</div>
+                <div className="text-xs font-bold text-[#1c1c1e] mt-0.5">{daysLeft}일 남음</div>
               </div>
-              <div className="text-2xl font-black" style={{ color: '#7c3aed' }}>D-{daysLeft}</div>
+              <div className="text-2xl font-black" style={{ color: accent.hex }}>D-{daysLeft}</div>
             </div>
           );
         })()}
@@ -568,16 +582,16 @@ export default function AnalyzerPage() {
         )}
         <div className="flex items-center justify-between">
           <div className="min-w-0">
-            <div className="text-sm font-medium truncate" style={{ color: '#cbd5e1' }}>{user?.name || user?.email}</div>
-            <div className="text-[11px] truncate" style={{ color: '#94a3b8' }}>{user?.email}</div>
+            <div className="text-sm font-medium truncate" style={{ color: '#1c1c1e' }}>{user?.name || user?.email}</div>
+            <div className="text-[11px] truncate" style={{ color: '#6b7280' }}>{user?.email}</div>
           </div>
           <div className="flex items-center gap-1 ml-2 shrink-0">
             <button
               onClick={() => { setPwModalOpen(true); setPwMsg(null); setPwCurrent(''); setPwNew(''); setPwConfirm(''); }}
               className="p-1.5 rounded-lg transition-all"
-              style={{ color: '#94a3b8' }}
+              style={{ color: '#6b7280' }}
               title="비밀번호 변경"
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#d1d5db'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#1c1c1e'; (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.07)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#6b7280'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
@@ -585,13 +599,34 @@ export default function AnalyzerPage() {
             <button
               onClick={() => { logout(); router.push('/login'); }}
               className="p-1.5 rounded-lg transition-all"
-              style={{ color: '#94a3b8' }}
+              style={{ color: '#6b7280' }}
               title="로그아웃"
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#d1d5db'; (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)'; }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#1c1c1e'; (e.currentTarget as HTMLElement).style.background = 'rgba(0,0,0,0.07)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = '#6b7280'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             >
               <IconLogOut className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+
+        {/* 액센트 컬러 선택 */}
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+          <div className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#9ca3af' }}>테마 컬러</div>
+          <div className="flex gap-1.5">
+            {ACCENT_PRESETS.map((p, i) => (
+              <button
+                key={p.name}
+                onClick={() => setAccent(i)}
+                title={p.name}
+                className="w-5 h-5 rounded-full transition-all"
+                style={{
+                  background: p.hex,
+                  outline: accentIdx === i ? `2px solid ${p.hex}` : 'none',
+                  outlineOffset: '2px',
+                  transform: accentIdx === i ? 'scale(1.15)' : 'scale(1)',
+                }}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -600,12 +635,12 @@ export default function AnalyzerPage() {
 
   // ── 렌더 ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f0f2f7', color: '#1a1d2e' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f3ee', color: '#1c1c1e' }}>
 
       {/* ── 데스크탑 사이드바 ── */}
       <aside
         className="hidden lg:flex flex-col fixed h-full z-20"
-        style={{ width: 220, background: '#ffffff', borderRight: '1px solid #e8ecf4' }}
+        style={{ width: 220, background: '#eeeae2', borderRight: '1px solid rgba(0,0,0,0.08)' }}
       >
         <SidebarContent />
       </aside>
@@ -614,7 +649,7 @@ export default function AnalyzerPage() {
       {mobileSidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-30 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileSidebarOpen(false)} />
-          <aside className="relative z-10 flex flex-col" style={{ width: 260, background: '#ffffff', borderRight: '1px solid #e8ecf4' }}>
+          <aside className="relative z-10 flex flex-col" style={{ width: 260, background: '#eeeae2', borderRight: '1px solid rgba(0,0,0,0.08)' }}>
             <SidebarContent />
           </aside>
         </div>
@@ -624,13 +659,13 @@ export default function AnalyzerPage() {
       {pwModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
           <div className="rounded-2xl p-6 w-full max-w-sm space-y-4" style={{ background: '#ffffff', border: '1px solid #e2e8f0' }}>
-            <h3 className="text-base font-bold text-white">비밀번호 변경</h3>
+            <h3 className="text-base font-bold text-[#1c1c1e]">비밀번호 변경</h3>
             <input
               type="password"
               placeholder="현재 비밀번호"
               value={pwCurrent}
               onChange={(e) => setPwCurrent(e.target.value)}
-              className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none"
+              className="w-full rounded-xl px-4 py-3 text-[#1c1c1e] text-sm outline-none"
               style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4' }}
             />
             <input
@@ -638,7 +673,7 @@ export default function AnalyzerPage() {
               placeholder="새 비밀번호"
               value={pwNew}
               onChange={(e) => setPwNew(e.target.value)}
-              className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none"
+              className="w-full rounded-xl px-4 py-3 text-[#1c1c1e] text-sm outline-none"
               style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4' }}
             />
             <input
@@ -647,7 +682,7 @@ export default function AnalyzerPage() {
               value={pwConfirm}
               onChange={(e) => setPwConfirm(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleChangeMyPassword()}
-              className="w-full rounded-xl px-4 py-3 text-white text-sm outline-none"
+              className="w-full rounded-xl px-4 py-3 text-[#1c1c1e] text-sm outline-none"
               style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4' }}
             />
             {pwMsg && (
@@ -659,8 +694,8 @@ export default function AnalyzerPage() {
               <button
                 onClick={handleChangeMyPassword}
                 disabled={pwSaving || !pwCurrent.trim() || !pwNew.trim() || !pwConfirm.trim()}
-                className="flex-1 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                className="flex-1 rounded-xl py-2.5 text-sm font-bold disabled:opacity-50"
+                style={{ background: accent.hex, color: 'white', boxShadow: `0 4px 15px ${accent.shadow}` }}
               >
                 {pwSaving ? '변경 중...' : '변경'}
               </button>
@@ -681,23 +716,23 @@ export default function AnalyzerPage() {
         <div className="lg:ml-[220px] flex-1 flex flex-col">
 
           {/* 모바일 상단바 */}
-          <header className="lg:hidden flex items-center justify-between px-4 py-3.5" style={{ borderBottom: '1px solid #e8ecf4', background: '#ffffff' }}>
+          <header className="lg:hidden flex items-center justify-between px-4 py-3.5" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)', background: '#f5f3ee' }}>
             <button onClick={() => setMobileSidebarOpen(true)} className="p-1.5 rounded-lg" style={{ color: '#64748b' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                 <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
             </button>
-            <span className="font-bold text-sm text-white">Portfolio Doctor</span>
+            <span className="font-bold text-sm" style={{ color: "#1c1c1e" }}>Portfolio Doctor</span>
             <button onClick={() => { logout(); router.push('/login'); }} style={{ color: '#94a3b8' }}>
               <IconLogOut className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
             </button>
           </header>
 
           {/* ── 페이지 헤더 ── */}
-          <div className="px-6 lg:px-10 pt-8 pb-6" style={{ borderBottom: '1px solid #e8ecf4' }}>
+          <div className="px-6 lg:px-10 pt-8 pb-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div>
-                <h1 className="font-black" style={{ fontSize: 34, letterSpacing: '-1px', lineHeight: 1.1, color: '#1a1d2e' }}>
+                <h1 className="font-black" style={{ fontSize: 34, letterSpacing: '-1px', lineHeight: 1.1, color: '#1c1c1e' }}>
                   Portfolio Doctor
                 </h1>
                 <p className="text-sm mt-1.5" style={{ color: '#94a3b8' }}>
@@ -710,7 +745,7 @@ export default function AnalyzerPage() {
                 <div className="flex gap-3 shrink-0 flex-wrap">
                   <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                     <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>건강 점수</div>
-                    <div className="font-black" style={{ fontSize: 28, color: analysis.healthScore >= 80 ? '#8b5cf6' : analysis.healthScore >= 60 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
+                    <div className="font-black" style={{ fontSize: 28, color: analysis.healthScore >= 80 ? '#059669' : analysis.healthScore >= 60 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
                       {analysis.healthScore}
                     </div>
                   </div>
@@ -724,9 +759,9 @@ export default function AnalyzerPage() {
                     )}
                   </div>
                   {analysis.isTrial && analysis.trialEndsAt && (
-                    <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)' }}>
-                      <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#a78bfa' }}>무료 체험</div>
-                      <div className="font-black" style={{ fontSize: 18, lineHeight: 1, color: '#1a1d2e' }}>
+                    <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: accent.light, border: `1px solid ${accent.hex}40` }}>
+                      <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: accent.hex }}>무료 체험</div>
+                      <div className="font-black" style={{ fontSize: 18, lineHeight: 1, color: '#1c1c1e' }}>
                         D-{Math.max(0, Math.ceil((new Date(analysis.trialEndsAt).getTime() - Date.now()) / 86400000))}
                       </div>
                     </div>
@@ -744,8 +779,8 @@ export default function AnalyzerPage() {
                     onClick={() => setActiveTab(t.key as 'input' | 'result')}
                     className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
                     style={{
-                      background: activeTab === t.key ? '#7c3aed' : 'transparent',
-                      color: activeTab === t.key ? 'white' : '#64748b',
+                      background: activeTab === t.key ? accent.hex : 'transparent',
+                      color: activeTab === t.key ? 'white' : '#6b7280',
                     }}
                   >
                     {t.label}
@@ -771,10 +806,10 @@ export default function AnalyzerPage() {
                   <input
                     value={portfolioName}
                     onChange={(e) => setPortfolioName(e.target.value)}
-                    className="w-full rounded-xl px-4 py-3 text-white text-sm font-semibold outline-none transition-all"
+                    className="w-full rounded-xl px-4 py-3 text-[#1c1c1e] text-sm font-semibold outline-none transition-all"
                     style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4' }}
-                    onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
-                    onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
+                    onFocus={(e) => (e.target.style.borderColor = accent.hex)}
+                    onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                   />
                 </div>
 
@@ -786,10 +821,10 @@ export default function AnalyzerPage() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                      className="flex-1 rounded-xl px-4 py-3 text-white text-sm outline-none transition-all"
+                      className="flex-1 rounded-xl px-4 py-3 text-[#1c1c1e] text-sm outline-none transition-all"
                       style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4' }}
-                      onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
-                      onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
+                      onFocus={(e) => (e.target.style.borderColor = accent.hex)}
+                      onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                       placeholder="AAPL · 애플 · Apple · 삼성..."
                     />
                     {(search || searchResults.length > 0) && (
@@ -805,8 +840,8 @@ export default function AnalyzerPage() {
                     <button
                       onClick={handleSearch}
                       disabled={loadingSearch}
-                      className="rounded-xl px-5 py-3 text-sm font-bold text-white disabled:opacity-50 transition-all"
-                      style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                      className="rounded-xl px-5 py-3 text-sm font-bold text-[#1c1c1e] disabled:opacity-50 transition-all"
+                      style={{ background: accent.hex, color: 'white' }}
                     >
                       {loadingSearch ? '...' : '검색'}
                     </button>
@@ -814,26 +849,26 @@ export default function AnalyzerPage() {
 
                   {searchDone && searchResults.length === 0 && !loadingSearch && (
                     <div className="mt-3 rounded-xl px-4 py-4 text-center" style={{ border: '1px solid #e8ecf4', background: '#f8fafc' }}>
-                      <p className="text-sm font-semibold text-white mb-0.5">검색 결과가 없어요</p>
+                      <p className="text-sm font-semibold text-[#1c1c1e] mb-0.5">검색 결과가 없어요</p>
                       <p className="text-xs" style={{ color: '#94a3b8' }}>DB와 Yahoo Finance 모두에서 찾지 못했어요<br/>영문 티커(예: PL · BYND)나 영문 회사명으로 검색해보세요</p>
                     </div>
                   )}
 
                   {searchResults.length > 0 && (
                     <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid #e8ecf4' }}>
-                      <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '1px solid #e8ecf4', background: '#f8fafc' }}>
+                      <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: '#f8fafc' }}>
                         <span className="text-xs" style={{ color: '#94a3b8' }}>검색결과 {searchResults.length}개</span>
                         <button onClick={() => { setSearchResults([]); setSearch(''); }} className="text-xs px-2 py-0.5 rounded-lg transition-all" style={{ color: '#64748b', background: '#f1f5f9' }}>취소</button>
                       </div>
                       {searchResults.map((s) => (
                         <button key={s.id} onClick={() => addItem(s)}
                           className="w-full flex items-center justify-between px-4 py-3 text-left transition-all"
-                          style={{ borderBottom: '1px solid #e8ecf4' }}
-                          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.1)')}
+                          style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}
+                          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = accent.light)}
                           onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
                         >
                           <div>
-                            <span className="font-bold text-white text-sm">{s.displayNameKo ?? s.name}</span>
+                            <span className="font-bold text-[#1c1c1e] text-sm">{s.displayNameKo ?? s.name}</span>
                             <span className="text-xs ml-2" style={{ color: '#94a3b8' }}>{s.ticker}</span>
                           </div>
                           {s.sector && s.sector !== 'N/A' && (
@@ -860,7 +895,7 @@ export default function AnalyzerPage() {
                           {(['amount', 'weight'] as const).map((m) => (
                             <button key={m} onClick={() => setInputMode(m)}
                               className="px-3 py-1.5 font-semibold transition-all"
-                              style={{ background: inputMode === m ? '#7c3aed' : 'transparent', color: inputMode === m ? 'white' : '#6b7280' }}
+                              style={{ background: inputMode === m ? accent.hex : 'transparent', color: inputMode === m ? 'white' : '#6b7280' }}
                             >
                               {m === 'amount' ? '금액' : '비중'}
                             </button>
@@ -874,7 +909,7 @@ export default function AnalyzerPage() {
                         <div key={item.securityId} className="rounded-xl px-4 py-3 space-y-2.5" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
                           <div className="flex items-center justify-between">
                             <div>
-                              <span className="font-bold text-white text-sm">{item.displayNameKo ?? item.name}</span>
+                              <span className="font-bold text-[#1c1c1e] text-sm">{item.displayNameKo ?? item.name}</span>
                               <span className="text-xs ml-2" style={{ color: '#94a3b8' }}>{item.ticker}</span>
                             </div>
                             <button onClick={() => removeItem(item.securityId)} style={{ color: '#cbd5e1' }}
@@ -893,22 +928,22 @@ export default function AnalyzerPage() {
                                     <input type="text" inputMode="decimal"
                                       value={item.amount > 0 ? item.amount.toString() : ''}
                                       onChange={(e) => { const raw = e.target.value.replace(/[^0-9.]/g, ''); updateAmount(item.securityId, raw ? Number(raw) : 0); }}
-                                      className="flex-1 rounded-lg px-2 py-1.5 text-right text-white text-sm outline-none tabular-nums"
+                                      className="flex-1 rounded-lg px-2 py-1.5 text-right text-[#1c1c1e] text-sm outline-none tabular-nums"
                                       style={{ background: 'transparent' }}
                                       placeholder="0.00"
-                                      onFocus={(e) => { if (e.target.parentElement) e.target.parentElement.style.borderColor = '#7c3aed'; }}
-                                      onBlur={(e) => { if (e.target.parentElement) e.target.parentElement.style.borderColor = 'rgba(255,255,255,0.06)'; }}
+                                      onFocus={(e) => { if (e.target.parentElement) e.target.parentElement.style.borderColor = accent.hex; }}
+                                      onBlur={(e) => { if (e.target.parentElement) e.target.parentElement.style.borderColor = '#e8ecf4'; }}
                                     />
                                   </div>
                                 ) : (
                                   <input type="text" inputMode="numeric"
                                     value={item.amount > 0 ? item.amount.toLocaleString('ko-KR') : ''}
                                     onChange={(e) => { const raw = e.target.value.replace(/[^0-9]/g, ''); updateAmount(item.securityId, raw ? Number(raw) : 0); }}
-                                    className="flex-1 rounded-lg px-3 py-1.5 text-right text-white text-sm outline-none tabular-nums"
+                                    className="flex-1 rounded-lg px-3 py-1.5 text-right text-[#1c1c1e] text-sm outline-none tabular-nums"
                                     style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                                     placeholder="0"
-                                    onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
-                                    onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
+                                    onFocus={(e) => (e.target.style.borderColor = accent.hex)}
+                                    onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                                   />
                                 )}
                                 <span className="text-xs w-12 text-right shrink-0" style={{ color: '#94a3b8' }}>{getItemWeight(item).toFixed(1)}%</span>
@@ -918,7 +953,7 @@ export default function AnalyzerPage() {
                                 <input type="number" min={0} max={100}
                                   value={item.weight || ''}
                                   onChange={(e) => updateWeight(item.securityId, Number(e.target.value))}
-                                  className="w-20 rounded-lg px-2 py-1.5 text-center text-white text-sm outline-none"
+                                  className="w-20 rounded-lg px-2 py-1.5 text-center text-[#1c1c1e] text-sm outline-none"
                                   style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
                                   placeholder="0"
                                 />
@@ -931,8 +966,8 @@ export default function AnalyzerPage() {
                               className="w-24 rounded-lg px-2 py-1.5 text-right text-sm outline-none tabular-nums"
                               style={{ background: '#ffffff', border: '1px solid #e8ecf4', color: '#94a3b8' }}
                               placeholder={isUS(item.ticker) ? '평단가($)' : '평단가'}
-                              onFocus={(e) => (e.target.style.borderColor = '#3b82f6')}
-                              onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.06)')}
+                              onFocus={(e) => (e.target.style.borderColor = accent.hex)}
+                              onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                             />
                           </div>
                         </div>
@@ -943,10 +978,10 @@ export default function AnalyzerPage() {
 
                 {items.length === 0 && (
                   <div className="rounded-2xl flex flex-col items-center justify-center py-16 text-center" style={{ background: '#ffffff', border: '1.5px dashed #cbd5e1' }}>
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'rgba(124,58,237,0.06)' }}>
-                      <IconPieChart className="w-7 h-7" style={{ color: '#7c3aed' }} />
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: accent.light }}>
+                      <IconPieChart className="w-7 h-7" style={{ color: accent.hex }} />
                     </div>
-                    <p className="text-sm font-semibold text-white mb-1">종목을 추가해보세요</p>
+                    <p className="text-sm font-semibold text-[#1c1c1e] mb-1">종목을 추가해보세요</p>
                     <p className="text-xs" style={{ color: '#94a3b8' }}>위에서 검색해서 포트폴리오를 구성하세요</p>
                   </div>
                 )}
@@ -958,8 +993,8 @@ export default function AnalyzerPage() {
                 )}
 
                 <button onClick={handleAnalyze} disabled={loadingAnalyze || items.length === 0}
-                  className="w-full rounded-2xl py-4 text-base font-black text-white disabled:opacity-40 transition-all flex items-center justify-center gap-2"
-                  style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                  className="w-full rounded-2xl py-4 text-base font-black disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+                  style={{ background: accent.hex, color: 'white' }}
                 >
                   {loadingAnalyze ? '분석 중...' : (<>포트폴리오 분석하기 <IconArrowRight className="w-4 h-4" /></>)}
                 </button>
@@ -987,15 +1022,15 @@ export default function AnalyzerPage() {
                           <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>Health Score</div>
                           <div className="text-sm font-bold" style={{ color: risk.color }}>{risk.text}</div>
                         </div>
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.12)' }}>
-                          <IconShield className="w-4.5 h-4.5" style={{ width: 18, height: 18, color: '#8b5cf6' }} />
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: accent.light }}>
+                          <IconShield className="w-4.5 h-4.5" style={{ width: 18, height: 18, color: accent.hex }} />
                         </div>
                       </div>
 
                       <div className="flex items-center gap-6 mb-5">
                         <ScoreRing score={analysis.healthScore} size={110} />
                         <div className="flex-1 space-y-2">
-                          <p className="text-sm text-white leading-snug font-medium">{conclusion}</p>
+                          <p className="text-sm text-[#1c1c1e] leading-snug font-medium">{conclusion}</p>
                           {analysis.history?.alerts?.length > 0 && (
                             <div className="flex items-center gap-1.5 mt-2">
                               <IconWarning className="w-3.5 h-3.5" style={{ color: '#f59e0b' }} />
@@ -1009,7 +1044,7 @@ export default function AnalyzerPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
                           <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>투자 스타일</div>
-                          <div className="text-sm font-bold text-white">{analysis.portfolioStyle}</div>
+                          <div className="text-sm font-bold text-[#1c1c1e]">{analysis.portfolioStyle}</div>
                         </div>
                         <div className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
                           <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>분산도</div>
@@ -1028,7 +1063,7 @@ export default function AnalyzerPage() {
                       <div className="flex items-center justify-between mb-5">
                         <div>
                           <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>Asset Allocation</div>
-                          <div className="text-sm font-bold text-white">섹터별 분산 현황</div>
+                          <div className="text-sm font-bold text-[#1c1c1e]">섹터별 분산 현황</div>
                         </div>
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)' }}>
                           <IconPieChart className="w-4.5 h-4.5" style={{ width: 18, height: 18, color: '#10b981' }} />
@@ -1039,7 +1074,7 @@ export default function AnalyzerPage() {
                         {analysis.sectorExposure.slice(0, 6).map((s, i) => (
                           <div key={s.sector}>
                             <div className="flex justify-between text-sm mb-1.5">
-                              <span className="font-medium" style={{ color: '#cbd5e1' }}>{sectorLabel(s.sector)}</span>
+                              <span className="font-medium" style={{ color: '#374151' }}>{sectorLabel(s.sector)}</span>
                               <span className="font-bold" style={{ color: SECTOR_COLORS[i % SECTOR_COLORS.length] }}>{Number(s.weight).toFixed(1)}%</span>
                             </div>
                             <div className="h-1.5 rounded-full" style={{ background: '#f1f5f9' }}>
@@ -1069,7 +1104,7 @@ export default function AnalyzerPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: status.color }}>지금 뭘 해야 하나요?</div>
-                          <div className="text-sm font-semibold text-white leading-snug">{primaryAction}</div>
+                          <div className="text-sm font-semibold text-[#1c1c1e] leading-snug">{primaryAction}</div>
                         </div>
                         {failedRules.length > 0 && (
                           <div className="shrink-0 text-right">
@@ -1090,7 +1125,7 @@ export default function AnalyzerPage() {
                       <div className="rounded-2xl p-5" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
                         <div className="flex items-center gap-2 mb-4">
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0" style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>✓</div>
-                          <span className="text-sm font-bold text-white">리밸런싱이 완료됐어요!</span>
+                          <span className="text-sm font-bold text-[#1c1c1e]">리밸런싱이 완료됐어요!</span>
                         </div>
                         <div className="grid grid-cols-3 gap-3 mb-4">
                           {[
@@ -1128,7 +1163,7 @@ export default function AnalyzerPage() {
                       {analysis.history.alerts.map((alert: string, i: number) => (
                         <div key={i} className="flex items-start gap-3 rounded-2xl px-4 py-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
                           <IconWarning className="w-4 h-4 shrink-0 mt-0.5" style={{ color: '#f59e0b' }} />
-                          <span className="text-sm leading-relaxed" style={{ color: '#fcd34d' }}>{alert}</span>
+                          <span className="text-sm leading-relaxed" style={{ color: '#b45309' }}>{alert}</span>
                         </div>
                       ))}
                     </div>
@@ -1141,12 +1176,12 @@ export default function AnalyzerPage() {
                     {analysis.rebalanceResult && (
                       <div className="lg:col-span-2 rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                         {/* 헤더 */}
-                        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e8ecf4', background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(16,185,129,0.08))' }}>
+                        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: accent.light }}>
                           <div>
                             <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>Rebalancing Strategy</div>
                             {scoreDelta > 0 ? (
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-white text-sm">리밸런싱 후 분산도</span>
+                                <span className="font-bold text-[#1c1c1e] text-sm">리밸런싱 후 분산도</span>
                                 <span className="font-black" style={{ color: '#64748b' }}>{analysis.rebalanceResult.currentScore}</span>
                                 <span style={{ color: '#94a3b8' }}>→</span>
                                 <span className="font-black" style={{ color: '#10b981' }}>{analysis.rebalanceResult.improvedScore}</span>
@@ -1171,7 +1206,7 @@ export default function AnalyzerPage() {
                                   background: action.type === 'reduce' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
                                   color: action.type === 'reduce' ? '#f87171' : '#34d399',
                                 }}>{i + 1}</div>
-                                <span className="text-sm text-white flex-1">{action.text}</span>
+                                <span className="text-sm flex-1" style={{ color: "#1c1c1e" }}>{action.text}</span>
                                 <span className="font-black text-lg" style={{ color: action.type === 'reduce' ? '#ef4444' : '#10b981' }}>
                                   {action.type === 'reduce' ? '↓' : '↑'}
                                 </span>
@@ -1206,14 +1241,14 @@ export default function AnalyzerPage() {
                                     <span className="text-xs font-bold" style={{ color: '#10b981' }}>분산도 +{scoreDelta}점 개선 가능</span>
                                   </div>
                                 )}
-                                <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.3)' }}>
-                                  <IconLock className="w-5 h-5" style={{ color: '#c4b5fd' }} />
+                                <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: accent.light, border: `1px solid ${accent.hex}40` }}>
+                                  <IconLock className="w-5 h-5" style={{ color: accent.hex }} />
                                 </div>
-                                <div className="text-white font-bold text-sm mb-1">리밸런싱 가이드 잠금</div>
+                                <div className="text-[#1c1c1e] font-bold text-sm mb-1">리밸런싱 가이드 잠금</div>
                                 <div className="text-xs mb-4 leading-relaxed" style={{ color: '#94a3b8' }}>구체적 비율 · Before/After 시뮬레이션<br />미래 리스크 분석 포함</div>
                                 <button onClick={handleCheckout} disabled={checkoutLoading}
-                                  className="w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-60 transition-all"
-                                  style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                                  className="w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-60 transition-all"
+                                  style={{ background: accent.hex, color: 'white' }}
                                 >
                                   {checkoutLoading ? '이동 중...' : '프리미엄으로 보기 — ₩2,900'}
                                 </button>
@@ -1229,7 +1264,7 @@ export default function AnalyzerPage() {
                     <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>Portfolio Preview</div>
-                        <div className="text-sm font-bold text-white">변경 후 비중</div>
+                        <div className="text-sm font-bold text-[#1c1c1e]">변경 후 비중</div>
                       </div>
 
                       {/* 환율 표시 + 직접 입력 */}
@@ -1245,10 +1280,10 @@ export default function AnalyzerPage() {
                               type="number"
                               value={customUsdKrw || usdKrw.rate}
                               onChange={(e) => setCustomUsdKrw(e.target.value)}
-                              className="flex-1 rounded-lg px-2 py-1 text-sm text-white text-right outline-none tabular-nums"
+                              className="flex-1 rounded-lg px-2 py-1 text-sm text-[#1c1c1e] text-right outline-none tabular-nums"
                               style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
-                              onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
-                              onBlur={(e) => (e.target.style.borderColor = 'rgba(255,255,255,0.08)')}
+                              onFocus={(e) => (e.target.style.borderColor = accent.hex)}
+                              onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                             />
                             <span className="text-xs shrink-0" style={{ color: '#64748b' }}>원</span>
                           </div>
@@ -1268,7 +1303,7 @@ export default function AnalyzerPage() {
                               <div key={s.ticker}>
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-bold" style={{ color: '#cbd5e1' }}>{displayName}</span>
+                                    <span className="text-xs font-bold" style={{ color: '#374151' }}>{displayName}</span>
                                     {isNew && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>NEW</span>}
                                   </div>
                                   <div className="flex items-center gap-1.5">
@@ -1278,7 +1313,7 @@ export default function AnalyzerPage() {
                                   </div>
                                 </div>
                                 <div className="h-1.5 rounded-full" style={{ background: '#f1f5f9' }}>
-                                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${s.weight}%`, background: isNew ? '#10b981' : delta < 0 ? '#f59e0b' : '#8b5cf6' }} />
+                                  <div className="h-1.5 rounded-full transition-all" style={{ width: `${s.weight}%`, background: isNew ? '#10b981' : delta < 0 ? '#f59e0b' : accent.hex }} />
                                 </div>
                               </div>
                             );
@@ -1293,16 +1328,16 @@ export default function AnalyzerPage() {
                           <button
                             onClick={handleApplyRebalance}
                             disabled={applyingRebalance}
-                            className="w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50 transition-all"
-                            style={{ background: 'linear-gradient(135deg,#7c3aed,#9333ea)' }}
+                            className="w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-50 transition-all"
+                            style={{ background: accent.hex, color: 'white' }}
                           >
                             {applyingRebalance ? '적용 중...' : '이 비율로 포트폴리오 재설정'}
                           </button>
                         ) : (
                           <button
                             onClick={handleCheckout}
-                            className="w-full rounded-xl py-2.5 text-sm font-bold text-white transition-all"
-                            style={{ background: 'rgba(124,58,237,0.3)', border: '1px solid rgba(124,58,237,0.4)' }}
+                            className="w-full rounded-xl py-2.5 text-sm font-bold transition-all"
+                            style={{ background: accent.hex + '50', border: `1px solid ${accent.hex}60`, color: 'white' }}
                           >
                             🔒 프리미엄으로 재설정하기
                           </button>
@@ -1335,17 +1370,17 @@ export default function AnalyzerPage() {
                           {tasks.map((task, i) => (
                             <div key={i} className="flex items-start gap-3">
                               <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{
-                                background: task.done ? 'rgba(16,185,129,0.15)' : task.priority ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.04)',
-                                border: `1px solid ${task.done ? 'rgba(16,185,129,0.4)' : task.priority ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                background: task.done ? 'rgba(16,185,129,0.15)' : task.priority ? accent.light : '#f0ede7',
+                                border: `1px solid ${task.done ? 'rgba(16,185,129,0.4)' : task.priority ? accent.hex + '60' : '#e0ddd6'}`,
                               }}>
                                 {task.done
                                   ? <span style={{ fontSize: 9, color: '#10b981' }}>✓</span>
-                                  : <span style={{ fontSize: 7, color: task.priority ? '#a78bfa' : '#6b7280' }}>●</span>
+                                  : <span style={{ fontSize: 7, color: task.priority ? accent.hex : '#6b7280' }}>●</span>
                                 }
                               </div>
-                              <span className="text-sm leading-snug flex-1" style={{ color: task.done ? '#6b7280' : 'white', textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
+                              <span className="text-sm leading-snug flex-1" style={{ color: task.done ? '#6b7280' : '#1c1c1e', textDecoration: task.done ? 'line-through' : 'none' }}>{task.text}</span>
                               {task.priority && !task.done && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa' }}>추천</span>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: accent.light, color: accent.hex }}>추천</span>
                               )}
                             </div>
                           ))}
@@ -1379,7 +1414,7 @@ export default function AnalyzerPage() {
                     };
                     const profitColor = (v: number) => v > 0 ? '#10b981' : v < 0 ? '#ef4444' : '#9ca3af';
                     return (
-                    <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid rgba(99,102,241,0.2)' }}>
+                    <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.07)' }}>
                       {/* 헤더 */}
                       <div className="flex items-start justify-between mb-4">
                         <div>
@@ -1399,12 +1434,12 @@ export default function AnalyzerPage() {
                         }}>
                           <div>
                             <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#94a3b8' }}>투자원금</div>
-                            <div className="text-sm font-bold text-white">{fmtKRW(totalInvestedKRW)}</div>
+                            <div className="text-sm font-bold text-[#1c1c1e]">{fmtKRW(totalInvestedKRW)}</div>
                           </div>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                           <div>
                             <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#94a3b8' }}>평가금액</div>
-                            <div className="text-sm font-bold text-white">{fmtKRW(totalCurrentKRW)}</div>
+                            <div className="text-sm font-bold text-[#1c1c1e]">{fmtKRW(totalCurrentKRW)}</div>
                           </div>
                           <div className="text-right">
                             <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#94a3b8' }}>평가손익</div>
@@ -1421,10 +1456,10 @@ export default function AnalyzerPage() {
                           return (
                           <div key={r.ticker}>
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-bold truncate max-w-[140px]" style={{ color: '#cbd5e1' }}>{tickerNameMap[r.ticker] || r.ticker}</span>
+                              <span className="text-sm font-bold truncate max-w-[140px]" style={{ color: '#374151' }}>{tickerNameMap[r.ticker] || r.ticker}</span>
                               <div className="text-right shrink-0 ml-3">
                                 {currentVal != null
-                                  ? <div className="text-sm font-bold text-white">{fmtKRW(currentVal)}</div>
+                                  ? <div className="text-sm font-bold text-[#1c1c1e]">{fmtKRW(currentVal)}</div>
                                   : null}
                                 <div className="text-xs" style={{ color: profitColor(r.returnPct) }}>
                                   {d ? `${fmtProfit(d.profitKRW)} ` : ''}{r.returnPct > 0 ? '+' : ''}{r.returnPct}%
@@ -1454,7 +1489,7 @@ export default function AnalyzerPage() {
                         <div className="flex items-center justify-between mb-4">
                           <div>
                             <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>Portfolio Tracking</div>
-                            <div className="text-sm font-bold text-white">내 점수 추이</div>
+                            <div className="text-sm font-bold text-[#1c1c1e]">내 점수 추이</div>
                           </div>
                           <div className="flex items-center gap-1.5 rounded-full px-3 py-1" style={{
                             background: isImproving ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
@@ -1501,8 +1536,8 @@ export default function AnalyzerPage() {
                   <button onClick={() => setShowDetails((v) => !v)}
                     className="w-full rounded-2xl py-3.5 text-sm font-bold flex items-center justify-center gap-2 transition-all"
                     style={{ background: '#ffffff', border: '1px solid #e8ecf4', color: '#64748b' }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,92,246,0.4)'; (e.currentTarget as HTMLElement).style.color = 'white'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLElement).style.color = '#9ca3af'; }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = accent.hex; (e.currentTarget as HTMLElement).style.color = accent.hex; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#e8ecf4'; (e.currentTarget as HTMLElement).style.color = '#64748b'; }}
                   >
                     {showDetails ? '상세 분석 접기 ↑' : '상세 분석 더 보기 ↓'}
                   </button>
@@ -1528,7 +1563,7 @@ export default function AnalyzerPage() {
                               return (
                                 <div key={rule.label} className="rounded-xl p-3.5 space-y-2" style={{ background: gradeStyle.bg, border: `1px solid ${gradeStyle.border}` }}>
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="text-sm font-semibold text-white leading-snug">{rule.label}</span>
+                                    <span className="text-sm font-semibold text-[#1c1c1e] leading-snug">{rule.label}</span>
                                     <span className="text-xs font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: `${gradeStyle.border}`, color: gradeStyle.text }}>{gradeStyle.label}</span>
                                   </div>
                                   {!rule.passed && (
@@ -1550,12 +1585,12 @@ export default function AnalyzerPage() {
 
                       {/* 포트폴리오 인사이트 */}
                       {analysis.insights.length > 0 && (
-                        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid rgba(139,92,246,0.2)' }}>
-                          <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#8b5cf6' }}>Portfolio Insights</div>
+                        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid rgba(0,0,0,0.07)' }}>
+                          <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: accent.hex }}>Portfolio Insights</div>
                           <ul className="space-y-2">
                             {analysis.insights.map((ins: string, i: number) => (
-                              <li key={i} className="flex gap-2.5 text-sm" style={{ color: '#cbd5e1' }}>
-                                <span style={{ color: '#7c3aed' }}>•</span>{ins}
+                              <li key={i} className="flex gap-2.5 text-sm" style={{ color: '#374151' }}>
+                                <span style={{ color: accent.hex }}>•</span>{ins}
                               </li>
                             ))}
                           </ul>
@@ -1574,10 +1609,10 @@ export default function AnalyzerPage() {
             {/* ── 뉴스 사이드 컬럼 (항상 표시) ── */}
             <div className="hidden lg:block shrink-0 sticky top-14" style={{ width: 300 }}>
               <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #e8ecf4' }}>
+                <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#94a3b8' }}>Market News</div>
-                    <div className="text-sm font-bold text-white mt-0.5">주식 · 투자 뉴스</div>
+                    <div className="text-sm font-bold mt-0.5" style={{ color: '#1c1c1e' }}>주식 · 투자 뉴스</div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#10b981' }} />
@@ -1590,7 +1625,7 @@ export default function AnalyzerPage() {
                     {[90, 75, 85, 70, 80].map((w, i) => (
                       <div key={i} className="space-y-1.5">
                         <div className="h-3.5 rounded animate-pulse" style={{ background: '#f1f5f9', width: `${w}%` }} />
-                        <div className="h-3 rounded animate-pulse" style={{ background: '#f0f2f7', width: '50%' }} />
+                        <div className="h-3 rounded animate-pulse" style={{ background: '#f5f3ee', width: '50%' }} />
                       </div>
                     ))}
                   </div>
@@ -1605,13 +1640,13 @@ export default function AnalyzerPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-start gap-2.5 px-4 py-3.5 transition-all group"
-                        style={{ borderBottom: i < news.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'rgba(124,58,237,0.07)')}
+                        style={{ borderBottom: i < news.length - 1 ? '1px solid #f0ede7' : 'none' }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = accent.light)}
                         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
                       >
                         <span className="text-xs font-black shrink-0 mt-0.5 w-4" style={{ color: '#94a3b8' }}>{i + 1}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium leading-snug" style={{ color: '#cbd5e1' }}>
+                          <div className="text-xs font-medium leading-snug" style={{ color: '#374151' }}>
                             {item.title}
                           </div>
                           <div className="flex items-center gap-1.5 mt-1.5">
@@ -1635,7 +1670,7 @@ export default function AnalyzerPage() {
                         </div>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                           className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                          style={{ width: 12, height: 12, color: '#7c3aed' }}>
+                          style={{ width: 12, height: 12, color: accent.hex }}>
                           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                           <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
                         </svg>

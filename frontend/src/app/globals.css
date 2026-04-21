@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f0f2f7;
+  --bg: #f5f3ee;
   --card: #ffffff;
-  --sidebar: #ffffff;
-  --border: #e8ecf4;
-  --text-primary: #1a1d2e;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --input-bg: #f8fafc;
+  --sidebar: #eeeae2;
+  --border: rgba(0,0,0,0.07);
+  --text-primary: #1c1c1e;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --input-bg: #f8f7f4;
   --accent: #7c3aed;
   --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-dm-mono);

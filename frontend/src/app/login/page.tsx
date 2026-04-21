@@ -138,7 +138,7 @@ export default function LoginPage() {
 
           {/* 에러 */}
           {error && (
-            <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5' }}>
+            <div className="rounded-xl px-3 py-2.5 text-xs" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#dc2626' }}>
               {error}
             </div>
           )}
@@ -164,8 +164,8 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={() => { window.location.href = `${API}/auth/google`; }}
-            className="w-full rounded-xl py-3 text-sm font-semibold text-white flex items-center justify-center gap-2.5 transition-opacity hover:opacity-80"
-            style={{ background: '#f8fafc' }}
+            className="w-full rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2.5 transition-opacity hover:opacity-80"
+            style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', color: '#1c1c1e' }}
           >
             <svg viewBox="0 0 24 24" style={{ width: 18, height: 18 }}>
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

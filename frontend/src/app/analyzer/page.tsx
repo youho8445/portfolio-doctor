@@ -1174,7 +1174,55 @@ export default function AnalyzerPage() {
                     </div>
                   )}
 
-                  {/* ── Row 2: 리밸런싱 + 포트폴리오 미리보기 ── */}
+                  {/* ── Row 2: 내 종목 차트 & 재무지표 ── */}
+                  {items.length > 0 && (
+                    <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                        <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>Holdings</div>
+                        <div className="text-sm font-bold text-[#1c1c1e]">내 종목 차트 & 재무지표</div>
+                      </div>
+                      <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                        {items.map((item) => {
+                          const sectorExp = analysis.sectorExposure.find((s) => s.sector !== 'Cash' && s.sector !== 'ETF');
+                          const rebalAction = analysis.rebalanceResult?.actions?.find(
+                            (a) => a.ticker === item.ticker && a.ticker !== '_sector_div'
+                          );
+                          return (
+                            <button
+                              key={item.ticker}
+                              onClick={() => setTickerModal({ ticker: item.ticker, displayName: item.displayNameKo ?? item.name ?? item.ticker, rebalanceAction: rebalAction })}
+                              className="rounded-xl p-3 text-left flex flex-col gap-1.5 transition-all hover:shadow-md hover:-translate-y-0.5"
+                              style={{
+                                background: rebalAction?.type === 'reduce' ? 'rgba(239,68,68,0.05)' : rebalAction?.type === 'add' ? 'rgba(16,185,129,0.05)' : '#f8fafc',
+                                border: `1.5px solid ${rebalAction?.type === 'reduce' ? 'rgba(239,68,68,0.2)' : rebalAction?.type === 'add' ? 'rgba(16,185,129,0.2)' : '#e8ecf4'}`,
+                              }}
+                            >
+                              <div className="flex items-start justify-between gap-1">
+                                <span className="text-xs font-black" style={{ color: '#1c1c1e' }}>{item.ticker}</span>
+                                {rebalAction && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{
+                                    background: rebalAction.type === 'reduce' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+                                    color: rebalAction.type === 'reduce' ? '#ef4444' : '#10b981',
+                                  }}>
+                                    {rebalAction.type === 'reduce' ? '↓ 축소' : '↑ 확대'}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] leading-tight truncate" style={{ color: '#6b7280' }}>{item.displayNameKo ?? item.name ?? ''}</span>
+                              <div className="flex items-center justify-between mt-0.5">
+                                <span className="text-[10px] font-bold tabular-nums" style={{ color: accent.hex }}>{Number(item.weight).toFixed(1)}%</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 10, height: 10, color: '#cbd5e1' }}>
+                                  <path d="M7 17L17 7M17 7H7M17 7v10" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Row 3: 리밸런싱 + 포트폴리오 미리보기 ── */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
                     {/* 리밸런싱 가이드 (2/3) */}

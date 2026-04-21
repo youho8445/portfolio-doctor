@@ -184,8 +184,10 @@ export default function AnalyzerPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [news, setNews] = useState<{ title: string; link: string; pubDate: string; source: string }[]>([]);
+  const [news, setNews] = useState<{ title: string; link: string; pubDate: string; source: string; ticker?: string | null }[]>([]);
   const [newsLoading, setNewsLoading] = useState(false);
+  const [newsQuery, setNewsQuery] = useState('');
+  const [newsQueryInput, setNewsQueryInput] = useState('');
   const [pwModalOpen, setPwModalOpen] = useState(false);
   const [pwCurrent, setPwCurrent] = useState('');
   const [pwNew, setPwNew] = useState('');
@@ -230,6 +232,15 @@ export default function AnalyzerPage() {
     setNewsLoading(true);
     fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
   }, [authLoading, isLoggedIn]);
+
+  // 티커 또는 검색어 기반 뉴스 갱신
+  function fetchPersonalizedNews(tickers: string[], query: string) {
+    setNewsLoading(true);
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('q', query.trim());
+    else if (tickers.length) params.set('tickers', tickers.join(','));
+    fetch(`/api/news?${params}`).then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
+  }
 
   const [applyingRebalance, setApplyingRebalance] = useState(false);
   const [prevAnalysis, setPrevAnalysis] = useState<AnalysisResult | null>(null);
@@ -431,6 +442,7 @@ export default function AnalyzerPage() {
       }
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
       setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
+      fetchPersonalizedNews(items.map((i) => i.ticker), newsQuery);
       await loadSavedPortfolios();
     } catch { setError('분석에 실패했습니다. 백엔드 서버를 확인하세요.'); }
     finally { setLoadingAnalyze(false); }
@@ -1710,14 +1722,63 @@ export default function AnalyzerPage() {
               <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#94a3b8' }}>Market News</div>
-                    <div className="text-sm font-bold mt-0.5" style={{ color: '#1c1c1e' }}>주식 · 투자 뉴스</div>
+                    <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#94a3b8' }}>Personalized News</div>
+                    <div className="text-sm font-bold mt-0.5" style={{ color: '#1c1c1e' }}>
+                      {newsQuery ? `"${newsQuery}" 검색결과` : items.length > 0 ? '내 종목 뉴스' : '주식 · 투자 뉴스'}
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#10b981' }} />
                     <span className="text-[10px] font-semibold" style={{ color: '#10b981' }}>LIVE</span>
                   </div>
                 </div>
+
+                  {/* 검색창 */}
+                  <div className="px-4 pb-3 pt-1">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        setNewsQuery(newsQueryInput);
+                        fetchPersonalizedNews(items.map((i) => i.ticker), newsQueryInput);
+                      }}
+                      className="flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={newsQueryInput}
+                        onChange={(e) => setNewsQueryInput(e.target.value)}
+                        placeholder={items.length > 0 ? `${items[0]?.ticker ?? '종목'} 검색...` : '종목 · 키워드 검색'}
+                        className="flex-1 rounded-xl px-3 py-2 text-xs outline-none transition-all"
+                        style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4', color: '#1c1c1e' }}
+                        onFocus={(e) => (e.target.style.borderColor = accent.hex)}
+                        onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
+                      />
+                      <button type="submit" className="rounded-xl px-3 py-2 text-xs font-bold transition-opacity hover:opacity-80" style={{ background: accent.hex, color: 'white' }}>
+                        검색
+                      </button>
+                      {newsQuery && (
+                        <button type="button" onClick={() => {
+                          setNewsQuery(''); setNewsQueryInput('');
+                          fetchPersonalizedNews(items.map((i) => i.ticker), '');
+                        }} className="rounded-xl px-2 py-2 text-xs transition-opacity hover:opacity-70" style={{ background: '#f1f5f9', color: '#6b7280' }}>✕</button>
+                      )}
+                    </form>
+                    {/* 보유 종목 빠른 선택 */}
+                    {items.length > 0 && !newsQuery && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {items.slice(0, 5).map((item) => (
+                          <button key={item.ticker} onClick={() => {
+                            const q = item.ticker;
+                            setNewsQueryInput(q); setNewsQuery(q);
+                            fetchPersonalizedNews([], q);
+                          }}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-full transition-all hover:opacity-80"
+                            style={{ background: accent.light, color: accent.hex, border: `1px solid ${accent.hex}30` }}
+                          >{item.ticker}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                 {newsLoading ? (
                   <div className="px-4 py-6 space-y-4">
@@ -1745,6 +1806,11 @@ export default function AnalyzerPage() {
                       >
                         <span className="text-xs font-black shrink-0 mt-0.5 w-4" style={{ color: '#94a3b8' }}>{i + 1}</span>
                         <div className="flex-1 min-w-0">
+                          {item.ticker && (
+                            <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mb-1 mr-1" style={{ background: accent.light, color: accent.hex }}>
+                              {item.ticker}
+                            </span>
+                          )}
                           <div className="text-xs font-medium leading-snug" style={{ color: '#374151' }}>
                             {item.title}
                           </div>

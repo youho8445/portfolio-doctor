@@ -19,6 +19,7 @@ import {
 } from '@/lib/api';
 import {
   AnalysisResult,
+  BaselineDrift,
   PersonalReturn,
   Portfolio,
   PortfolioInputItem,
@@ -1192,6 +1193,46 @@ export default function AnalyzerPage() {
                             )}
                           </div>
                         </div>
+
+                        {/* 처음 대비 변화 (페이월 바깥, baseline이 있을 때만) */}
+                        {(analysis.rebalanceResult?.baselineDrift?.length ?? 0) > 0 && (
+                          <div className="px-5 pt-4 pb-2" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                            <div className="text-xs font-semibold uppercase tracking-widest mb-2.5" style={{ color: '#94a3b8' }}>처음 대비 변화</div>
+                            <div className="space-y-1.5">
+                              {(analysis.rebalanceResult!.baselineDrift as BaselineDrift[]).slice(0, 5).map((d) => {
+                                const isUp = d.delta > 0;
+                                const isNew = d.status === 'added';
+                                const isRemoved = d.status === 'removed';
+                                return (
+                                  <div key={d.ticker} className="flex items-center justify-between rounded-lg px-3 py-2" style={{
+                                    background: isNew ? 'rgba(16,185,129,0.06)' : isRemoved ? 'rgba(239,68,68,0.06)' : 'rgba(0,0,0,0.03)',
+                                    border: `1px solid ${isNew ? 'rgba(16,185,129,0.15)' : isRemoved ? 'rgba(239,68,68,0.15)' : 'rgba(0,0,0,0.06)'}`,
+                                  }}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-bold" style={{ color: '#374151' }}>{d.label}</span>
+                                      {isNew && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>신규</span>}
+                                      {isRemoved && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>제거됨</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs tabular-nums">
+                                      {!isNew && !isRemoved && (
+                                        <span style={{ color: '#9ca3af' }}>{d.baselineWeight}%</span>
+                                      )}
+                                      {!isNew && !isRemoved && <span style={{ color: '#cbd5e1' }}>→</span>}
+                                      <span className="font-bold" style={{ color: isNew ? '#10b981' : isRemoved ? '#ef4444' : isUp ? '#10b981' : '#ef4444' }}>
+                                        {isRemoved ? `−${d.baselineWeight}%` : `${d.currentWeight}%`}
+                                      </span>
+                                      {!isNew && !isRemoved && (
+                                        <span className="font-bold text-[10px]" style={{ color: isUp ? '#10b981' : '#ef4444' }}>
+                                          {isUp ? `+${d.delta}` : `${d.delta}`}%p
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
 
                         {/* 콘텐츠 + 페이월 */}
                         <div className="relative">

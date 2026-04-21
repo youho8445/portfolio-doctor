@@ -51,11 +51,20 @@ export type RebalanceSuggestion = {
 export type RebalanceAction = {
   ticker: string;
   label: string;
-  type: 'reduce' | 'add';
+  type: 'reduce' | 'add' | 'drift';
   from: number;
   to: number;
   delta: number;
   text: string;
+};
+
+export type BaselineDrift = {
+  ticker: string;
+  label: string;
+  baselineWeight: number;
+  currentWeight: number;
+  delta: number;
+  status: 'added' | 'removed' | 'increased' | 'decreased' | 'unchanged';
 };
 
 export type RebalanceResult = {
@@ -66,6 +75,8 @@ export type RebalanceResult = {
   summary: string;
   beforeAfterSummary: string;
   whyItMatters: string;
+  baselineDrift: BaselineDrift[];
+  baselineDate: string | null;
 };
 
 export type ScoreRule = {

@@ -41,6 +41,9 @@ export class PortfolioSnapshot {
   @Column('text', { nullable: true })
   warningsJson: string;
 
+  @Column('text', { nullable: true })
+  itemsJson: string;
+
   @CreateDateColumn()
   createdAt: Date;
 }

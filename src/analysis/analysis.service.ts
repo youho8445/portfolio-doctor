@@ -232,11 +232,17 @@ export class AnalysisService {
         benchmarkReturn,
       });
 
+    // ── baseline 조회 (첫 스냅샷 기준 비교용) ──
+    const baselineItems = userId > 0
+      ? await this.historyService.getBaselineItems(portfolioId, userId)
+      : null;
+
     // ── 리밸런싱 엔진 ──
     const rebalanceResult = computeRebalance({
       items: itemMetas,
       currentScore: diversificationScore,
       sectorExposure,
+      baselineItems: baselineItems ?? undefined,
     });
 
     // ── 스냅샷 저장 + 히스토리 조회 ──
@@ -254,6 +260,7 @@ export class AnalysisService {
         portfolioStyle,
         sectorExposure,
         warnings,
+        items: itemMetas.map((i) => ({ ...i, name: i.name ?? i.ticker })),
       });
     }
 

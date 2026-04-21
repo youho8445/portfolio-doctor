@@ -4,6 +4,14 @@ import { Repository } from 'typeorm';
 import { PortfolioSnapshot } from '../entities/portfolio-snapshot.entity';
 import { Portfolio } from '../entities/portfolio.entity';
 
+export interface SnapshotItem {
+  ticker: string;
+  name: string;
+  weight: number;
+  sector: string;
+  assetType: string;
+}
+
 export interface SnapshotInput {
   portfolioId: number;
   userId: number;
@@ -17,6 +25,7 @@ export interface SnapshotInput {
   portfolioStyle: string;
   sectorExposure: { sector: string; weight: number }[];
   warnings: string[];
+  items: SnapshotItem[];
 }
 
 export interface HistoryChange {
@@ -54,8 +63,22 @@ export class HistoryService {
       portfolioStyle: input.portfolioStyle,
       sectorExposureJson: JSON.stringify(input.sectorExposure),
       warningsJson: JSON.stringify(input.warnings),
+      itemsJson: JSON.stringify(input.items),
     });
     await this.snapshotRepo.save(snapshot);
+  }
+
+  async getBaselineItems(portfolioId: number, userId: number): Promise<SnapshotItem[] | null> {
+    const oldest = await this.snapshotRepo.findOne({
+      where: { portfolioId, userId },
+      order: { createdAt: 'ASC' },
+    });
+    if (!oldest?.itemsJson) return null;
+    try {
+      return JSON.parse(oldest.itemsJson) as SnapshotItem[];
+    } catch {
+      return null;
+    }
   }
 
   async getHistory(portfolioId: number, userId: number): Promise<HistoryResult> {
@@ -70,11 +93,10 @@ export class HistoryService {
 
     if (snapshots.length === 0) return { trend: [], alerts: [], change: null };
 
-    // alerts: compare latest two snapshots
     const alerts: string[] = [];
     if (snapshots.length >= 2) {
-      const a = snapshots[0];  // latest
-      const b = snapshots[1];  // previous
+      const a = snapshots[0];
+      const b = snapshots[1];
 
       const hDelta = Number(a.healthScore) - Number(b.healthScore);
       const dDelta = Number(a.diversificationScore) - Number(b.diversificationScore);
@@ -105,7 +127,6 @@ export class HistoryService {
         }
       : null;
 
-    // trend: chronological order (oldest → newest) for chart
     const trend = [...snapshots]
       .reverse()
       .map((s) => ({

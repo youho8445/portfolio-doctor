@@ -1557,7 +1557,8 @@ export default function AnalyzerPage() {
                         const currentKRW = existing ? toKRW(existing) : 0;
                         const targetKRW = Math.round((s.weight / 100) * newTotal);
                         const deltaKRW = targetKRW - currentKRW;
-                        return { ticker: s.ticker, label: s.ticker, currentKRW, targetKRW, deltaKRW };
+                        const name = existing?.displayNameKo ?? existing?.name ?? tickerNameMap[s.ticker] ?? s.ticker;
+                        return { ticker: s.ticker, name, currentKRW, targetKRW, deltaKRW };
                       });
                       const fmtKRW = (n: number) => {
                         const abs = Math.abs(n);
@@ -1623,7 +1624,10 @@ export default function AnalyzerPage() {
                               {rows.map((row) => (
                                 <div key={row.ticker} className="flex items-center gap-3 rounded-xl px-3 py-2.5"
                                   style={{ background: row.deltaKRW > 1000 ? 'rgba(16,185,129,0.06)' : row.deltaKRW < -1000 ? 'rgba(239,68,68,0.06)' : '#f8fafc', border: `1px solid ${row.deltaKRW > 1000 ? 'rgba(16,185,129,0.2)' : row.deltaKRW < -1000 ? 'rgba(239,68,68,0.2)' : '#e8ecf4'}` }}>
-                                  <div className="font-bold text-xs w-16 shrink-0" style={{ color: '#1c1c1e' }}>{row.ticker}</div>
+                                  <div className="shrink-0 min-w-0" style={{ maxWidth: '40%' }}>
+                                    <div className="font-bold text-xs truncate" style={{ color: '#1c1c1e' }}>{row.name}</div>
+                                    <div className="text-[10px]" style={{ color: '#94a3b8' }}>{row.ticker}</div>
+                                  </div>
                                   <div className="flex-1 text-xs tabular-nums" style={{ color: '#64748b' }}>
                                     {fmtKRW(row.currentKRW)}원 → {fmtKRW(row.targetKRW)}원
                                   </div>

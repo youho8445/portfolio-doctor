@@ -2096,10 +2096,12 @@ export default function AnalyzerPage() {
             for (const sg of result.suggestions) {
               try {
                 const secs = await getSecurities(sg.ticker);
-                if (secs.length > 0) {
-                  const sec = secs[0];
+                // 정확한 티커 일치만 사용 (포함 검색 오매칭 방지)
+                const sec = secs.find((s: Security) => s.ticker.toUpperCase() === sg.ticker.toUpperCase());
+                if (sec) {
                   const displayAmt = isUS(sec.ticker) ? Math.round(sg.amountKRW / rate * 100) / 100 : sg.amountKRW;
-                  newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sg.weight, amount: displayAmt, avgCost: sg.priceUSD ?? 0 });
+                  // avgCost는 0으로 — 아직 구매 전이므로 사용자가 직접 입력해야 함
+                  newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sg.weight, amount: displayAmt, avgCost: 0 });
                 }
               } catch { /* 검색 실패 시 무시 */ }
             }

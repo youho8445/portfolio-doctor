@@ -73,7 +73,10 @@ export class SecuritiesService {
         's.ticker LIKE :ticker OR s.name LIKE :q OR s.displayNameKo LIKE :q OR s.searchText LIKE :q',
         { ticker: `%${q.toUpperCase()}%`, q: `%${q}%` },
       )
-      .orderBy('s.ticker', 'ASC')
+      // 정확한 티커 일치를 최우선 정렬 (예: VOO 검색 시 IVOO보다 앞에)
+      .orderBy(`CASE WHEN s.ticker = :exact THEN 0 ELSE 1 END`, 'ASC')
+      .addOrderBy('s.ticker', 'ASC')
+      .setParameter('exact', q.toUpperCase())
       .take(20)
       .getMany();
 

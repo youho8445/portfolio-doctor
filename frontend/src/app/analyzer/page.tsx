@@ -7,6 +7,8 @@ import dynamic from 'next/dynamic';
 const TickerModal = dynamic(() => import('@/components/TickerModal'), { ssr: false });
 const BeginnerGuide = dynamic(() => import('@/components/BeginnerGuide'), { ssr: false });
 import type { BeginnerResult } from '@/components/BeginnerGuide';
+import { buildRiskTags, buildRiskExplanation } from '@/lib/riskSignal';
+import type { QuoteMin } from '@/lib/riskSignal';
 import {
   addPortfolioItem,
   analyzePortfolio,
@@ -198,6 +200,9 @@ export default function AnalyzerPage() {
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [beginnerGuideOpen, setBeginnerGuideOpen] = useState(false);
   const [beginnerResult, setBeginnerResult] = useState<BeginnerResult | null>(null);
+  const [tickerQuotes, setTickerQuotes] = useState<Record<string, QuoteMin>>({});
+  const [adjustType, setAdjustType] = useState<'add' | 'withdraw'>('add');
+  const [adjustInput, setAdjustInput] = useState('');
 
   const tickerNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -447,6 +452,24 @@ export default function AnalyzerPage() {
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
       setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
       fetchPersonalizedNews(items.map((i) => i.ticker), newsQuery);
+      // fetch quote data for risk signals (non-blocking)
+      const _token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') ?? '') : '';
+      const _api = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+      const _captured = [...items];
+      Promise.all(_captured.map((item) =>
+        fetch(`${_api}/securities/${encodeURIComponent(item.ticker)}/quote`, {
+          headers: _token ? { Authorization: `Bearer ${_token}` } : {},
+        }).then((r) => r.ok ? r.json() : null).then((d) => d ? [item.ticker, d] as const : null).catch(() => null)
+      )).then((results) => {
+        const map: Record<string, QuoteMin> = {};
+        for (const r of results) {
+          if (r) {
+            const [ticker, d] = r;
+            map[ticker] = { pe: d.pe ?? null, fiftyTwoWeekHigh: d.fiftyTwoWeekHigh ?? null, fiftyTwoWeekLow: d.fiftyTwoWeekLow ?? null, debtToEquity: d.debtToEquity ?? null, revenueGrowth: d.revenueGrowth ?? null, history: (d.history ?? []).map((h: { time: string; close: number }) => ({ time: h.time, close: h.close })) };
+          }
+        }
+        setTickerQuotes(map);
+      });
       await loadSavedPortfolios();
     } catch { setError('분석에 실패했습니다. 백엔드 서버를 확인하세요.'); }
     finally { setLoadingAnalyze(false); }
@@ -1377,9 +1400,31 @@ export default function AnalyzerPage() {
                                   background: action.type === 'reduce' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
                                   color: action.type === 'reduce' ? '#f87171' : '#34d399',
                                 }}>{i + 1}</div>
-                                <span className="text-sm flex-1" style={{ color: "#1c1c1e" }}>{action.text}</span>
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-sm" style={{ color: "#1c1c1e" }}>{action.text}</span>
+                                  {(() => {
+                                    const q = action.ticker !== '_sector_div' ? tickerQuotes[action.ticker] : undefined;
+                                    if (!q) return null;
+                                    const tags = buildRiskTags(q, action.type as 'reduce' | 'add');
+                                    const explanation = buildRiskExplanation(q, action.type as 'reduce' | 'add');
+                                    if (!tags.length) return null;
+                                    return (
+                                      <div className="mt-1.5">
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                          {tags.map((tag, ti) => (
+                                            <span key={ti} className="text-[10px] font-semibold rounded-full px-2 py-0.5" style={{
+                                              background: tag.level === 'high' ? 'rgba(239,68,68,0.12)' : tag.level === 'positive' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
+                                              color: tag.level === 'high' ? '#ef4444' : tag.level === 'positive' ? '#10b981' : '#f59e0b',
+                                            }}>{tag.text}</span>
+                                          ))}
+                                        </div>
+                                        <p className="text-[11px] leading-snug" style={{ color: '#64748b' }}>{explanation}</p>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
                                 {action.ticker !== '_sector_div' && (
-                                  <span className="font-black text-lg" style={{ color: action.type === 'reduce' ? '#ef4444' : '#10b981' }}>
+                                  <span className="font-black text-lg shrink-0" style={{ color: action.type === 'reduce' ? '#ef4444' : '#10b981' }}>
                                     {action.type === 'reduce' ? '↓' : '↑'}
                                   </span>
                                 )}
@@ -1432,6 +1477,100 @@ export default function AnalyzerPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* 투자금액 조정 시뮬레이터 */}
+                    {totalAmount > 0 && (analysis.rebalanceResult?.suggestedPortfolio?.length ?? 0) > 0 && (() => {
+                      const adjustAmt = Number(adjustInput.replace(/,/g, '')) || 0;
+                      const newTotal = adjustType === 'add' ? totalAmount + adjustAmt : Math.max(0, totalAmount - adjustAmt);
+                      const suggested = analysis.rebalanceResult!.suggestedPortfolio;
+                      const rows = suggested.map((s) => {
+                        const existing = items.find((i) => i.ticker === s.ticker);
+                        const currentKRW = existing ? toKRW(existing) : 0;
+                        const targetKRW = Math.round((s.weight / 100) * newTotal);
+                        const deltaKRW = targetKRW - currentKRW;
+                        return { ticker: s.ticker, label: s.ticker, currentKRW, targetKRW, deltaKRW };
+                      });
+                      const fmtKRW = (n: number) => {
+                        const abs = Math.abs(n);
+                        if (abs >= 1e8) return `${(n / 1e8).toFixed(1)}억`;
+                        if (abs >= 1e4) return `${Math.round(n / 1e4)}만`;
+                        return `${n.toLocaleString()}`;
+                      };
+                      return (
+                        <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                          <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>투자금액 조정 시뮬레이터</div>
+                          <div className="text-sm font-bold text-[#1c1c1e] mb-4">추가 투자 또는 인출 시 어떻게 달라지나요?</div>
+
+                          {/* 타입 + 금액 입력 */}
+                          <div className="flex gap-2 mb-4">
+                            <div className="flex rounded-xl overflow-hidden" style={{ border: '1.5px solid #e8ecf4' }}>
+                              {(['add', 'withdraw'] as const).map((t) => (
+                                <button key={t} onClick={() => setAdjustType(t)}
+                                  className="px-4 py-2.5 text-xs font-bold transition-all"
+                                  style={{ background: adjustType === t ? accent.hex : '#f8fafc', color: adjustType === t ? 'white' : '#64748b' }}
+                                >{t === 'add' ? '➕ 추가 투자' : '➖ 인출'}</button>
+                              ))}
+                            </div>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={adjustInput}
+                              onChange={(e) => setAdjustInput(e.target.value.replace(/[^\d]/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ','))}
+                              placeholder="금액 입력 (원)"
+                              className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none"
+                              style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4' }}
+                              onFocus={(e) => (e.target.style.borderColor = accent.hex)}
+                              onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
+                            />
+                          </div>
+
+                          {/* 현재 vs 조정 후 총액 */}
+                          <div className="flex items-center gap-3 mb-4 rounded-xl p-3" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
+                            <div className="flex-1 text-center">
+                              <div className="text-[10px] font-semibold mb-0.5" style={{ color: '#94a3b8' }}>현재 총액</div>
+                              <div className="text-base font-black" style={{ color: '#1c1c1e' }}>{fmtKRW(totalAmount)}원</div>
+                            </div>
+                            <div className="text-lg" style={{ color: '#94a3b8' }}>→</div>
+                            <div className="flex-1 text-center">
+                              <div className="text-[10px] font-semibold mb-0.5" style={{ color: '#94a3b8' }}>조정 후 총액</div>
+                              <div className="text-base font-black" style={{ color: adjustAmt > 0 ? (adjustType === 'add' ? '#10b981' : '#ef4444') : '#1c1c1e' }}>
+                                {fmtKRW(newTotal)}원
+                              </div>
+                            </div>
+                            {adjustAmt > 0 && (
+                              <div className="flex-1 text-center">
+                                <div className="text-[10px] font-semibold mb-0.5" style={{ color: '#94a3b8' }}>변화</div>
+                                <div className="text-sm font-black" style={{ color: adjustType === 'add' ? '#10b981' : '#ef4444' }}>
+                                  {adjustType === 'add' ? '+' : '-'}{fmtKRW(adjustAmt)}원
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 종목별 조정 테이블 */}
+                          {adjustAmt > 0 && (
+                            <div className="space-y-2">
+                              <div className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: '#94a3b8' }}>종목별 필요 액션 (추천 비중 기준)</div>
+                              {rows.map((row) => (
+                                <div key={row.ticker} className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                                  style={{ background: row.deltaKRW > 1000 ? 'rgba(16,185,129,0.06)' : row.deltaKRW < -1000 ? 'rgba(239,68,68,0.06)' : '#f8fafc', border: `1px solid ${row.deltaKRW > 1000 ? 'rgba(16,185,129,0.2)' : row.deltaKRW < -1000 ? 'rgba(239,68,68,0.2)' : '#e8ecf4'}` }}>
+                                  <div className="font-bold text-xs w-16 shrink-0" style={{ color: '#1c1c1e' }}>{row.ticker}</div>
+                                  <div className="flex-1 text-xs tabular-nums" style={{ color: '#64748b' }}>
+                                    {fmtKRW(row.currentKRW)}원 → {fmtKRW(row.targetKRW)}원
+                                  </div>
+                                  <div className="shrink-0 text-xs font-bold tabular-nums" style={{ color: row.deltaKRW > 1000 ? '#10b981' : row.deltaKRW < -1000 ? '#ef4444' : '#94a3b8' }}>
+                                    {row.deltaKRW > 1000 ? `+${fmtKRW(row.deltaKRW)}원 매수` : row.deltaKRW < -1000 ? `${fmtKRW(row.deltaKRW)}원 매도` : '유지'}
+                                  </div>
+                                </div>
+                              ))}
+                              <p className="text-[10px] mt-2 leading-relaxed" style={{ color: '#94a3b8' }}>
+                                * 추천 비중을 기준으로 계산한 참고값입니다. 실제 매매 단가와 다를 수 있어요.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* 포트폴리오 미리보기 (1/3) */}
                     <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>

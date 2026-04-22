@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 const TickerModal = dynamic(() => import('@/components/TickerModal'), { ssr: false });
+const BeginnerGuide = dynamic(() => import('@/components/BeginnerGuide'), { ssr: false });
+import type { BeginnerResult } from '@/components/BeginnerGuide';
 import {
   addPortfolioItem,
   analyzePortfolio,
@@ -194,6 +196,8 @@ export default function AnalyzerPage() {
   const [pwConfirm, setPwConfirm] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [beginnerGuideOpen, setBeginnerGuideOpen] = useState(false);
+  const [beginnerResult, setBeginnerResult] = useState<BeginnerResult | null>(null);
 
   const tickerNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -755,6 +759,13 @@ export default function AnalyzerPage() {
                 <p className="text-sm mt-1.5" style={{ color: '#94a3b8' }}>
                   포트폴리오의 건강 상태를 진단하고 최적화 전략을 제안합니다
                 </p>
+                <button
+                  onClick={() => setBeginnerGuideOpen(true)}
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
+                  style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}
+                >
+                  <span>🌱</span> 주식이 처음이신가요? 투자 성향 테스트
+                </button>
               </div>
 
               {/* 분석 결과 스탯 카드 */}
@@ -816,6 +827,35 @@ export default function AnalyzerPage() {
             {/* ── 입력 탭 ── */}
             {activeTab === 'input' && (
               <div className="max-w-2xl space-y-5">
+
+                {/* 초보자 가이드 결과 배너 */}
+                {beginnerResult && (() => {
+                  const styleMap = {
+                    conservative: { label: '안정형', emoji: '🛡️', color: '#0284c7', bg: '#e0f2fe' },
+                    balanced: { label: '균형형', emoji: '⚖️', color: '#7c3aed', bg: '#ede9fe' },
+                    aggressive: { label: '성장형', emoji: '🚀', color: '#059669', bg: '#d1fae5' },
+                  };
+                  const s = styleMap[beginnerResult.style];
+                  return (
+                    <div className="rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: s.bg, border: `1.5px solid ${s.color}30` }}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{s.emoji}</span>
+                        <div>
+                          <div className="text-xs font-bold" style={{ color: s.color }}>{s.label} · 목표 비율</div>
+                          <div className="text-sm font-black mt-0.5" style={{ color: '#1c1c1e' }}>
+                            주식 {beginnerResult.stockRatio}% + 안전자산 {beginnerResult.safeRatio}%
+                          </div>
+                          <div className="text-[11px] mt-0.5" style={{ color: '#64748b' }}>아래에 종목을 추가하면서 이 비율을 맞춰보세요</div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setBeginnerResult(null)}
+                        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs"
+                        style={{ background: `${s.color}20`, color: s.color }}
+                      >✕</button>
+                    </div>
+                  );
+                })()}
 
                 {/* 포트폴리오 이름 */}
                 <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -1885,6 +1925,20 @@ export default function AnalyzerPage() {
           rebalanceAction={tickerModal.rebalanceAction}
           drift={tickerModal.drift}
           onClose={() => setTickerModal(null)}
+        />
+      )}
+
+      {/* 초보자 가이드 모달 */}
+      {beginnerGuideOpen && (
+        <BeginnerGuide
+          accentHex={accent.hex}
+          accentLight={accent.light}
+          onClose={() => setBeginnerGuideOpen(false)}
+          onStart={(result) => {
+            setBeginnerResult(result);
+            setBeginnerGuideOpen(false);
+            setActiveTab('input');
+          }}
         />
       )}
     </div>

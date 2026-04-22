@@ -872,6 +872,9 @@ export default function AnalyzerPage() {
                         </div>
                         <button onClick={() => setBeginnerResult(null)} className="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0" style={{ background: `${s.color}20`, color: s.color }}>✕</button>
                       </div>
+                      <div className="text-[10px] mb-2 px-1" style={{ color: '#f59e0b' }}>
+                        ⚡ 평단가는 조회 시점 시세로 자동 입력됐어요. 실제 구매 단가가 다르면 직접 수정해주세요.
+                      </div>
                       {beginnerResult.suggestions.length > 0 && (
                         <div className="space-y-1.5">
                           {beginnerResult.suggestions.map((sg) => (
@@ -2100,8 +2103,8 @@ export default function AnalyzerPage() {
                 const sec = secs.find((s: Security) => s.ticker.toUpperCase() === sg.ticker.toUpperCase());
                 if (sec) {
                   const displayAmt = isUS(sec.ticker) ? Math.round(sg.amountKRW / rate * 100) / 100 : sg.amountKRW;
-                  // avgCost는 0으로 — 아직 구매 전이므로 사용자가 직접 입력해야 함
-                  newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sg.weight, amount: displayAmt, avgCost: 0 });
+                  // 정확한 티커가 매칭됐으므로 현재 시세를 평단가 기본값으로 사용
+                  newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sg.weight, amount: displayAmt, avgCost: sg.priceUSD ?? 0 });
                 }
               } catch { /* 검색 실패 시 무시 */ }
             }

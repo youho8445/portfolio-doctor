@@ -438,7 +438,7 @@ export default function BeginnerGuide({ onClose, onStart, accentHex = '#7c3aed',
                 </div>
                 <p className="text-[10px] mt-3 leading-relaxed" style={{ color: '#94a3b8' }}>
                   * 1달러 = {usdKrw.toLocaleString()}원 기준 · 실제 체결 단가와 다를 수 있어요<br/>
-                  * 종목 추가 후 실제 구매한 평단가를 직접 입력해주세요
+                  * 평단가는 현재 시세로 자동 입력돼요. 실제 구매가가 다르면 수정해주세요
                 </p>
               </div>
 

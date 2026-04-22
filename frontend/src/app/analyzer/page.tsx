@@ -2059,7 +2059,7 @@ export default function AnalyzerPage() {
                           }}
                             className="text-[10px] font-bold px-2 py-0.5 rounded-full transition-all hover:opacity-80"
                             style={{ background: accent.light, color: accent.hex, border: `1px solid ${accent.hex}30` }}
-                          >{item.ticker}</button>
+                          >{tickerNameMap[item.ticker] ?? item.ticker}</button>
                         ))}
                       </div>
                     )}
@@ -2093,7 +2093,7 @@ export default function AnalyzerPage() {
                         <div className="flex-1 min-w-0">
                           {item.ticker && (
                             <span className="inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mb-1 mr-1" style={{ background: accent.light, color: accent.hex }}>
-                              {item.ticker}
+                              {tickerNameMap[item.ticker] ?? item.ticker}
                             </span>
                           )}
                           <div className="text-xs font-medium leading-snug" style={{ color: '#374151' }}>

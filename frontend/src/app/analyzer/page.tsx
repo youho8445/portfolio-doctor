@@ -859,23 +859,35 @@ export default function AnalyzerPage() {
                     aggressive: { label: '성장형', emoji: '🚀', color: '#059669', bg: '#d1fae5' },
                   };
                   const s = styleMap[beginnerResult.style];
+                  const fmtAmt = (n: number) => n >= 1e4 ? `${Math.round(n / 1e4).toLocaleString()}만원` : `${n.toLocaleString()}원`;
                   return (
-                    <div className="rounded-2xl p-4 flex items-center justify-between gap-3" style={{ background: s.bg, border: `1.5px solid ${s.color}30` }}>
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{s.emoji}</span>
-                        <div>
-                          <div className="text-xs font-bold" style={{ color: s.color }}>{s.label} · 목표 비율</div>
-                          <div className="text-sm font-black mt-0.5" style={{ color: '#1c1c1e' }}>
-                            주식 {beginnerResult.stockRatio}% + 안전자산 {beginnerResult.safeRatio}%
+                    <div className="rounded-2xl p-4" style={{ background: s.bg, border: `1.5px solid ${s.color}30` }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">{s.emoji}</span>
+                          <div>
+                            <div className="text-xs font-bold" style={{ color: s.color }}>{s.label} · 추천 포트폴리오</div>
+                            <div className="text-sm font-black" style={{ color: '#1c1c1e' }}>주식 {beginnerResult.stockRatio}% + 안전자산 {beginnerResult.safeRatio}% · 총 {fmtAmt(beginnerResult.investAmount)}</div>
                           </div>
-                          <div className="text-[11px] mt-0.5" style={{ color: '#64748b' }}>아래에 종목을 추가하면서 이 비율을 맞춰보세요</div>
                         </div>
+                        <button onClick={() => setBeginnerResult(null)} className="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0" style={{ background: `${s.color}20`, color: s.color }}>✕</button>
                       </div>
-                      <button
-                        onClick={() => setBeginnerResult(null)}
-                        className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs"
-                        style={{ background: `${s.color}20`, color: s.color }}
-                      >✕</button>
+                      {beginnerResult.suggestions.length > 0 && (
+                        <div className="space-y-1.5">
+                          {beginnerResult.suggestions.map((sg) => (
+                            <div key={sg.ticker} className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.7)' }}>
+                              <div>
+                                <span className="font-black text-xs" style={{ color: '#1c1c1e' }}>{sg.ticker}</span>
+                                <span className="ml-1.5 text-[11px]" style={{ color: '#64748b' }}>{sg.name}</span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-xs font-bold" style={{ color: s.color }}>{fmtAmt(sg.amountKRW)}</div>
+                                {sg.suggestedShares != null && <div className="text-[10px]" style={{ color: '#94a3b8' }}>{sg.suggestedShares}주{sg.priceUSD ? ` · $${sg.priceUSD.toFixed(0)}/주` : ''}</div>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -2072,11 +2084,26 @@ export default function AnalyzerPage() {
         <BeginnerGuide
           accentHex={accent.hex}
           accentLight={accent.light}
+          usdKrw={usdKrw?.rate ?? 1400}
           onClose={() => setBeginnerGuideOpen(false)}
-          onStart={(result) => {
+          onStart={async (result) => {
             setBeginnerResult(result);
             setBeginnerGuideOpen(false);
             setActiveTab('input');
+            setInputMode('amount');
+            const rate = usdKrw?.rate ?? 1400;
+            const newItems: PortfolioInputItem[] = [];
+            for (const sg of result.suggestions) {
+              try {
+                const secs = await getSecurities(sg.ticker);
+                if (secs.length > 0) {
+                  const sec = secs[0];
+                  const displayAmt = isUS(sec.ticker) ? Math.round(sg.amountKRW / rate * 100) / 100 : sg.amountKRW;
+                  newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sg.weight, amount: displayAmt, avgCost: sg.priceUSD ?? 0 });
+                }
+              } catch { /* 검색 실패 시 무시 */ }
+            }
+            if (newItems.length > 0) setItems(newItems);
           }}
         />
       )}

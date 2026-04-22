@@ -391,6 +391,60 @@ export default function AnalyzerPage() {
     } catch { /* ignore */ } finally { setApplyingRebalance(false); }
   };
 
+  const [applyingAdjustment, setApplyingAdjustment] = useState(false);
+
+  const handleApplyAdjustment = async () => {
+    if (!analysis?.rebalanceResult || !currentPortfolioId) return;
+    const adjustAmt = Number(adjustInput.replace(/,/g, '')) || 0;
+    if (adjustAmt <= 0) return;
+    try {
+      setApplyingAdjustment(true);
+      const newTotal = adjustType === 'add' ? totalAmount + adjustAmt : Math.max(0, totalAmount - adjustAmt);
+      const suggested = analysis.rebalanceResult.suggestedPortfolio;
+      const rate = effectiveRate();
+
+      // 1. 기존 종목 금액 업데이트
+      const updatedItems: PortfolioInputItem[] = items.map((item) => {
+        const sug = suggested.find((s) => s.ticker === item.ticker);
+        if (!sug) return item;
+        const targetKRW = Math.round((sug.weight / 100) * newTotal);
+        const newAmt = isUS(item.ticker) ? Math.round(targetKRW / rate * 100) / 100 : targetKRW;
+        return { ...item, amount: newAmt };
+      });
+
+      // 2. 새 종목 추가 (현재 items에 없는 suggested 티커)
+      const existingTickers = new Set(items.map((i) => i.ticker));
+      for (const sug of suggested) {
+        if (existingTickers.has(sug.ticker)) continue;
+        try {
+          const secs = await getSecurities(sug.ticker);
+          const sec = secs.find((s: Security) => s.ticker.toUpperCase() === sug.ticker.toUpperCase());
+          if (sec) {
+            const targetKRW = Math.round((sug.weight / 100) * newTotal);
+            const displayAmt = isUS(sec.ticker) ? Math.round(targetKRW / rate * 100) / 100 : targetKRW;
+            updatedItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sug.weight, amount: displayAmt, avgCost: 0 });
+          }
+        } catch { /* 검색 실패 무시 */ }
+      }
+
+      // 3. 백엔드 저장
+      await clearPortfolioItems(currentPortfolioId);
+      for (const item of updatedItems) {
+        const storedAmt = toKRW(item);
+        await addPortfolioItem(currentPortfolioId, item.securityId, {
+          amount: storedAmt,
+          ...(Number(item.avgCost) > 0 ? { avgCost: Number(item.avgCost) } : {}),
+        });
+      }
+
+      setItems(updatedItems);
+      setInputMode('amount');
+      setAdjustInput('');
+      setAnalysis(null);
+      setActiveTab('input');
+    } catch { /* ignore */ } finally { setApplyingAdjustment(false); }
+  };
+
   const handleChangeMyPassword = async () => {
     if (!pwNew.trim() || pwNew !== pwConfirm) {
       setPwMsg({ type: 'error', text: '새 비밀번호와 확인이 일치하지 않습니다.' });
@@ -1578,9 +1632,17 @@ export default function AnalyzerPage() {
                                   </div>
                                 </div>
                               ))}
-                              <p className="text-[10px] mt-2 leading-relaxed" style={{ color: '#94a3b8' }}>
+                              <p className="text-[10px] mt-2 mb-3 leading-relaxed" style={{ color: '#94a3b8' }}>
                                 * 추천 비중을 기준으로 계산한 참고값입니다. 실제 매매 단가와 다를 수 있어요.
                               </p>
+                              <button
+                                onClick={handleApplyAdjustment}
+                                disabled={applyingAdjustment}
+                                className="w-full rounded-xl py-3 text-sm font-bold text-white disabled:opacity-50 transition-all"
+                                style={{ background: adjustType === 'add' ? '#10b981' : '#ef4444' }}
+                              >
+                                {applyingAdjustment ? '적용 중...' : adjustType === 'add' ? `+${fmtKRW(adjustAmt)}원 추가 투자 반영하기` : `-${fmtKRW(adjustAmt)}원 인출 반영하기`}
+                              </button>
                             </div>
                           )}
                         </div>

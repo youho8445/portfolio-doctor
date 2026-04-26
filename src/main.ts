@@ -1,3 +1,9 @@
+import { webcrypto } from 'node:crypto';
+// @nestjs/schedule v6 uses crypto.randomUUID() which is only global on Node 19+
+if (!globalThis.crypto) {
+  (globalThis as any).crypto = webcrypto;
+}
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';

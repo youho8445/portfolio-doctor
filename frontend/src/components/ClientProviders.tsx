@@ -7,13 +7,20 @@ import { AuthModal } from '@/components/AuthModal';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
+function Wrapper({ children }: { children: ReactNode }) {
+  if (GOOGLE_CLIENT_ID) {
+    return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
+  }
+  return <>{children}</>;
+}
+
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <Wrapper>
       <AuthProvider>
         {children}
         <AuthModal />
       </AuthProvider>
-    </GoogleOAuthProvider>
+    </Wrapper>
   );
 }

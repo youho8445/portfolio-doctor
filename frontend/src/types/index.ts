@@ -111,6 +111,20 @@ export type PortfolioHistory = {
   change: HistoryChange | null;
 };
 
+export type StateEvent = {
+  id: number;
+  userId: number;
+  portfolioId: number;
+  eventType: string;
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'critical' | 'opportunity';
+  metadataJson: string | null;
+  isRead: boolean;
+  detectedAt: string;
+  createdAt: string;
+};
+
 export type AnalysisResult = {
   portfolioId: number;
   portfolioName: string;

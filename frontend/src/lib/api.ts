@@ -230,6 +230,38 @@ export async function deleteAdminUser(userId: number): Promise<void> {
   if (!res.ok) throw new Error('Failed to delete user');
 }
 
+export async function getStateEvents(): Promise<import('../types').StateEvent[]> {
+  const res = await fetch(`${API_BASE_URL}/notifications`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function markEventRead(id: number): Promise<void> {
+  await fetch(`${API_BASE_URL}/notifications/${id}/read`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+}
+
+export async function markAllEventsRead(): Promise<void> {
+  await fetch(`${API_BASE_URL}/notifications/read-all`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+}
+
+export async function getPortfolioStateEvents(portfolioId: number): Promise<import('../types').StateEvent[]> {
+  const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/state-events`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

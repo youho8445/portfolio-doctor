@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { PortfoliosModule } from './portfolios/portfolios.module';
@@ -10,6 +11,7 @@ import { AnalysisModule } from './analysis/analysis.module';
 import { HistoryModule } from './history/history.module';
 import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 
 @Module({
   controllers: [AppController],
@@ -30,6 +32,7 @@ import { AdminModule } from './admin/admin.module';
         synchronize: true,
       }),
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     PortfoliosModule,
     SecuritiesModule,
@@ -38,6 +41,7 @@ import { AdminModule } from './admin/admin.module';
     HistoryModule,
     PaymentsModule,
     AdminModule,
+    MonitoringModule,
   ],
 })
 export class AppModule {}

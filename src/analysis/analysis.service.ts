@@ -12,6 +12,7 @@ import { computeRebalance } from './rebalance.engine';
 import { HistoryService } from '../history/history.service';
 import { PaymentsService } from '../payments/payments.service';
 import { AdminService } from '../admin/admin.service';
+import { MonitoringService } from '../monitoring/monitoring.service';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require('yahoo-finance2').default;
 const yf = new YahooFinance({ suppressNotices: ['ripHistorical'] });
@@ -34,6 +35,7 @@ export class AnalysisService {
     private readonly historyService: HistoryService,
     private readonly paymentsService: PaymentsService,
     private readonly adminService: AdminService,
+    private readonly monitoringService: MonitoringService,
   ) {}
 
   async analyzePortfolio(
@@ -262,6 +264,25 @@ export class AnalysisService {
         warnings,
         items: itemMetas.map((i) => ({ ...i, name: i.name ?? i.ticker })),
       });
+
+      const rebalanceImprovement = rebalanceResult
+        ? rebalanceResult.improvedScore - rebalanceResult.currentScore
+        : 0;
+      this.monitoringService.detectAfterAnalysis(portfolioId, userId, {
+        healthScore,
+        diversificationScore,
+        top3Concentration: Number(top3Concentration.toFixed(2)),
+        maxSectorWeight: Number(maxSectorWeight.toFixed(2)),
+        maxSectorName,
+        items: itemMetas.map((i) => ({
+          ticker: i.ticker,
+          name: i.name ?? i.ticker,
+          weight: i.weight,
+          assetType: i.assetType ?? 'STOCK',
+        })),
+      }, rebalanceImprovement).catch((err) =>
+        this.logger.warn(`Monitoring detection failed: ${err}`),
+      );
     }
 
     const history = userId > 0

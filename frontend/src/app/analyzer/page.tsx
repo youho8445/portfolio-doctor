@@ -22,6 +22,9 @@ import {
   getPortfolioItems,
   getPortfolios,
   getSecurities,
+  getStateEvents,
+  markAllEventsRead,
+  markEventRead,
   updatePortfolio,
 } from '@/lib/api';
 import {
@@ -34,6 +37,7 @@ import {
   SavedPortfolioItem,
   ScoreRule,
   Security,
+  StateEvent,
 } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -203,6 +207,8 @@ export default function AnalyzerPage() {
   const [tickerQuotes, setTickerQuotes] = useState<Record<string, QuoteMin>>({});
   const [adjustType, setAdjustType] = useState<'add' | 'withdraw'>('add');
   const [adjustInput, setAdjustInput] = useState('');
+  const [notifications, setNotifications] = useState<StateEvent[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const tickerNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -238,6 +244,7 @@ export default function AnalyzerPage() {
     loadSavedPortfolios();
     getDataFreshness().then((d) => setLastPriceDate(d.lastPriceDate)).catch(() => {});
     getExchangeRate().then((r) => setUsdKrw({ rate: r.rate, midRate: r.midRate })).catch(() => {});
+    getStateEvents().then((evts) => setNotifications(evts)).catch(() => {});
     setNewsLoading(true);
     fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
   }, [authLoading, isLoggedIn]);
@@ -505,6 +512,8 @@ export default function AnalyzerPage() {
       }
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
       setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
+      // refresh notifications after analysis (detection runs async server-side)
+      setTimeout(() => getStateEvents().then((evts) => setNotifications(evts)).catch(() => {}), 2000);
       fetchPersonalizedNews(items.map((i) => i.ticker), newsQuery);
       // fetch quote data for risk signals (non-blocking)
       const _token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') ?? '') : '';
@@ -845,9 +854,85 @@ export default function AnalyzerPage() {
                 </button>
               </div>
 
-              {/* 분석 결과 스탯 카드 */}
+              {/* 알림 벨 + 분석 결과 스탯 카드 */}
+              <div className="flex items-start gap-3 shrink-0 flex-wrap">
+
+              {/* 알림 벨 */}
+              {(() => {
+                const unread = notifications.filter((n) => !n.isRead).length;
+                const severityColor = (s: string) => s === 'critical' ? '#ef4444' : s === 'opportunity' ? '#10b981' : s === 'warning' ? '#f59e0b' : '#6b7280';
+                return (
+                  <div className="relative">
+                    <button
+                      onClick={() => setNotifOpen((o) => !o)}
+                      className="relative w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+                      style={{ background: notifOpen ? accent.light : '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}
+                      title="알림"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18, color: notifOpen ? accent.hex : '#64748b' }}>
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                      </svg>
+                      {unread > 0 && (
+                        <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full flex items-center justify-center text-[10px] font-black text-white" style={{ background: '#ef4444', minWidth: 18, height: 18, fontSize: 10 }}>
+                          {unread > 9 ? '9+' : unread}
+                        </span>
+                      )}
+                    </button>
+
+                    {notifOpen && (
+                      <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl shadow-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4' }}>
+                        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <span className="text-sm font-bold text-[#1c1c1e]">알림</span>
+                          {unread > 0 && (
+                            <button
+                              onClick={async () => { await markAllEventsRead(); setNotifications((n) => n.map((e) => ({ ...e, isRead: true }))); }}
+                              className="text-[11px] font-semibold"
+                              style={{ color: accent.hex }}
+                            >
+                              모두 읽음
+                            </button>
+                          )}
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {notifications.length === 0 ? (
+                            <div className="px-4 py-8 text-center">
+                              <div className="text-2xl mb-2">🔔</div>
+                              <div className="text-sm font-medium text-[#1c1c1e]">알림이 없어요</div>
+                              <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>포트폴리오 분석 후 변화가 감지되면 알려드릴게요</div>
+                            </div>
+                          ) : (
+                            notifications.slice(0, 15).map((n) => (
+                              <div
+                                key={n.id}
+                                className="px-4 py-3 cursor-pointer transition-all"
+                                style={{ background: n.isRead ? 'transparent' : `${severityColor(n.severity)}08`, borderBottom: '1px solid #f8fafc' }}
+                                onClick={async () => {
+                                  if (!n.isRead) {
+                                    await markEventRead(n.id).catch(() => {});
+                                    setNotifications((prev) => prev.map((e) => e.id === n.id ? { ...e, isRead: true } : e));
+                                  }
+                                }}
+                              >
+                                <div className="flex items-start gap-2.5">
+                                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.isRead ? '#e2e8f0' : severityColor(n.severity) }} />
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold text-[#1c1c1e] leading-snug">{n.title}</div>
+                                    <div className="text-[11px] mt-0.5 leading-snug" style={{ color: '#64748b' }}>{n.message}</div>
+                                    <div className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>{new Date(n.detectedAt).toLocaleDateString('ko-KR')}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {analysis && (
-                <div className="flex gap-3 shrink-0 flex-wrap">
+                <div className="flex gap-3 flex-wrap">
                   <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                     <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>건강 점수</div>
                     <div className="font-black" style={{ fontSize: 28, color: analysis.healthScore >= 80 ? '#059669' : analysis.healthScore >= 60 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
@@ -873,7 +958,8 @@ export default function AnalyzerPage() {
                   )}
                 </div>
               )}
-            </div>
+              </div>
+              </div>
 
             {/* 탭 (분석 결과가 있을 때) */}
             {analysis && (
@@ -1158,8 +1244,50 @@ export default function AnalyzerPage() {
               const scoreDelta = analysis.rebalanceResult ? analysis.rebalanceResult.improvedScore - analysis.rebalanceResult.currentScore : 0;
               const conclusion = analysis.rebalanceResult?.summary ?? (analysis.healthScore >= 80 ? '포트폴리오가 잘 분산되어 있습니다.' : '포트폴리오 개선이 필요합니다.');
 
+              const portfolioEvents = notifications.filter((n) => n.portfolioId === analysis.portfolioId).slice(0, 5);
+
               return (
                 <div className="space-y-5">
+
+                  {/* ── 최근 변화 알림 ── */}
+                  {portfolioEvents.length > 0 && (
+                    <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                      <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#94a3b8' }}>최근 변화</div>
+                      <div className="space-y-2.5">
+                        {portfolioEvents.map((evt) => {
+                          const iconMap: Record<string, string> = {
+                            SCORE_DROP: '📉', DIVERSIFICATION_DROP: '⚠️', OVERWEIGHT_ENTERED: '⚡',
+                            SECTOR_BIAS_ENTERED: '🔶', TOP3_CONCENTRATION_ENTERED: '🎯',
+                            REBALANCE_NEEDED: '🔧', OPPORTUNITY_AVAILABLE: '✨',
+                          };
+                          const colMap: Record<string, string> = {
+                            critical: '#ef4444', warning: '#f59e0b', opportunity: '#10b981', info: '#6b7280',
+                          };
+                          const col = colMap[evt.severity] ?? '#6b7280';
+                          return (
+                            <div
+                              key={evt.id}
+                              className="flex items-start gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all"
+                              style={{ background: evt.isRead ? '#f8fafc' : `${col}08`, border: `1px solid ${evt.isRead ? '#f1f5f9' : col + '30'}` }}
+                              onClick={async () => {
+                                if (!evt.isRead) {
+                                  await markEventRead(evt.id).catch(() => {});
+                                  setNotifications((prev) => prev.map((e) => e.id === evt.id ? { ...e, isRead: true } : e));
+                                }
+                              }}
+                            >
+                              <span className="text-base shrink-0 mt-0.5">{iconMap[evt.eventType] ?? '🔔'}</span>
+                              <div className="min-w-0">
+                                <div className="text-sm font-bold text-[#1c1c1e] leading-snug">{evt.title}</div>
+                                <div className="text-xs mt-0.5 leading-relaxed" style={{ color: '#64748b' }}>{evt.message}</div>
+                              </div>
+                              {!evt.isRead && <div className="w-2 h-2 rounded-full shrink-0 mt-1.5 ml-auto" style={{ background: col }} />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* ── Row 1: Health Score + Asset Allocation ── */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">

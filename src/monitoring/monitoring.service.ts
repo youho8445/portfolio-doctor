@@ -5,6 +5,7 @@ import { Repository, MoreThanOrEqual } from 'typeorm';
 import { PortfolioStateEvent } from '../entities/portfolio-state-event.entity';
 import { PortfolioSnapshot } from '../entities/portfolio-snapshot.entity';
 import { Portfolio } from '../entities/portfolio.entity';
+import { PushService } from '../push/push.service';
 import { detectStateChanges, SnapshotState } from './state-change-detector';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class MonitoringService {
     private readonly snapshotRepo: Repository<PortfolioSnapshot>,
     @InjectRepository(Portfolio)
     private readonly portfolioRepo: Repository<Portfolio>,
+    private readonly pushService: PushService,
   ) {}
 
   // Called immediately after a user-triggered analysis + snapshot save
@@ -154,6 +156,13 @@ export class MonitoringService {
       });
 
       await this.eventRepo.save(entity);
+
+      // Web Push 발송 (구독자가 없거나 VAPID 미설정이면 no-op)
+      this.pushService.sendToUser(userId, event.title, event.message, {
+        eventType: event.eventType,
+        portfolioId,
+        severity: event.severity,
+      }).catch((err) => this.logger.warn(`Push send failed: ${err}`));
     }
   }
 }

@@ -23,8 +23,10 @@ import {
   getPortfolios,
   getSecurities,
   getStateEvents,
+  getVapidPublicKey,
   markAllEventsRead,
   markEventRead,
+  registerPushSubscription,
   updatePortfolio,
 } from '@/lib/api';
 import {
@@ -209,6 +211,8 @@ export default function AnalyzerPage() {
   const [adjustInput, setAdjustInput] = useState('');
   const [notifications, setNotifications] = useState<StateEvent[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   const tickerNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -245,6 +249,15 @@ export default function AnalyzerPage() {
     getDataFreshness().then((d) => setLastPriceDate(d.lastPriceDate)).catch(() => {});
     getExchangeRate().then((r) => setUsdKrw({ rate: r.rate, midRate: r.midRate })).catch(() => {});
     getStateEvents().then((evts) => setNotifications(evts)).catch(() => {});
+
+    // Service Worker 등록 + 기존 구독 여부 확인
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register('/sw.js').then(async (reg) => {
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) setPushEnabled(true);
+      }).catch(() => {});
+    }
+
     setNewsLoading(true);
     fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
   }, [authLoading, isLoggedIn]);
@@ -465,6 +478,31 @@ export default function AnalyzerPage() {
     } catch (e: any) {
       setPwMsg({ type: 'error', text: e.message || '변경에 실패했습니다.' });
     } finally { setPwSaving(false); }
+  };
+
+  const handleEnablePush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+      setPushLoading(true);
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return;
+
+      const reg = await navigator.serviceWorker.ready;
+      const vapidKey = await getVapidPublicKey();
+      if (!vapidKey) return;
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey,
+      });
+
+      await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
+      setPushEnabled(true);
+    } catch (err) {
+      console.error('Push subscription failed', err);
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   const handleSearch = async () => {
@@ -925,6 +963,25 @@ export default function AnalyzerPage() {
                             ))
                           )}
                         </div>
+                        {/* 푸시 알림 토글 */}
+                        {'Notification' in window && (
+                          <div className="px-4 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                            {pushEnabled ? (
+                              <div className="flex items-center gap-2 text-xs" style={{ color: '#10b981' }}>
+                                <span>●</span> 브라우저 알림 켜짐
+                              </div>
+                            ) : (
+                              <button
+                                onClick={handleEnablePush}
+                                disabled={pushLoading}
+                                className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
+                                style={{ background: accent.light, color: accent.hex }}
+                              >
+                                {pushLoading ? '요청 중...' : '🔔 브라우저 알림 켜기'}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

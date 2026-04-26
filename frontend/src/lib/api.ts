@@ -262,6 +262,34 @@ export async function getPortfolioStateEvents(portfolioId: number): Promise<impo
   return res.json();
 }
 
+export async function getVapidPublicKey(): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/push/vapid-public-key`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) return '';
+  const data = await res.json();
+  return data.key ?? '';
+}
+
+export async function registerPushSubscription(sub: PushSubscriptionJSON): Promise<void> {
+  await fetch(`${API_BASE_URL}/push/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({
+      endpoint: sub.endpoint,
+      keys: sub.keys,
+    }),
+  });
+}
+
+export async function unregisterPushSubscription(endpoint: string): Promise<void> {
+  await fetch(`${API_BASE_URL}/push/unsubscribe`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ endpoint }),
+  });
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

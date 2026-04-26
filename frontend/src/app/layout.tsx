@@ -1,6 +1,6 @@
 import { DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { ClientProviders } from "@/components/ClientProviders";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -36,7 +36,7 @@ export default function RootLayout({
       className={`${dmSans.variable} ${dmMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>{children}</AuthProvider>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

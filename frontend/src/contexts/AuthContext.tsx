@@ -1,8 +1,14 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 
-type AuthUser = { id: number; email: string; name: string; trialEndsAt?: string | null };
+export type AuthUser = {
+  id: number;
+  email: string | null;
+  name: string | null;
+  phoneNumber?: string | null;
+  trialEndsAt?: string | null;
+};
 
 type AuthContextType = {
   user: AuthUser | null;
@@ -11,6 +17,9 @@ type AuthContextType = {
   logout: () => void;
   isLoggedIn: boolean;
   isLoading: boolean;
+  isModalOpen: boolean;
+  openModal: () => void;
+  closeModal: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -19,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('auth_token');
@@ -26,38 +36,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (stored && storedUser) {
       setToken(stored);
       setUser(JSON.parse(storedUser));
-      // /auth/me로 최신 유저 정보(trialEndsAt 포함) 갱신
       fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${stored}` },
       })
         .then((r) => r.ok ? r.json() : null)
-        .then((u) => {
-          if (u) {
-            setUser(u);
-            localStorage.setItem('auth_user', JSON.stringify(u));
-          }
-        })
+        .then((u) => { if (u) { setUser(u); localStorage.setItem('auth_user', JSON.stringify(u)); } })
         .catch(() => {});
     }
     setIsLoading(false);
   }, []);
 
-  function login(t: string, u: AuthUser) {
+  const login = useCallback((t: string, u: AuthUser) => {
     localStorage.setItem('auth_token', t);
     localStorage.setItem('auth_user', JSON.stringify(u));
     setToken(t);
     setUser(u);
-  }
+    setIsModalOpen(false);
+  }, []);
 
-  function logout() {
+  const logout = useCallback(() => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     setToken(null);
     setUser(null);
-  }
+  }, []);
+
+  const openModal = useCallback(() => setIsModalOpen(true), []);
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoggedIn: !!token, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoggedIn: !!token, isLoading, isModalOpen, openModal, closeModal }}>
       {children}
     </AuthContext.Provider>
   );

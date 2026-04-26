@@ -25,7 +25,7 @@ export class AdminService {
     await this.settingRepo.upsert({ key: 'billing_mode', value: mode }, ['key']);
   }
 
-  async getUsers(): Promise<{ id: number; email: string; name: string; createdAt: Date }[]> {
+  async getUsers(): Promise<{ id: number; email: string | null; name: string | null; createdAt: Date }[]> {
     const users = await this.userRepo.find({ order: { createdAt: 'DESC' } });
     return users.map((u) => ({ id: u.id, email: u.email, name: u.name, createdAt: u.createdAt }));
   }
@@ -33,7 +33,7 @@ export class AdminService {
   async changeUserPassword(userId: number, newPassword: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
-    user.password = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
     await this.userRepo.save(user);
   }
 

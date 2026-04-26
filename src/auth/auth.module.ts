@@ -5,13 +5,15 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { UserConsent } from '../entities/user-consent.entity';
+import { PhoneVerification } from '../entities/phone-verification.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { MockSmsProvider } from './sms/mock-sms.provider';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserConsent]),
+    TypeOrmModule.forFeature([User, UserConsent, PhoneVerification]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -23,7 +25,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [JwtModule],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    { provide: 'SMS_PROVIDER', useClass: MockSmsProvider },
+  ],
+  exports: [JwtModule, AuthService],
 })
 export class AuthModule {}

@@ -6,10 +6,10 @@ export class PhoneVerification {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 30 })
+  @Column({ type: 'varchar', length: 30 })
   phoneNumber: string;
 
-  @Column({ length: 200 })
+  @Column({ type: 'varchar', length: 200 })
   codeHash: string;
 
   @Column({ type: 'datetime' })

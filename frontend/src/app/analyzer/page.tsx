@@ -2199,6 +2199,13 @@ export default function AnalyzerPage() {
                     </div>
                   )}
 
+                  {/* 투자 유의사항 고지 */}
+                  <div className="rounded-2xl px-5 py-4" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)' }}>
+                    <p className="text-xs leading-relaxed" style={{ color: '#92807a' }}>
+                      <span className="font-semibold" style={{ color: '#b45309' }}>투자 유의사항</span>　본 분석은 투자 판단을 돕기 위한 참고 정보이며, 특정 종목의 매수·매도 추천이나 수익 보장을 의미하지 않습니다. 최종 투자 판단은 사용자 본인의 책임입니다.
+                    </p>
+                  </div>
+
                 </div>
               );
             })()}

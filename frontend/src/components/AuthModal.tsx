@@ -326,7 +326,8 @@ export function AuthModal() {
 
   // ── Shared styles ──────────────────────────────────────────────────────
   const overlay = { background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' };
-  const card = { background: '#ffffff', borderRadius: 20, width: '100%', maxWidth: 400, padding: '32px 28px', boxShadow: '0 24px 80px rgba(0,0,0,0.22)' };
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 480;
+  const card = { background: '#ffffff', borderRadius: 20, width: '100%', maxWidth: 400, padding: isMobile ? '24px 18px' : '32px 28px', boxShadow: '0 24px 80px rgba(0,0,0,0.22)' };
   const btn = (accent = false): React.CSSProperties => ({
     width: '100%', borderRadius: 12, padding: '13px 0', fontSize: 14, fontWeight: 600,
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, cursor: 'pointer', transition: 'opacity 0.15s',

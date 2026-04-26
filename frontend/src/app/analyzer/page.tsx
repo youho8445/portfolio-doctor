@@ -646,6 +646,85 @@ export default function AnalyzerPage() {
     return { text: '위험', color: '#ef4444' };
   };
 
+  // ── 알림 드롭다운 내용 (모바일/데스크탑 공유) ────────────────────────────
+  const severityColor = (s: string) => s === 'critical' ? '#ef4444' : s === 'opportunity' ? '#10b981' : s === 'warning' ? '#f59e0b' : '#6b7280';
+  const renderNotifDropdown = () => {
+    const unread = notifications.filter((n) => !n.isRead).length;
+    return (
+      <>
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
+          <span className="text-sm font-bold text-[#1c1c1e]">알림</span>
+          {unread > 0 && (
+            <button
+              onClick={async () => { await markAllEventsRead(); setNotifications((n) => n.map((e) => ({ ...e, isRead: true }))); }}
+              className="text-[11px] font-semibold"
+              style={{ color: accent.hex }}
+            >
+              모두 읽음
+            </button>
+          )}
+        </div>
+        <div className="max-h-80 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <div className="text-2xl mb-2">🔔</div>
+              <div className="text-sm font-medium text-[#1c1c1e]">알림이 없어요</div>
+              <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>포트폴리오 분석 후 변화가 감지되면 알려드릴게요</div>
+            </div>
+          ) : (
+            notifications.slice(0, 15).map((n) => (
+              <div
+                key={n.id}
+                className="px-4 py-3 cursor-pointer transition-all"
+                style={{ background: n.isRead ? 'transparent' : `${severityColor(n.severity)}08`, borderBottom: '1px solid #f8fafc' }}
+                onClick={async () => {
+                  if (!n.isRead) {
+                    await markEventRead(n.id).catch(() => {});
+                    setNotifications((prev) => prev.map((e) => e.id === n.id ? { ...e, isRead: true } : e));
+                  }
+                  setNotifOpen(false);
+                }}
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.isRead ? '#e2e8f0' : severityColor(n.severity) }} />
+                  <div className="min-w-0">
+                    {(() => {
+                      const pName = savedPortfolios.find((p) => p.id === n.portfolioId)?.name;
+                      return pName ? (
+                        <div className="text-[10px] font-semibold mb-0.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: accent.light, color: accent.hex }}>{pName}</div>
+                      ) : null;
+                    })()}
+                    <div className="text-xs font-bold text-[#1c1c1e] leading-snug">{n.title}</div>
+                    <div className="text-[11px] mt-0.5 leading-snug" style={{ color: '#64748b' }}>{n.message}</div>
+                    <div className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>{new Date(n.detectedAt).toLocaleDateString('ko-KR')}</div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {typeof window !== 'undefined' && 'Notification' in window && (
+          <div className="px-4 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+            {pushEnabled ? (
+              <div className="flex items-center gap-2 text-xs" style={{ color: '#10b981' }}>
+                <span>●</span> 브라우저 알림 켜짐
+              </div>
+            ) : (
+              <button
+                onClick={handleEnablePush}
+                disabled={pushLoading}
+                className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
+                style={{ background: accent.light, color: accent.hex }}
+              >
+                {pushLoading ? '요청 중...' : '🔔 브라우저 알림 켜기'}
+              </button>
+            )}
+          </div>
+        )}
+      </>
+    );
+  };
+
   // ── 사이드바 내용 (공통) ──────────────────────────────────────────────────
   const SidebarContent = () => (
     <>
@@ -880,37 +959,66 @@ export default function AnalyzerPage() {
               </svg>
             </button>
             <span className="font-bold text-sm" style={{ color: "#1c1c1e" }}>Portfolio Doctor</span>
-            <button onClick={() => { logout(); openModal(); }} style={{ color: '#94a3b8' }}>
-              <IconLogOut className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* 모바일 알림 벨 */}
+              {(() => {
+                const unread = notifications.filter((n) => !n.isRead).length;
+                return (
+                  <div className="relative">
+                    <button
+                      onClick={() => setNotifOpen((o) => !o)}
+                      className="relative w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ color: '#64748b' }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                      </svg>
+                      {unread > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 rounded-full flex items-center justify-center font-black text-white" style={{ background: '#ef4444', minWidth: 16, height: 16, fontSize: 9 }}>
+                          {unread > 9 ? '9+' : unread}
+                        </span>
+                      )}
+                    </button>
+                    {notifOpen && (
+                      <div className="fixed z-50 rounded-2xl shadow-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', top: 56, left: 16, right: 16 }}>
+                        {/* 드롭다운 내용은 아래 데스크탑 버전과 공유 */}
+                        {renderNotifDropdown()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              <button onClick={() => { logout(); openModal(); }} style={{ color: '#94a3b8' }}>
+                <IconLogOut className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+              </button>
+            </div>
           </header>
 
           {/* ── 페이지 헤더 ── */}
-          <div className="px-6 lg:px-10 pt-8 pb-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="px-4 lg:px-10 pt-4 lg:pt-8 pb-4 lg:pb-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
               <div>
-                <h1 className="font-black" style={{ fontSize: 34, letterSpacing: '-1px', lineHeight: 1.1, color: '#1c1c1e' }}>
+                <h1 className="hidden lg:block font-black" style={{ fontSize: 34, letterSpacing: '-1px', lineHeight: 1.1, color: '#1c1c1e' }}>
                   Portfolio Doctor
                 </h1>
-                <p className="text-sm mt-1.5" style={{ color: '#94a3b8' }}>
+                <p className="hidden lg:block text-sm mt-1.5" style={{ color: '#94a3b8' }}>
                   포트폴리오의 건강 상태를 진단하고 최적화 전략을 제안합니다
                 </p>
                 <button
                   onClick={() => setBeginnerGuideOpen(true)}
-                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
                   style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}
                 >
                   <span>🌱</span> 주식이 처음이신가요? 투자 성향 테스트
                 </button>
               </div>
 
-              {/* 알림 벨 + 분석 결과 스탯 카드 */}
-              <div className="flex items-start gap-3 shrink-0 flex-wrap">
+              {/* 데스크탑: 알림 벨 + 분석 결과 스탯 카드 */}
+              <div className="hidden lg:flex items-start gap-3 shrink-0 flex-wrap">
 
-              {/* 알림 벨 */}
+              {/* 데스크탑 알림 벨 */}
               {(() => {
                 const unread = notifications.filter((n) => !n.isRead).length;
-                const severityColor = (s: string) => s === 'critical' ? '#ef4444' : s === 'opportunity' ? '#10b981' : s === 'warning' ? '#f59e0b' : '#6b7280';
                 return (
                   <div className="relative">
                     <button
@@ -923,83 +1031,14 @@ export default function AnalyzerPage() {
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                       </svg>
                       {unread > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full flex items-center justify-center text-[10px] font-black text-white" style={{ background: '#ef4444', minWidth: 18, height: 18, fontSize: 10 }}>
+                        <span className="absolute -top-1 -right-1 rounded-full flex items-center justify-center font-black text-white" style={{ background: '#ef4444', minWidth: 18, height: 18, fontSize: 10 }}>
                           {unread > 9 ? '9+' : unread}
                         </span>
                       )}
                     </button>
-
                     {notifOpen && (
                       <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl shadow-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4' }}>
-                        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <span className="text-sm font-bold text-[#1c1c1e]">알림</span>
-                          {unread > 0 && (
-                            <button
-                              onClick={async () => { await markAllEventsRead(); setNotifications((n) => n.map((e) => ({ ...e, isRead: true }))); }}
-                              className="text-[11px] font-semibold"
-                              style={{ color: accent.hex }}
-                            >
-                              모두 읽음
-                            </button>
-                          )}
-                        </div>
-                        <div className="max-h-96 overflow-y-auto">
-                          {notifications.length === 0 ? (
-                            <div className="px-4 py-8 text-center">
-                              <div className="text-2xl mb-2">🔔</div>
-                              <div className="text-sm font-medium text-[#1c1c1e]">알림이 없어요</div>
-                              <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>포트폴리오 분석 후 변화가 감지되면 알려드릴게요</div>
-                            </div>
-                          ) : (
-                            notifications.slice(0, 15).map((n) => (
-                              <div
-                                key={n.id}
-                                className="px-4 py-3 cursor-pointer transition-all"
-                                style={{ background: n.isRead ? 'transparent' : `${severityColor(n.severity)}08`, borderBottom: '1px solid #f8fafc' }}
-                                onClick={async () => {
-                                  if (!n.isRead) {
-                                    await markEventRead(n.id).catch(() => {});
-                                    setNotifications((prev) => prev.map((e) => e.id === n.id ? { ...e, isRead: true } : e));
-                                  }
-                                }}
-                              >
-                                <div className="flex items-start gap-2.5">
-                                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.isRead ? '#e2e8f0' : severityColor(n.severity) }} />
-                                  <div className="min-w-0">
-                                    {(() => {
-                                      const pName = savedPortfolios.find((p) => p.id === n.portfolioId)?.name;
-                                      return pName ? (
-                                        <div className="text-[10px] font-semibold mb-0.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: accent.light, color: accent.hex }}>{pName}</div>
-                                      ) : null;
-                                    })()}
-                                    <div className="text-xs font-bold text-[#1c1c1e] leading-snug">{n.title}</div>
-                                    <div className="text-[11px] mt-0.5 leading-snug" style={{ color: '#64748b' }}>{n.message}</div>
-                                    <div className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>{new Date(n.detectedAt).toLocaleDateString('ko-KR')}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                        {/* 푸시 알림 토글 */}
-                        {'Notification' in window && (
-                          <div className="px-4 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
-                            {pushEnabled ? (
-                              <div className="flex items-center gap-2 text-xs" style={{ color: '#10b981' }}>
-                                <span>●</span> 브라우저 알림 켜짐
-                              </div>
-                            ) : (
-                              <button
-                                onClick={handleEnablePush}
-                                disabled={pushLoading}
-                                className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
-                                style={{ background: accent.light, color: accent.hex }}
-                              >
-                                {pushLoading ? '요청 중...' : '🔔 브라우저 알림 켜기'}
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        {renderNotifDropdown()}
                       </div>
                     )}
                   </div>
@@ -1034,6 +1073,32 @@ export default function AnalyzerPage() {
                 </div>
               )}
               </div>
+
+              {/* 모바일: 분석 결과 스탯 카드 */}
+              {analysis && (
+                <div className="flex lg:hidden gap-2 flex-wrap">
+                  <div className="rounded-xl px-4 py-2.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                    <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>건강 점수</div>
+                    <div className="font-black" style={{ fontSize: 22, color: analysis.healthScore >= 80 ? '#059669' : analysis.healthScore >= 60 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
+                      {analysis.healthScore}
+                    </div>
+                  </div>
+                  <div className="rounded-xl px-4 py-2.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                    <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>분산도</div>
+                    <div className="font-black" style={{ fontSize: 22, color: '#10b981', lineHeight: 1 }}>
+                      {analysis.diversificationScore}
+                    </div>
+                  </div>
+                  {analysis.isTrial && analysis.trialEndsAt && (
+                    <div className="rounded-xl px-4 py-2.5 text-right" style={{ background: accent.light, border: `1px solid ${accent.hex}40` }}>
+                      <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: accent.hex }}>무료 체험</div>
+                      <div className="font-black" style={{ fontSize: 18, lineHeight: 1, color: '#1c1c1e' }}>
+                        D-{Math.max(0, Math.ceil((new Date(analysis.trialEndsAt).getTime() - Date.now()) / 86400000))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               </div>
 
             {/* 탭 (분석 결과가 있을 때) */}
@@ -1057,7 +1122,7 @@ export default function AnalyzerPage() {
           </div>
 
           {/* ── 콘텐츠 ── */}
-          <div className="flex-1 px-6 lg:px-10 py-6 flex gap-6 items-start">
+          <div className="flex-1 px-4 lg:px-10 py-4 lg:py-6 flex gap-6 items-start">
 
             {/* ── 메인 콘텐츠 (탭) ── */}
             <div className="flex-1 min-w-0">

@@ -321,10 +321,12 @@ export default function AnalyzerPage() {
       const capturedTotalAmount = totalAmount; // already in KRW (US converted by effectiveRate)
       const hasAmounts = capturedTotalAmount > 0;
 
-      // ── 1. 기존 포트폴리오 백업 복사본 생성 ──
-      const today = new Date();
-      const dateStr = `${today.getMonth() + 1}.${today.getDate()}`;
-      const backupName = `${portfolioName} (원본 ${dateStr})`;
+      // ── 1. 기존 포트폴리오 백업 복사본 생성 (Before #1, #2... 순번) ──
+      const existingBackupNums = savedPortfolios
+        .map((p) => { const m = p.name.match(/^(.+) · Before #(\d+)$/); return (m && m[1] === portfolioName) ? Number(m[2]) : 0; })
+        .filter((n) => n > 0);
+      const nextNum = existingBackupNums.length === 0 ? 1 : Math.max(...existingBackupNums) + 1;
+      const backupName = `${portfolioName} · Before #${nextNum}`;
       const backup = await createPortfolio(backupName);
       const weightSum = items.reduce((s, i) => s + getItemWeight(i), 0);
       for (const item of items) {
@@ -533,14 +535,24 @@ export default function AnalyzerPage() {
       } else {
         if (Math.round(totalWeight * 100) / 100 !== 100) { setError(`비중 합계가 100%여야 합니다. (현재: ${totalWeight.toFixed(1)}%)`); return; }
       }
+      // 중복 이름 체크
+      const trimmedName = portfolioName.trim();
+      const duplicate = savedPortfolios.find(
+        (p) => p.name.trim() === trimmedName && p.id !== currentPortfolioId,
+      );
+      if (duplicate) {
+        setError(`"${trimmedName}" 이름의 포트폴리오가 이미 있어요. 다른 이름을 사용해주세요.`);
+        return;
+      }
+
       setLoadingAnalyze(true);
       let portfolioId: number;
       if (currentPortfolioId) {
         await clearPortfolioItems(currentPortfolioId);
-        await updatePortfolio(currentPortfolioId, portfolioName);
+        await updatePortfolio(currentPortfolioId, trimmedName);
         portfolioId = currentPortfolioId;
       } else {
-        portfolioId = (await createPortfolio(portfolioName)).id;
+        portfolioId = (await createPortfolio(trimmedName)).id;
       }
       for (const item of items) {
         const avgCost = Number(item.avgCost) > 0 ? Number(item.avgCost) : undefined;
@@ -954,6 +966,12 @@ export default function AnalyzerPage() {
                                 <div className="flex items-start gap-2.5">
                                   <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.isRead ? '#e2e8f0' : severityColor(n.severity) }} />
                                   <div className="min-w-0">
+                                    {(() => {
+                                      const pName = savedPortfolios.find((p) => p.id === n.portfolioId)?.name;
+                                      return pName ? (
+                                        <div className="text-[10px] font-semibold mb-0.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: accent.light, color: accent.hex }}>{pName}</div>
+                                      ) : null;
+                                    })()}
                                     <div className="text-xs font-bold text-[#1c1c1e] leading-snug">{n.title}</div>
                                     <div className="text-[11px] mt-0.5 leading-snug" style={{ color: '#64748b' }}>{n.message}</div>
                                     <div className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>{new Date(n.detectedAt).toLocaleDateString('ko-KR')}</div>

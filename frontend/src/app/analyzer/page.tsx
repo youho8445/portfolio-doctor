@@ -236,7 +236,7 @@ export default function AnalyzerPage() {
     return { text: '우수', color: '#10b981' };
   };
 
-  const formatAmount = (n: number) => n > 0 ? n.toLocaleString('ko-KR') : '';
+  const formatAmount = (n: number) => n > 0 ? Math.round(n).toLocaleString('ko-KR') : '';
 
   const loadSavedPortfolios = async () => {
     try { setSavedPortfolios(await getPortfolios()); } catch { /* ignore */ }
@@ -294,7 +294,7 @@ export default function AnalyzerPage() {
 
   const isUS = (ticker: string) => !ticker.endsWith('.KS') && !ticker.endsWith('.KQ');
   const effectiveRate = () => customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
-  const toKRW = (item: PortfolioInputItem) => isUS(item.ticker) ? Number(item.amount || 0) * effectiveRate() : Number(item.amount || 0);
+  const toKRW = (item: PortfolioInputItem) => isUS(item.ticker) ? Math.round(Number(item.amount || 0) * effectiveRate()) : Number(item.amount || 0);
 
   const totalAmount = useMemo(() => {
     const rate = customUsdKrw ? Number(customUsdKrw) : (usdKrw?.rate ?? 1400);
@@ -397,7 +397,7 @@ export default function AnalyzerPage() {
       setInputMode(hasAmounts ? 'amount' : 'weight');
       await clearPortfolioItems(currentPortfolioId);
       for (const item of newItems) {
-        const storedAmt = isUS(item.ticker) ? item.amount * effectiveRate() : item.amount;
+        const storedAmt = isUS(item.ticker) ? Math.round(item.amount * effectiveRate()) : item.amount;
         const opts = hasAmounts
           ? { amount: storedAmt, ...(Number(item.avgCost) > 0 ? { avgCost: Number(item.avgCost) } : {}) }
           : { weight: item.weight };

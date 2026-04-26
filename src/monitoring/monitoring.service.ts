@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { PortfolioStateEvent } from '../entities/portfolio-state-event.entity';
 import { PortfolioSnapshot } from '../entities/portfolio-snapshot.entity';

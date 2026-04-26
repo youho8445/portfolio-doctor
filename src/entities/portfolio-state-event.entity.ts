@@ -32,7 +32,7 @@ export class PortfolioStateEvent {
   @Column({ default: false })
   isRead: boolean;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'datetime' })
   detectedAt: Date;
 
   @CreateDateColumn()

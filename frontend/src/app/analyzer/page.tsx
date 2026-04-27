@@ -1136,9 +1136,10 @@ export default function AnalyzerPage() {
                   const styleMap = {
                     conservative: { label: '안정형', emoji: '🛡️', color: '#0284c7', bg: '#e0f2fe' },
                     balanced: { label: '균형형', emoji: '⚖️', color: '#7c3aed', bg: '#ede9fe' },
-                    aggressive: { label: '성장형', emoji: '🚀', color: '#059669', bg: '#d1fae5' },
+                    growth:       { label: '성장형', emoji: '🌱', color: '#0891b2', bg: '#e0f9ff' },
+                    aggressive:   { label: '공격형', emoji: '🚀', color: '#059669', bg: '#d1fae5' },
                   };
-                  const s = styleMap[beginnerResult.style];
+                  const s = styleMap[beginnerResult.style] ?? styleMap.balanced;
                   const fmtAmt = (n: number) => n >= 1e4 ? `${Math.round(n / 1e4).toLocaleString()}만원` : `${n.toLocaleString()}원`;
                   return (
                     <div className="rounded-2xl p-4" style={{ background: s.bg, border: `1.5px solid ${s.color}30` }}>
@@ -1151,6 +1152,11 @@ export default function AnalyzerPage() {
                           </div>
                         </div>
                         <button onClick={() => setBeginnerResult(null)} className="w-6 h-6 rounded-full flex items-center justify-center text-xs shrink-0" style={{ background: `${s.color}20`, color: s.color }}>✕</button>
+                      </div>
+                      {/* 예산 요약 */}
+                      <div className="flex gap-2 mb-2 text-[11px]">
+                        <span className="rounded-lg px-2 py-1 font-bold" style={{ background: `${s.color}18`, color: s.color }}>사용 {fmtAmt(beginnerResult.usedAmount)}</span>
+                        <span className="rounded-lg px-2 py-1 font-bold" style={{ background: '#f1f5f9', color: '#64748b' }}>잔액 {fmtAmt(beginnerResult.remainingCash)}</span>
                       </div>
                       <div className="text-[10px] mb-2 px-1" style={{ color: '#f59e0b' }}>
                         ⚡ 평단가는 조회 시점 시세로 자동 입력됐어요. 실제 구매 단가가 다르면 직접 수정해주세요.
@@ -1165,9 +1171,39 @@ export default function AnalyzerPage() {
                               </div>
                               <div className="text-right">
                                 <div className="text-xs font-bold" style={{ color: s.color }}>{fmtAmt(sg.amountKRW)}</div>
-                                {sg.suggestedShares != null && <div className="text-[10px]" style={{ color: '#94a3b8' }}>{sg.suggestedShares}주{sg.priceUSD ? ` · $${sg.priceUSD.toFixed(0)}/주` : ''}</div>}
+                                {sg.suggestedShares != null && (
+                                  <div className="text-[10px]" style={{ color: '#94a3b8' }}>
+                                    {sg.suggestedShares}주
+                                    {sg.priceKRW ? ` · ${fmtAmt(sg.priceKRW)}/주` : sg.priceUSD ? ` · $${sg.priceUSD.toFixed(0)}/주` : ''}
+                                  </div>
+                                )}
                               </div>
                             </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* 살 수 없는 종목 */}
+                      {beginnerResult.unaffordable.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          <div className="text-[10px] font-bold px-1" style={{ color: '#ef4444' }}>예산 부족 종목</div>
+                          {beginnerResult.unaffordable.map((sg) => (
+                            <div key={sg.ticker} className="flex items-center justify-between rounded-xl px-3 py-2 opacity-60" style={{ background: 'rgba(239,68,68,0.07)', border: '1px dashed #ef444440' }}>
+                              <div>
+                                <span className="font-black text-xs" style={{ color: '#1c1c1e' }}>{sg.ticker}</span>
+                                <span className="ml-1.5 text-[11px]" style={{ color: '#64748b' }}>{sg.name}</span>
+                              </div>
+                              <div className="text-[10px]" style={{ color: '#ef4444' }}>
+                                {sg.priceKRW ? fmtAmt(sg.priceKRW) : sg.priceUSD ? `$${sg.priceUSD.toFixed(0)}` : ''}/주
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* 경고 */}
+                      {beginnerResult.warnings.length > 0 && (
+                        <div className="mt-2 rounded-xl px-3 py-2" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                          {beginnerResult.warnings.map((w, i) => (
+                            <div key={i} className="text-[11px]" style={{ color: '#92400e' }}>⚠ {w}</div>
                           ))}
                         </div>
                       )}
@@ -2445,7 +2481,8 @@ export default function AnalyzerPage() {
                 if (sec) {
                   const displayAmt = isUS(sec.ticker) ? Math.round(sg.amountKRW / rate * 100) / 100 : sg.amountKRW;
                   // 정확한 티커가 매칭됐으므로 현재 시세를 평단가 기본값으로 사용
-                  newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sg.weight, amount: displayAmt, avgCost: sg.priceUSD ?? 0 });
+                  const avgCost = isUS(sec.ticker) ? (sg.priceUSD ?? 0) : (sg.priceKRW ?? 0);
+                  newItems.push({ securityId: sec.id, ticker: sec.ticker, name: sec.name, displayNameKo: sec.displayNameKo, weight: sg.weight, amount: displayAmt, avgCost });
                 }
               } catch { /* 검색 실패 시 무시 */ }
             }

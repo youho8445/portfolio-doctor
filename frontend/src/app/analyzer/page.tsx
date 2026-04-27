@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 const TickerModal = dynamic(() => import('@/components/TickerModal'), { ssr: false });
 const BeginnerGuide = dynamic(() => import('@/components/BeginnerGuide'), { ssr: false });
 import type { BeginnerResult } from '@/components/BeginnerGuide';
+import { PortflowLogo } from '@/components/PortflowLogo';
 import { buildRiskTags, buildRiskExplanation } from '@/lib/riskSignal';
 import type { QuoteMin } from '@/lib/riskSignal';
 import {
@@ -729,13 +730,8 @@ export default function AnalyzerPage() {
   const SidebarContent = () => (
     <>
       {/* 로고 */}
-      <div className="px-5 py-5" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: accent.hex }}>
-            <IconBarChart className="w-4 h-4 text-[#1c1c1e]" />
-          </div>
-          <span className="font-bold text-sm" style={{ color: '#1c1c1e' }}>Portfolio Doctor</span>
-        </div>
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+        <PortflowLogo height={30} />
       </div>
 
       {/* 포트폴리오 목록 */}
@@ -958,7 +954,7 @@ export default function AnalyzerPage() {
                 <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
             </button>
-            <span className="font-bold text-sm" style={{ color: "#1c1c1e" }}>Portfolio Doctor</span>
+            <PortflowLogo height={26} />
             <div className="flex items-center gap-2">
               {/* 모바일 알림 벨 */}
               {(() => {
@@ -998,8 +994,8 @@ export default function AnalyzerPage() {
           <div className="px-4 lg:px-10 pt-4 lg:pt-8 pb-4 lg:pb-6" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
               <div>
-                <h1 className="hidden lg:block font-black" style={{ fontSize: 34, letterSpacing: '-1px', lineHeight: 1.1, color: '#1c1c1e' }}>
-                  Portfolio Doctor
+                <h1 className="hidden lg:block">
+                  <PortflowLogo height={42} />
                 </h1>
                 <p className="hidden lg:block text-sm mt-1.5" style={{ color: '#94a3b8' }}>
                   포트폴리오의 건강 상태를 진단하고 최적화 전략을 제안합니다

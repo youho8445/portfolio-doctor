@@ -21,8 +21,8 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Portfolio Doctor',
-  description: '포트폴리오의 건강 상태를 진단하고 최적화 전략을 제안합니다',
+  title: 'Portflow',
+  description: '내 포트폴리오를 진단하고 최적화 전략을 제안합니다',
 };
 
 export default function RootLayout({

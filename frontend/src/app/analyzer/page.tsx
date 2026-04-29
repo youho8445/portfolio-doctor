@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 const TickerModal = dynamic(() => import('@/components/TickerModal'), { ssr: false });
 const BeginnerGuide = dynamic(() => import('@/components/BeginnerGuide'), { ssr: false });
 import type { BeginnerResult } from '@/components/BeginnerGuide';
-import { PortflowLogo } from '@/components/PortflowLogo';
+import { PortraLogo } from '@/components/brand/PortraLogo';
 import { buildRiskTags, buildRiskExplanation } from '@/lib/riskSignal';
 import type { QuoteMin } from '@/lib/riskSignal';
 import {
@@ -731,7 +731,7 @@ export default function AnalyzerPage() {
     <>
       {/* 로고 */}
       <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
-        <PortflowLogo height={30} />
+        <PortraLogo size={30} />
       </div>
 
       {/* 포트폴리오 목록 */}
@@ -954,7 +954,7 @@ export default function AnalyzerPage() {
                 <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
             </button>
-            <PortflowLogo height={26} />
+            <PortraLogo size={26} />
             <div className="flex items-center gap-2">
               {/* 모바일 알림 벨 */}
               {(() => {
@@ -995,10 +995,10 @@ export default function AnalyzerPage() {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
               <div>
                 <h1 className="hidden lg:block">
-                  <PortflowLogo height={42} />
+                  <PortraLogo size={42} />
                 </h1>
                 <p className="hidden lg:block text-sm mt-1.5" style={{ color: '#94a3b8' }}>
-                  포트폴리오의 건강 상태를 진단하고 최적화 전략을 제안합니다
+                  내 포트폴리오의 흐름을 AI로 관리하세요
                 </p>
                 <button
                   onClick={() => setBeginnerGuideOpen(true)}

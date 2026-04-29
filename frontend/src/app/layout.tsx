@@ -21,8 +21,8 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Portflow',
-  description: '내 포트폴리오를 진단하고 최적화 전략을 제안합니다',
+  title: 'Portra AI',
+  description: '내 포트폴리오의 흐름을 AI로 관리하세요',
 };
 
 export default function RootLayout({

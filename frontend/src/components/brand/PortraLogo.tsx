@@ -13,17 +13,23 @@ export interface PortraSymbolProps { size?: number; className?: string; }
 export interface PortraAppIconProps { size?: number; className?: string; }
 
 // ── SVG symbol ────────────────────────────────────────────────────────────────
-// viewBox 0 0 90 90
+// viewBox 0 0 92 92
 //
-// Two crossing S-curves with gradient stroke (no filled shapes):
-//  Path 1: upper-left → lower-right  (outer arc, creates circular body)
-//  Path 2: lower-left → upper-right  (inner wave, exits as arrow)
+// Two arcs cross near center (~x=41) creating a circular-flow visual:
+//
+//  Arc 1 (outer): upper-left → sweeps far-left & down (counterclockwise)
+//                 → lower-right. Forms the "outer shell" of the circle.
+//
+//  Arc 2 (inner): lower-left → curves diagonally up-right → arrow.
+//                 Cuts through the outer arc, creating the X-crossing.
+//
+// At start (x≈18-22): Arc 1 is high (y=18), Arc 2 is low (y=70).
+// At mid   (x≈60):    Arc 2 has risen above Arc 1 → they've crossed.
+// → Crossing at x≈41, near center.  Creates the yin-yang flow effect.
 //
 // Gradient: purple(#6C5CE7) → blue(#2D9CDB) → green(#2ECC71), left→right
-//
-// Paths cross near center (~46,42), creating the "flow through circle" visual.
 
-const VW = 90, VH = 90;
+const VW = 92, VH = 92;
 
 function Sym({ gid, size }: { gid: string; size: number }) {
   const g = `url(#${gid}g)`;
@@ -31,7 +37,7 @@ function Sym({ gid, size }: { gid: string; size: number }) {
     <svg width={size} height={size} viewBox={`0 0 ${VW} ${VH}`} fill="none"
       xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <linearGradient id={`${gid}g`} x1="8" y1="45" x2="82" y2="45"
+        <linearGradient id={`${gid}g`} x1="4" y1="46" x2="88" y2="46"
           gradientUnits="userSpaceOnUse">
           <stop offset="0%"   stopColor="#6C5CE7" />
           <stop offset="50%"  stopColor="#2D9CDB" />
@@ -39,20 +45,23 @@ function Sym({ gid, size }: { gid: string; size: number }) {
         </linearGradient>
       </defs>
 
-      {/* ── 1. Outer arc (upper-left → lower-right) ── */}
+      {/* ── Arc 1: outer sweep (upper-left → far-left/bottom → lower-right) ── */}
+      {/* Sweeps counterclockwise ~270°, forming the circular outer shell */}
       <path
-        d="M 16,24 C 8,42 14,68 34,76 C 52,84 72,76 78,60"
-        stroke={g} strokeWidth="8" strokeLinecap="round"
+        d="M 22,18 C 6,30 6,62 22,76 C 38,90 66,84 78,68"
+        stroke={g} strokeWidth="9" strokeLinecap="round"
       />
 
-      {/* ── 2. Inner wave (lower-left → upper-right, becomes arrow) ── */}
+      {/* ── Arc 2: inner diagonal (lower-left → crosses Arc 1 → upper-right) ── */}
+      {/* Continues beyond the circle as the upward arrow */}
       <path
-        d="M 14,64 C 18,46 28,32 46,28 C 64,24 72,12 78,6"
-        stroke={g} strokeWidth="8" strokeLinecap="round"
+        d="M 16,70 C 22,50 42,34 60,30 C 76,26 70,22 82,8"
+        stroke={g} strokeWidth="9" strokeLinecap="round"
       />
 
-      {/* ── 3. Arrow head at upper-right (45° angle, tip at 78,6) ── */}
-      <path d="M 78,6 L 74,18 L 66,10 Z" fill="#2ECC71" />
+      {/* ── Arrow head at (82,8) pointing ~50° upper-right ── */}
+      {/* Direction: (82-70, 8-22) = (12,-14) ≈ 49° from horizontal */}
+      <path d="M 82,8 L 79,21 L 70,13 Z" fill="#2ECC71" />
     </svg>
   );
 }

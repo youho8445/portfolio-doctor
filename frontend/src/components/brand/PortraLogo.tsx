@@ -2,7 +2,6 @@
 
 import { useId } from 'react';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 export interface PortraLogoProps {
   size?: number;
   showText?: boolean;
@@ -12,22 +11,34 @@ export interface PortraLogoProps {
 export interface PortraSymbolProps { size?: number; className?: string; }
 export interface PortraAppIconProps { size?: number; className?: string; }
 
-// ── SVG symbol ────────────────────────────────────────────────────────────────
+// ── SVG symbol ─────────────────────────────────────────────────────────────
+//
 // viewBox 0 0 92 92
 //
-// Two arcs cross near center (~x=41) creating a circular-flow visual:
+// Two elements, identical stroke weight (6pt), single continuous gradient:
 //
-//  Arc 1 (outer): upper-left → sweeps far-left & down (counterclockwise)
-//                 → lower-right. Forms the "outer shell" of the circle.
+//   1. Perfect circle ring — cx=46 cy=46 r=28
 //
-//  Arc 2 (inner): lower-left → curves diagonally up-right → arrow.
-//                 Cuts through the outer arc, creating the X-crossing.
+//   2. Flowing line — enters bottom-left outside circle, creates a smooth
+//      fluid "N"-wave through the interior, exits top-right as an arrow.
 //
-// At start (x≈18-22): Arc 1 is high (y=18), Arc 2 is low (y=70).
-// At mid   (x≈60):    Arc 2 has risen above Arc 1 → they've crossed.
-// → Crossing at x≈41, near center.  Creates the yin-yang flow effect.
+//      The path is mathematically C1-continuous (matching tangents at every
+//      junction — no kinks anywhere):
 //
-// Gradient: purple(#6C5CE7) → blue(#2D9CDB) → green(#2ECC71), left→right
+//        (12,80) ─ approach ──► (26,66) ← circle entry at 225°, tangent 45°
+//                 ─ up-stroke ─► (42,24) ← horizontal inflection (top of N)
+//                 ─ diagonal ──► (60,66) ← horizontal inflection (valley of N)
+//                 ─ up-stroke ─► (66,26) ← circle exit at 45°, tangent 45°
+//                 ─ exit ──────► (80, 8) ← arrow tip
+//
+//      C1 proof — at each junction, incoming & outgoing tangent match:
+//        (26,66): (20,72)→(26,66)→(32,60)  both ≡ (1,−1) direction ✓
+//        (42,24): (30,24)→(42,24)→(54,24)  both horizontal ✓
+//        (60,66): (56,66)→(60,66)→(64,66)  both horizontal ✓
+//        (66,26): (60,32)→(66,26)→(72,20)  both ≡ (1,−1) direction ✓
+//
+// Gradient: #6C5CE7 (purple, bottom-left) → #2D9CDB (blue) → #2ECC71 (green, top-right)
+//           Applied to both circle stroke and line stroke for cohesive look.
 
 const VW = 92, VH = 92;
 
@@ -37,7 +48,8 @@ function Sym({ gid, size }: { gid: string; size: number }) {
     <svg width={size} height={size} viewBox={`0 0 ${VW} ${VH}`} fill="none"
       xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <linearGradient id={`${gid}g`} x1="4" y1="46" x2="88" y2="46"
+        {/* Diagonal gradient: bottom-left purple → top-right green */}
+        <linearGradient id={`${gid}g`} x1="10" y1="84" x2="84" y2="8"
           gradientUnits="userSpaceOnUse">
           <stop offset="0%"   stopColor="#6C5CE7" />
           <stop offset="50%"  stopColor="#2D9CDB" />
@@ -45,28 +57,30 @@ function Sym({ gid, size }: { gid: string; size: number }) {
         </linearGradient>
       </defs>
 
-      {/* ── Arc 1: outer sweep (upper-left → far-left/bottom → lower-right) ── */}
-      {/* Sweeps counterclockwise ~270°, forming the circular outer shell */}
+      {/* ── Perfect circle ring (same stroke as the flowing line) ── */}
+      <circle cx="46" cy="46" r="28" stroke={g} strokeWidth="6" />
+
+      {/* ── Flowing N-wave (C1-smooth, enters and exits the circle) ── */}
       <path
-        d="M 22,18 C 6,30 6,62 22,76 C 38,90 66,84 78,68"
-        stroke={g} strokeWidth="9" strokeLinecap="round"
+        d={[
+          'M 12,80',
+          'C 14,78 20,72 26,66',   // approach → enter circle at (26,66)
+          'C 32,60 30,24 42,24',   // up-stroke → horizontal inflection at top (42,24)
+          'C 54,24 56,66 60,66',   // diagonal  → horizontal inflection at valley (60,66)
+          'C 64,66 60,32 66,26',   // up-stroke → exit circle at (66,26)
+          'C 72,20 70,18 80,8',    // exit → arrow tip (80,8)
+        ].join(' ')}
+        stroke={g} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"
       />
 
-      {/* ── Arc 2: inner diagonal (lower-left → crosses Arc 1 → upper-right) ── */}
-      {/* Continues beyond the circle as the upward arrow */}
-      <path
-        d="M 16,70 C 22,50 42,34 60,30 C 76,26 70,22 82,8"
-        stroke={g} strokeWidth="9" strokeLinecap="round"
-      />
-
-      {/* ── Arrow head at (82,8) pointing ~50° upper-right ── */}
-      {/* Direction: (82-70, 8-22) = (12,-14) ≈ 49° from horizontal */}
-      <path d="M 82,8 L 79,21 L 70,13 Z" fill="#2ECC71" />
+      {/* ── Arrow head at (80,8), pointing 45° upper-right ── */}
+      {/* Triangle: tip(80,8) base1(76,18) base2(70,12)        */}
+      <path d="M 80,8 L 76,18 L 70,12 Z" fill="#2ECC71" />
     </svg>
   );
 }
 
-// ── Public exports ────────────────────────────────────────────────────────────
+// ── Public exports ────────────────────────────────────────────────────────
 
 export function PortraSymbol({ size = 36, className }: PortraSymbolProps) {
   const raw = useId();
@@ -84,9 +98,9 @@ export function PortraLogo({
   className,
 }: PortraLogoProps) {
   const raw = useId();
-  const color = variant === 'dark' ? '#ffffff' : '#1E1257';
+  const color = variant === 'dark' ? '#ffffff' : '#0f172a';
   const fontSize = Math.round(size * 0.72);
-  const gap = Math.round(size * 0.25);
+  const gap = Math.round(size * 0.28);
 
   return (
     <div
@@ -98,11 +112,11 @@ export function PortraLogo({
       <Sym gid={`ptlg${raw.replace(/\W/g, '')}`} size={size} />
       {showText && (
         <span style={{
-          fontFamily: 'var(--font-dm-sans), Inter, system-ui, sans-serif',
+          fontFamily: 'var(--font-dm-sans), Inter, -apple-system, sans-serif',
           fontSize,
           fontWeight: 700,
           color,
-          letterSpacing: '-0.02em',
+          letterSpacing: '-0.025em',
           lineHeight: 1,
           userSelect: 'none',
         }}>
@@ -115,7 +129,7 @@ export function PortraLogo({
 
 export function PortraAppIcon({ size = 64, className }: PortraAppIconProps) {
   const raw = useId();
-  const symbolSize = Math.round(size * 0.65);
+  const symbolSize = Math.round(size * 0.62);
 
   return (
     <div

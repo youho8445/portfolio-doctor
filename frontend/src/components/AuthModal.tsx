@@ -415,14 +415,6 @@ export function AuthModal() {
         )}
 
         <button
-          disabled
-          style={{ ...btn(), opacity: 0.4, cursor: 'not-allowed' }}
-          title="Apple 로그인은 준비 중입니다"
-        >
-          <AppleSvg /> Apple로 계속
-        </button>
-
-        <button
           onClick={() => { setStep('email-login'); setError(''); }}
           style={{ ...btn() }}
           onMouseEnter={e => (e.currentTarget.style.background = '#ede9fe')}

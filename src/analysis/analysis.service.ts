@@ -283,6 +283,18 @@ export class AnalysisService {
       }, rebalanceImprovement).catch((err) =>
         this.logger.warn(`Monitoring detection failed: ${err}`),
       );
+      this.monitoringService.computeAndSaveState(portfolioId, userId, {
+        healthScore,
+        diversScore: diversificationScore,
+        top3Concentration: Number(top3Concentration.toFixed(2)),
+        maxSectorWeight: Number(maxSectorWeight.toFixed(2)),
+        maxSectorName,
+        items: itemMetas.map((i) => ({
+          ticker: i.ticker,
+          weight: i.weight,
+          assetType: i.assetType ?? 'STOCK',
+        })),
+      }).catch((err) => this.logger.warn(`State compute failed: ${err}`));
     }
 
     const history = userId > 0

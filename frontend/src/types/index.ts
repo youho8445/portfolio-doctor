@@ -125,6 +125,20 @@ export type StateEvent = {
   createdAt: string;
 };
 
+export type PortfolioCurrentState = {
+  state: 'stable' | 'concentrated' | 'risky' | 'improving' | 'deteriorating';
+  reason: string;
+  trend: 'up' | 'down' | 'same';
+  metrics: {
+    healthScore: number;
+    diversScore: number;
+    top3Concentration: number;
+    maxSectorWeight: number;
+    maxSectorName: string;
+  };
+  changedAt: string;
+} | null;
+
 export type AnalysisResult = {
   portfolioId: number;
   portfolioName: string;

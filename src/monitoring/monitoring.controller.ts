@@ -28,4 +28,9 @@ export class MonitoringController {
   async getPortfolioEvents(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.monitoringService.getPortfolioEvents(id, req.user.id);
   }
+
+  @Get('portfolios/:id/current-state')
+  async getCurrentState(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.monitoringService.getCurrentState(id, req.user.id);
+  }
 }

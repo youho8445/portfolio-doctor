@@ -23,6 +23,7 @@ import {
   getPortfolioItems,
   getPortfolios,
   getSecurities,
+  getPortfolioCurrentState,
   getStateEvents,
   getVapidPublicKey,
   markAllEventsRead,
@@ -35,6 +36,7 @@ import {
   BaselineDrift,
   PersonalReturn,
   Portfolio,
+  PortfolioCurrentState,
   PortfolioInputItem,
   RebalanceAction,
   SavedPortfolioItem,
@@ -211,6 +213,7 @@ export default function AnalyzerPage() {
   const [adjustType, setAdjustType] = useState<'add' | 'withdraw'>('add');
   const [adjustInput, setAdjustInput] = useState('');
   const [notifications, setNotifications] = useState<StateEvent[]>([]);
+  const [portfolioState, setPortfolioState] = useState<PortfolioCurrentState>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
@@ -563,8 +566,11 @@ export default function AnalyzerPage() {
       }
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
       setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
-      // refresh notifications after analysis (detection runs async server-side)
-      setTimeout(() => getStateEvents().then((evts) => setNotifications(evts)).catch(() => {}), 2000);
+      // refresh notifications and portfolio state after analysis (detection runs async server-side)
+      setTimeout(() => {
+        getStateEvents().then((evts) => setNotifications(evts)).catch(() => {});
+        getPortfolioCurrentState(portfolioId).then(setPortfolioState).catch(() => {});
+      }, 2000);
       fetchPersonalizedNews(items.map((i) => i.ticker), newsQuery);
       // fetch quote data for risk signals (non-blocking)
       const _token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') ?? '') : '';
@@ -603,7 +609,7 @@ export default function AnalyzerPage() {
         const displayAmt = isUS(ticker) && storedAmt > 0 ? Math.round(storedAmt / rate * 100) / 100 : storedAmt;
         return { securityId: item.securityId, ticker, name: item.security.name, displayNameKo: item.security.displayNameKo, weight: Number(item.weight), amount: displayAmt, avgCost: Number(item.avgCost ?? 0) };
       }));
-      setCurrentPortfolioId(portfolio.id); setAnalysis(null); setError(null); setActiveTab('input');
+      setCurrentPortfolioId(portfolio.id); setAnalysis(null); setPortfolioState(null); setError(null); setActiveTab('input');
       setMobileSidebarOpen(false);
     } catch { setError('포트폴리오 불러오기에 실패했습니다.'); }
     finally { setLoadingPortfolioId(null); }
@@ -1420,6 +1426,37 @@ export default function AnalyzerPage() {
 
               return (
                 <div className="space-y-5">
+
+                  {/* ── 포트폴리오 상태 카드 ── */}
+                  {portfolioState && (() => {
+                    const stateConfig: Record<string, { label: string; color: string; bg: string }> = {
+                      stable:       { label: '안정',   color: '#16a34a', bg: '#f0fdf4' },
+                      concentrated: { label: '집중',   color: '#d97706', bg: '#fffbeb' },
+                      risky:        { label: '위험',   color: '#dc2626', bg: '#fef2f2' },
+                      improving:    { label: '개선 중', color: '#2563eb', bg: '#eff6ff' },
+                      deteriorating:{ label: '악화 중', color: '#ea580c', bg: '#fff7ed' },
+                    };
+                    const cfg = stateConfig[portfolioState.state] ?? stateConfig.stable;
+                    const trendIcon = portfolioState.trend === 'up' ? '↑' : portfolioState.trend === 'down' ? '↓' : '→';
+                    const trendColor = portfolioState.trend === 'up' ? '#16a34a' : portfolioState.trend === 'down' ? '#dc2626' : '#94a3b8';
+                    return (
+                      <div className="rounded-2xl px-5 py-4 flex items-center justify-between gap-3"
+                        style={{ background: cfg.bg, border: `1px solid ${cfg.color}30` }}>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
+                            style={{ background: cfg.color + '18', color: cfg.color }}>
+                            {cfg.label}
+                          </span>
+                          <span className="text-sm truncate" style={{ color: '#475569' }}>
+                            {portfolioState.reason}
+                          </span>
+                        </div>
+                        <span className="text-base font-bold shrink-0" style={{ color: trendColor }}>
+                          {trendIcon}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   {/* ── 최근 변화 알림 ── */}
                   {portfolioEvents.length > 0 && (

@@ -5,8 +5,10 @@ import { Repository, MoreThanOrEqual } from 'typeorm';
 import { PortfolioStateEvent } from '../entities/portfolio-state-event.entity';
 import { PortfolioSnapshot } from '../entities/portfolio-snapshot.entity';
 import { Portfolio } from '../entities/portfolio.entity';
+import { PortfolioState } from '../entities/portfolio-state.entity';
 import { PushService } from '../push/push.service';
 import { detectStateChanges, SnapshotState } from './state-change-detector';
+import { calculateState, StateInput } from './portfolio-state.calculator';
 
 @Injectable()
 export class MonitoringService {
@@ -19,6 +21,8 @@ export class MonitoringService {
     private readonly snapshotRepo: Repository<PortfolioSnapshot>,
     @InjectRepository(Portfolio)
     private readonly portfolioRepo: Repository<Portfolio>,
+    @InjectRepository(PortfolioState)
+    private readonly stateRepo: Repository<PortfolioState>,
     private readonly pushService: PushService,
   ) {}
 
@@ -88,6 +92,66 @@ export class MonitoringService {
       order: { detectedAt: 'DESC' },
       take: 20,
     });
+  }
+
+  async computeAndSaveState(portfolioId: number, userId: number, input: StateInput): Promise<void> {
+    const previous = await this.stateRepo.findOne({
+      where: { portfolioId },
+      order: { changedAt: 'DESC' },
+    });
+
+    const result = calculateState(input, previous ?? undefined);
+
+    const entity = this.stateRepo.create({
+      portfolioId,
+      userId,
+      state: result.state,
+      healthScore: input.healthScore,
+      diversScore: input.diversScore,
+      top3Concentration: input.top3Concentration,
+      maxSectorWeight: input.maxSectorWeight,
+      maxSectorName: input.maxSectorName,
+      reason: result.reason,
+      changedAt: new Date(),
+    });
+
+    await this.stateRepo.save(entity);
+  }
+
+  async getCurrentState(portfolioId: number, userId: number) {
+    const latest = await this.stateRepo.findOne({
+      where: { portfolioId, userId },
+      order: { changedAt: 'DESC' },
+    });
+
+    if (!latest) return null;
+
+    const previous = await this.stateRepo.findOne({
+      where: { portfolioId, userId },
+      order: { changedAt: 'DESC' },
+      skip: 1,
+    });
+
+    let trend: 'up' | 'down' | 'same' = 'same';
+    if (previous) {
+      const delta = Number(latest.healthScore) - Number(previous.healthScore);
+      if (delta > 2) trend = 'up';
+      else if (delta < -2) trend = 'down';
+    }
+
+    return {
+      state: latest.state,
+      reason: latest.reason,
+      trend,
+      metrics: {
+        healthScore: Number(latest.healthScore),
+        diversScore: Number(latest.diversScore),
+        top3Concentration: Number(latest.top3Concentration),
+        maxSectorWeight: Number(latest.maxSectorWeight),
+        maxSectorName: latest.maxSectorName,
+      },
+      changedAt: latest.changedAt,
+    };
   }
 
   private async getPreviousSnapshot(portfolioId: number, userId: number): Promise<SnapshotState | null> {

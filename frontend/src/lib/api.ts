@@ -262,6 +262,17 @@ export async function getPortfolioStateEvents(portfolioId: number): Promise<impo
   return res.json();
 }
 
+export async function getPortfolioCurrentState(
+  portfolioId: number,
+): Promise<import('../types').PortfolioCurrentState> {
+  const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/current-state`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function getVapidPublicKey(): Promise<string> {
   const res = await fetch(`${API_BASE_URL}/push/vapid-public-key`, {
     headers: authHeaders(),

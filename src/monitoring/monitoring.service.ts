@@ -126,10 +126,11 @@ export class MonitoringService {
 
     if (!latest) return null;
 
-    const previous = await this.stateRepo.findOne({
+    const [previous] = await this.stateRepo.find({
       where: { portfolioId, userId },
       order: { changedAt: 'DESC' },
       skip: 1,
+      take: 1,
     });
 
     let trend: 'up' | 'down' | 'same' = 'same';

@@ -216,6 +216,10 @@ export class MonitoringService {
         message: event.message,
         severity: event.severity,
         metadataJson: event.metadataJson ?? null,
+        impactBody: event.impactBody ?? null,
+        actionType: event.actionType ?? null,
+        actionLabel: event.actionLabel ?? null,
+        isPremiumFeature: event.isPremiumFeature ?? false,
         isRead: false,
         detectedAt: new Date(),
       });

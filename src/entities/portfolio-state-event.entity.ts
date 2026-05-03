@@ -35,6 +35,18 @@ export class PortfolioStateEvent {
   @Column({ type: 'datetime' })
   detectedAt: Date;
 
+  @Column('text', { nullable: true })
+  impactBody: string | null;
+
+  @Column({ length: 32, nullable: true })
+  actionType: string | null;
+
+  @Column({ length: 60, nullable: true })
+  actionLabel: string | null;
+
+  @Column({ default: false })
+  isPremiumFeature: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }

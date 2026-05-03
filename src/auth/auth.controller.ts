@@ -7,10 +7,14 @@ import { PhoneSendDto } from './dto/phone-send.dto';
 import { PhoneVerifyDto } from './dto/phone-verify.dto';
 import { CompleteSignupDto } from './dto/complete-signup.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AdminService } from '../admin/admin.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly adminService: AdminService,
+  ) {}
 
   // ── Google ──────────────────────────────────────────────────────────
   @Post('google')
@@ -50,13 +54,22 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Req() req: { user: { id: number; email: string } }) {
-    const user = await this.authService.findById(req.user.id);
+    const [user, billingMode] = await Promise.all([
+      this.authService.findById(req.user.id),
+      this.adminService.getBillingMode(),
+    ]);
+
+    const isTrial = user.trialEndsAt != null && user.trialEndsAt > new Date();
+    const isPremiumUser =
+      billingMode === 'FREE' || billingMode === 'SOFT_PAYWALL' || isTrial;
+
     return {
       id: user.id,
       email: user.email ?? null,
       name: user.name ?? null,
       phoneNumber: user.phoneNumber ?? null,
       trialEndsAt: user.trialEndsAt ?? null,
+      isPremiumUser,
     };
   }
 

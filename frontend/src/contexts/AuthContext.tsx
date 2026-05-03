@@ -8,6 +8,7 @@ export type AuthUser = {
   name: string | null;
   phoneNumber?: string | null;
   trialEndsAt?: string | null;
+  isPremiumUser?: boolean;
 };
 
 type AuthContextType = {

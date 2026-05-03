@@ -16,6 +16,10 @@ export interface DetectedEvent {
   message: string;
   severity: 'info' | 'warning' | 'critical' | 'opportunity';
   metadataJson?: string;
+  impactBody?: string;
+  actionType?: string;
+  actionLabel?: string;
+  isPremiumFeature?: boolean;
 }
 
 export function detectStateChanges(
@@ -41,6 +45,10 @@ export function detectStateChanges(
       title: '건강 점수가 하락했어요',
       message: `지난 분석 대비 점수가 ${Math.round(scoreDrop)}점 하락했습니다. (${Math.round(prevH)} → ${Math.round(curH)})`,
       severity: curH < 40 ? 'critical' : 'warning',
+      impactBody: '건강 점수 하락은 포트폴리오 전체의 리스크가 높아졌다는 신호예요. 지금 조치하지 않으면 같은 방향으로 계속 악화될 수 있어요.',
+      actionType: 'rebalance',
+      actionLabel: '리밸런싱 확인하기 →',
+      isPremiumFeature: true,
     });
   }
 
@@ -52,6 +60,10 @@ export function detectStateChanges(
       title: '분산도가 낮아졌어요',
       message: `한쪽으로 자산이 몰리고 있어요. 분산 점수가 ${Math.round(divDrop)}점 하락했습니다. (${Math.round(prevD)} → ${Math.round(curD)})`,
       severity: curD < 40 ? 'critical' : 'warning',
+      impactBody: '분산도가 낮아지면 특정 종목이나 섹터의 충격이 포트폴리오 전체에 직접 영향을 줘요. 한쪽이 흔들리면 전체가 함께 흔들려요.',
+      actionType: 'rebalance',
+      actionLabel: '분산도 개선하기 →',
+      isPremiumFeature: true,
     });
   }
 
@@ -70,6 +82,10 @@ export function detectStateChanges(
           message: `${curItem.name || curItem.ticker} 비중이 ${curItem.weight.toFixed(1)}%가 됐어요. 한 종목에 너무 집중되면 그 회사 이슈가 전체에 영향을 줘요.`,
           severity: 'warning',
           metadataJson: JSON.stringify({ ticker: curItem.ticker, weight: curItem.weight }),
+          impactBody: '한 종목이 50% 이상이면, 그 회사 한 곳의 이슈가 내 자산의 절반에 영향을 줘요. 분산 투자의 핵심은 한 바구니에 담지 않는 것이에요.',
+          actionType: 'reduce_concentration',
+          actionLabel: '비중 조정하기 →',
+          isPremiumFeature: true,
         });
       }
     }
@@ -83,6 +99,10 @@ export function detectStateChanges(
       title: '비슷한 분야에 너무 몰리고 있어요',
       message: `${current.maxSectorName} 분야 비중이 ${curSect.toFixed(1)}%까지 높아졌어요. 한 분야가 흔들리면 전체가 함께 영향받을 수 있어요.`,
       severity: 'warning',
+      impactBody: '같은 섹터 종목들은 경제 흐름에 따라 함께 움직여요. 섹터 편중은 여러 종목을 보유해도 실질적으로 분산이 안 된 상태예요.',
+      actionType: 'diversify_sector',
+      actionLabel: '섹터 분산하기 →',
+      isPremiumFeature: true,
     });
   }
 
@@ -94,6 +114,10 @@ export function detectStateChanges(
       title: '상위 3개 종목에 너무 집중됐어요',
       message: `상위 3개 종목이 전체의 ${curTop3.toFixed(1)}%를 차지해요. 위험이 특정 종목에 집중되어 있어요.`,
       severity: 'warning',
+      impactBody: '상위 3개가 75%를 넘으면 그 3종목의 성과가 곧 포트폴리오 전체 성과예요. 나머지 종목들은 사실상 영향이 없는 셈이에요.',
+      actionType: 'rebalance',
+      actionLabel: '집중도 낮추기 →',
+      isPremiumFeature: true,
     });
   }
 
@@ -104,6 +128,10 @@ export function detectStateChanges(
       title: '리밸런싱이 필요한 상태예요',
       message: `포트폴리오 건강 점수가 ${Math.round(curH)}점으로 낮아졌어요. 지금 조금만 조정하면 크게 좋아질 수 있어요.`,
       severity: curH < 40 ? 'critical' : 'warning',
+      impactBody: '건강 점수 60점 미만은 이미 개선이 필요한 구간이에요. 지금 리밸런싱하면 리스크를 줄이면서 더 나은 성과를 기대할 수 있어요.',
+      actionType: 'rebalance',
+      actionLabel: '지금 리밸런싱하기 →',
+      isPremiumFeature: true,
     });
   }
 
@@ -114,6 +142,10 @@ export function detectStateChanges(
       title: '조금만 바꾸면 크게 좋아질 수 있어요',
       message: `지금 리밸런싱하면 분산도를 ${Math.round(current.rebalanceImprovement)}점 높일 수 있어요. 작은 조정이 큰 차이를 만들어요.`,
       severity: 'opportunity',
+      impactBody: '작은 비중 조정으로 큰 점수 향상이 가능한 상태예요. 지금이 가장 효율적으로 포트폴리오를 개선할 수 있는 타이밍이에요.',
+      actionType: 'rebalance',
+      actionLabel: '개선 적용하기 →',
+      isPremiumFeature: false,
     });
   }
 

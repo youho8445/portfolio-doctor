@@ -123,6 +123,10 @@ export type StateEvent = {
   isRead: boolean;
   detectedAt: string;
   createdAt: string;
+  impactBody: string | null;
+  actionType: string | null;
+  actionLabel: string | null;
+  isPremiumFeature: boolean;
 };
 
 export type PortfolioCurrentState = {

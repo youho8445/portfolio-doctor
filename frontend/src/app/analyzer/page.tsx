@@ -486,6 +486,16 @@ export default function AnalyzerPage() {
     } finally { setPwSaving(false); }
   };
 
+  const handleNotificationAction = (portfolioId: number) => {
+    setNotifOpen(false);
+    if (currentPortfolioId === portfolioId && analysis) {
+      setActiveTab('result');
+      setTimeout(() => {
+        document.getElementById('rebalance-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  };
+
   const handleEnablePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     try {
@@ -679,35 +689,70 @@ export default function AnalyzerPage() {
               <div className="text-xs mt-1" style={{ color: '#94a3b8' }}>포트폴리오 분석 후 변화가 감지되면 알려드릴게요</div>
             </div>
           ) : (
-            notifications.slice(0, 15).map((n) => (
-              <div
-                key={n.id}
-                className="px-4 py-3 cursor-pointer transition-all"
-                style={{ background: n.isRead ? 'transparent' : `${severityColor(n.severity)}08`, borderBottom: '1px solid #f8fafc' }}
-                onClick={async () => {
-                  if (!n.isRead) {
-                    await markEventRead(n.id).catch(() => {});
-                    setNotifications((prev) => prev.map((e) => e.id === n.id ? { ...e, isRead: true } : e));
-                  }
-                  setNotifOpen(false);
-                }}
-              >
-                <div className="flex items-start gap-2.5">
-                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.isRead ? '#e2e8f0' : severityColor(n.severity) }} />
-                  <div className="min-w-0">
-                    {(() => {
-                      const pName = savedPortfolios.find((p) => p.id === n.portfolioId)?.name;
-                      return pName ? (
-                        <div className="text-[10px] font-semibold mb-0.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: accent.light, color: accent.hex }}>{pName}</div>
-                      ) : null;
-                    })()}
-                    <div className="text-xs font-bold text-[#1c1c1e] leading-snug">{n.title}</div>
-                    <div className="text-[11px] mt-0.5 leading-snug" style={{ color: '#64748b' }}>{n.message}</div>
-                    <div className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>{new Date(n.detectedAt).toLocaleDateString('ko-KR')}</div>
+            notifications.slice(0, 15).map((n) => {
+              const isPremiumUser = user?.isPremiumUser ?? false;
+              const showFull = isPremiumUser;
+              const showLock = !isPremiumUser && n.isPremiumFeature;
+              const showFreeAction = !isPremiumUser && !n.isPremiumFeature;
+              return (
+                <div
+                  key={n.id}
+                  className="px-4 py-3 transition-all"
+                  style={{ background: n.isRead ? 'transparent' : `${severityColor(n.severity)}08`, borderBottom: '1px solid #f8fafc' }}
+                  onClick={async () => {
+                    if (!n.isRead) {
+                      await markEventRead(n.id).catch(() => {});
+                      setNotifications((prev) => prev.map((e) => e.id === n.id ? { ...e, isRead: true } : e));
+                    }
+                  }}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: n.isRead ? '#e2e8f0' : severityColor(n.severity) }} />
+                    <div className="min-w-0 w-full">
+                      {(() => {
+                        const pName = savedPortfolios.find((p) => p.id === n.portfolioId)?.name;
+                        return pName ? (
+                          <div className="text-[10px] font-semibold mb-0.5 px-1.5 py-0.5 rounded-full inline-block" style={{ background: accent.light, color: accent.hex }}>{pName}</div>
+                        ) : null;
+                      })()}
+                      <div className="text-xs font-bold text-[#1c1c1e] leading-snug">{n.title}</div>
+                      <div className="text-[11px] mt-0.5 leading-snug" style={{ color: '#64748b' }}>{n.message}</div>
+                      {showFull && n.impactBody && (
+                        <div className="text-[11px] mt-1.5 leading-relaxed px-2.5 py-1.5 rounded-lg" style={{ background: '#f8fafc', color: '#475569' }}>{n.impactBody}</div>
+                      )}
+                      {showFull && n.actionLabel && (
+                        <button
+                          className="mt-2 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
+                          style={{ background: accent.light, color: accent.hex }}
+                          onClick={(e) => { e.stopPropagation(); handleNotificationAction(n.portfolioId); }}
+                        >
+                          {n.actionLabel}
+                        </button>
+                      )}
+                      {showLock && (
+                        <button
+                          className="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all"
+                          style={{ background: '#f1f5f9', color: '#64748b' }}
+                          onClick={(e) => { e.stopPropagation(); setNotifOpen(false); handleCheckout(); }}
+                        >
+                          🔒 자세한 이유 보기 — 프리미엄
+                        </button>
+                      )}
+                      {showFreeAction && n.actionLabel && (
+                        <button
+                          className="mt-2 text-[11px] font-bold px-3 py-1.5 rounded-lg transition-all"
+                          style={{ background: accent.light, color: accent.hex }}
+                          onClick={(e) => { e.stopPropagation(); handleNotificationAction(n.portfolioId); }}
+                        >
+                          {n.actionLabel}
+                        </button>
+                      )}
+                      <div className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>{new Date(n.detectedAt).toLocaleDateString('ko-KR')}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
         {typeof window !== 'undefined' && 'Notification' in window && (
@@ -1440,20 +1485,36 @@ export default function AnalyzerPage() {
                     const trendIcon = portfolioState.trend === 'up' ? '↑' : portfolioState.trend === 'down' ? '↓' : '→';
                     const trendColor = portfolioState.trend === 'up' ? '#16a34a' : portfolioState.trend === 'down' ? '#dc2626' : '#94a3b8';
                     return (
-                      <div className="rounded-2xl px-5 py-4 flex items-center justify-between gap-3"
+                      <div className="rounded-2xl px-5 py-4"
                         style={{ background: cfg.bg, border: `1px solid ${cfg.color}30` }}>
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
-                            style={{ background: cfg.color + '18', color: cfg.color }}>
-                            {cfg.label}
-                          </span>
-                          <span className="text-sm truncate" style={{ color: '#475569' }}>
-                            {portfolioState.reason}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
+                              style={{ background: cfg.color + '18', color: cfg.color }}>
+                              {cfg.label}
+                            </span>
+                            <span className="text-sm truncate" style={{ color: '#475569' }}>
+                              {portfolioState.reason}
+                            </span>
+                          </div>
+                          <span className="text-base font-bold shrink-0" style={{ color: trendColor }}>
+                            {trendIcon}
                           </span>
                         </div>
-                        <span className="text-base font-bold shrink-0" style={{ color: trendColor }}>
-                          {trendIcon}
-                        </span>
+                        {(['risky', 'concentrated', 'deteriorating'] as const).includes(portfolioState.state as 'risky' | 'concentrated' | 'deteriorating') && analysis && (
+                          <button
+                            className="mt-2 text-[11px] font-bold transition-all"
+                            style={{ color: cfg.color }}
+                            onClick={() => {
+                              setActiveTab('result');
+                              setTimeout(() => {
+                                document.getElementById('rebalance-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }, 100);
+                            }}
+                          >
+                            리밸런싱 확인하기 →
+                          </button>
+                        )}
                       </div>
                     );
                   })()}
@@ -1733,7 +1794,7 @@ export default function AnalyzerPage() {
 
                     {/* 리밸런싱 가이드 (2/3) */}
                     {analysis.rebalanceResult && (
-                      <div className="lg:col-span-2 rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                      <div id="rebalance-section" className="lg:col-span-2 rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                         {/* 헤더 */}
                         <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: accent.light }}>
                           <div>

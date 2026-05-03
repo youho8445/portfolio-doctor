@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 
 const TickerModal = dynamic(() => import('@/components/TickerModal'), { ssr: false });
 const BeginnerGuide = dynamic(() => import('@/components/BeginnerGuide'), { ssr: false });
+const PremiumCompareModal = dynamic(() => import('@/components/PremiumCompareModal'), { ssr: false });
 import type { BeginnerResult } from '@/components/BeginnerGuide';
 import { PortraLogo } from '@/components/brand/PortraLogo';
 import { buildRiskTags, buildRiskExplanation } from '@/lib/riskSignal';
@@ -215,6 +216,7 @@ export default function AnalyzerPage() {
   const [notifications, setNotifications] = useState<StateEvent[]>([]);
   const [portfolioState, setPortfolioState] = useState<PortfolioCurrentState>(null);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
 
@@ -734,9 +736,9 @@ export default function AnalyzerPage() {
                         <button
                           className="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all"
                           style={{ background: '#f1f5f9', color: '#64748b' }}
-                          onClick={(e) => { e.stopPropagation(); setNotifOpen(false); handleCheckout(); }}
+                          onClick={(e) => { e.stopPropagation(); setNotifOpen(false); setPremiumModalOpen(true); }}
                         >
-                          🔒 자세한 이유 보기 — 프리미엄
+                          🔒 자세한 이유 보기
                         </button>
                       )}
                       {showFreeAction && n.actionLabel && (
@@ -2553,6 +2555,9 @@ export default function AnalyzerPage() {
           onClose={() => setTickerModal(null)}
         />
       )}
+
+      {/* 프리미엄 비교 모달 */}
+      <PremiumCompareModal isOpen={premiumModalOpen} onClose={() => setPremiumModalOpen(false)} />
 
       {/* 초보자 가이드 모달 */}
       {beginnerGuideOpen && (

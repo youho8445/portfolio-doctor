@@ -38,10 +38,10 @@ export class PortfolioStateEvent {
   @Column('text', { nullable: true })
   impactBody: string | null;
 
-  @Column({ length: 32, nullable: true })
+  @Column({ type: 'varchar', length: 32, nullable: true })
   actionType: string | null;
 
-  @Column({ length: 60, nullable: true })
+  @Column({ type: 'varchar', length: 60, nullable: true })
   actionLabel: string | null;
 
   @Column({ default: false })

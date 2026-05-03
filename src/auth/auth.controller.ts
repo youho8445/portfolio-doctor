@@ -1,4 +1,6 @@
 import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -7,13 +9,14 @@ import { PhoneSendDto } from './dto/phone-send.dto';
 import { PhoneVerifyDto } from './dto/phone-verify.dto';
 import { CompleteSignupDto } from './dto/complete-signup.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { AdminService } from '../admin/admin.service';
+import { AppSetting } from '../entities/app-setting.entity';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly adminService: AdminService,
+    @InjectRepository(AppSetting)
+    private readonly settingRepo: Repository<AppSetting>,
   ) {}
 
   // ── Google ──────────────────────────────────────────────────────────
@@ -54,11 +57,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Req() req: { user: { id: number; email: string } }) {
-    const [user, billingMode] = await Promise.all([
+    const [user, billingSetting] = await Promise.all([
       this.authService.findById(req.user.id),
-      this.adminService.getBillingMode(),
+      this.settingRepo.findOne({ where: { key: 'billing_mode' } }),
     ]);
 
+    const billingMode = (billingSetting?.value ?? 'FREE') as 'FREE' | 'SOFT_PAYWALL' | 'PAID';
     const isTrial = user.trialEndsAt != null && user.trialEndsAt > new Date();
     const isPremiumUser =
       billingMode === 'FREE' || billingMode === 'SOFT_PAYWALL' || isTrial;

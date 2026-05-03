@@ -28,9 +28,9 @@ async function bootstrap() {
     }),
   );
 
-  // Railway는 PORT 환경변수를 자동 주입
+  // Railway injects PORT automatically; bind to 0.0.0.0 so healthcheck reaches it
   const port = process.env.PORT ?? 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`Server running on port ${port}`);
 }
 bootstrap();

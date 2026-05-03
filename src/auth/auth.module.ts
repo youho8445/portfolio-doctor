@@ -6,17 +6,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
 import { UserConsent } from '../entities/user-consent.entity';
 import { PhoneVerification } from '../entities/phone-verification.entity';
+import { AppSetting } from '../entities/app-setting.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { MockSmsProvider } from './sms/mock-sms.provider';
-import { AdminModule } from '../admin/admin.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserConsent, PhoneVerification]),
+    TypeOrmModule.forFeature([User, UserConsent, PhoneVerification, AppSetting]),
     PassportModule,
-    AdminModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

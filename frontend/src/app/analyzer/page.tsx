@@ -697,13 +697,14 @@ export default function AnalyzerPage() {
               return (
                 <div
                   key={n.id}
-                  className="px-4 py-3 transition-all"
+                  className="px-4 py-3 cursor-pointer transition-all"
                   style={{ background: n.isRead ? 'transparent' : `${severityColor(n.severity)}08`, borderBottom: '1px solid #f8fafc' }}
                   onClick={async () => {
                     if (!n.isRead) {
                       await markEventRead(n.id).catch(() => {});
                       setNotifications((prev) => prev.map((e) => e.id === n.id ? { ...e, isRead: true } : e));
                     }
+                    setNotifOpen(false);
                   }}
                 >
                   <div className="flex items-start gap-2.5">

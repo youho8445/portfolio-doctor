@@ -142,13 +142,19 @@ export async function getAdminBillingMode(): Promise<'FREE' | 'SOFT_PAYWALL' | '
   return data.mode;
 }
 
+export class AdminApiError extends Error {
+  constructor(public readonly status: number) {
+    super(`Admin API error: HTTP ${status}`);
+  }
+}
+
 export async function setAdminBillingMode(mode: 'FREE' | 'SOFT_PAYWALL' | 'PAID'): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/admin/settings/billing-mode`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ mode }),
   });
-  if (!res.ok) throw new Error('Failed to set billing mode');
+  if (!res.ok) throw new AdminApiError(res.status);
 }
 
 export interface PriceFetchStatus {

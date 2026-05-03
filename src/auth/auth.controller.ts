@@ -10,6 +10,8 @@ import { PhoneVerifyDto } from './dto/phone-verify.dto';
 import { CompleteSignupDto } from './dto/complete-signup.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AppSetting } from '../entities/app-setting.entity';
+import { PremiumUnlock } from '../entities/premium-unlock.entity';
+import { isAdminEmail } from '../admin/admin-email.helper';
 
 @Controller('auth')
 export class AuthController {
@@ -17,6 +19,8 @@ export class AuthController {
     private readonly authService: AuthService,
     @InjectRepository(AppSetting)
     private readonly settingRepo: Repository<AppSetting>,
+    @InjectRepository(PremiumUnlock)
+    private readonly premiumUnlockRepo: Repository<PremiumUnlock>,
   ) {}
 
   // ── Google ──────────────────────────────────────────────────────────
@@ -57,15 +61,18 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Req() req: { user: { id: number; email: string } }) {
-    const [user, billingSetting] = await Promise.all([
+    const [user, billingSetting, premiumUnlock] = await Promise.all([
       this.authService.findById(req.user.id),
       this.settingRepo.findOne({ where: { key: 'billing_mode' } }),
+      this.premiumUnlockRepo.findOne({ where: { userId: req.user.id } }),
     ]);
 
     const billingMode = (billingSetting?.value ?? 'FREE') as 'FREE' | 'SOFT_PAYWALL' | 'PAID';
     const isTrial = user.trialEndsAt != null && user.trialEndsAt > new Date();
+    const hasPaidPremium = !!premiumUnlock;
     const isPremiumUser =
-      billingMode === 'FREE' || billingMode === 'SOFT_PAYWALL' || isTrial;
+      billingMode === 'FREE' || billingMode === 'SOFT_PAYWALL' || isTrial || hasPaidPremium;
+    const isAdmin = isAdminEmail(user.email);
 
     return {
       id: user.id,
@@ -74,6 +81,7 @@ export class AuthController {
       phoneNumber: user.phoneNumber ?? null,
       trialEndsAt: user.trialEndsAt ?? null,
       isPremiumUser,
+      isAdmin,
     };
   }
 

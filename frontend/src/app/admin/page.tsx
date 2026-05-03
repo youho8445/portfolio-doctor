@@ -13,6 +13,7 @@ import {
   deleteAdminUser,
   grantAdminTrial,
   AdminUser,
+  AdminApiError,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -95,6 +96,10 @@ export default function AdminPage() {
   useEffect(() => {
     if (isLoading) return;
     if (!isLoggedIn) { router.replace('/login'); return; }
+    // user가 로드됐지만 어드민이 아닌 경우 — 데이터 로드하지 않음
+    if (user !== null && !user.isAdmin) return;
+    // user가 아직 null이면(로딩 중) 대기
+    if (user === null) return;
 
     getAdminBillingMode().then(setMode).catch(() => {
       setBillingMsg({ type: 'error', text: '관리자 권한이 없거나 서버 오류입니다.' });
@@ -102,7 +107,7 @@ export default function AdminPage() {
 
     loadFetchStatus();
     getAdminUsers().then(setUsers).catch(() => {});
-  }, [isLoading, isLoggedIn]);
+  }, [isLoading, isLoggedIn, user]);
 
   const loadFetchStatus = async () => {
     try {
@@ -137,8 +142,15 @@ export default function AdminPage() {
       await setAdminBillingMode(newMode);
       setMode(newMode);
       setBillingMsg({ type: 'success', text: `Billing mode → ${newMode} 변경 완료` });
-    } catch {
-      setBillingMsg({ type: 'error', text: '변경 실패.' });
+    } catch (e: unknown) {
+      const status = e instanceof AdminApiError ? e.status : undefined;
+      const text =
+        status === 401 ? '로그인이 만료되었습니다. 다시 로그인해주세요.' :
+        status === 403 ? '관리자 권한이 없습니다. ADMIN_EMAILS 설정을 확인하세요.' :
+        status === 500 ? '서버 오류로 변경에 실패했습니다.' :
+        status !== undefined ? `변경 실패: HTTP ${status}` :
+        '변경 실패. 네트워크를 확인해주세요.';
+      setBillingMsg({ type: 'error', text });
     } finally { setSaving(false); }
   };
 
@@ -175,10 +187,39 @@ export default function AdminPage() {
     } catch { /* ignore */ }
   };
 
-  if (isLoading || mode === null) {
+  if (isLoading || (isLoggedIn && user === null)) {
     return (
       <main className="min-h-screen flex items-center justify-center" style={{ background: '#141418' }}>
         <div className="text-sm" style={{ color: '#4b5563' }}>로딩 중...</div>
+      </main>
+    );
+  }
+
+  if (!isLoggedIn || (user !== null && !user.isAdmin)) {
+    return (
+      <main className="min-h-screen flex items-center justify-center px-4" style={{ background: '#141418' }}>
+        <div className="text-center space-y-3">
+          <div className="text-3xl">🔒</div>
+          <div className="text-base font-semibold text-white">관리자 권한이 없습니다</div>
+          <div className="text-sm" style={{ color: '#6b7280' }}>
+            이 페이지는 관리자만 접근할 수 있습니다.
+          </div>
+          <button
+            onClick={() => router.replace('/analyzer')}
+            className="mt-2 text-sm px-4 py-2 rounded-xl"
+            style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}
+          >
+            분석 페이지로 돌아가기
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (mode === null) {
+    return (
+      <main className="min-h-screen flex items-center justify-center" style={{ background: '#141418' }}>
+        <div className="text-sm" style={{ color: '#4b5563' }}>설정 불러오는 중...</div>
       </main>
     );
   }

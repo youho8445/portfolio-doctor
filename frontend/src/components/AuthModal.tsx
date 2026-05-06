@@ -433,45 +433,6 @@ export function AuthModal() {
         </button>
       </div>
 
-      <Divider />
-
-      {/* Phone input */}
-      <div>
-        <label style={labelStyle}>전화번호</label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <select
-            value={countryCode}
-            onChange={e => setCountryCode(e.target.value)}
-            style={{ ...inputStyle, width: 90, flex: 'none', paddingRight: 8 }}
-            onFocus={e => (e.target.style.borderColor = '#7c3aed')}
-            onBlur={e => (e.target.style.borderColor = 'transparent')}
-          >
-            <option value="+82">🇰🇷 +82</option>
-            <option value="+1">🇺🇸 +1</option>
-            <option value="+44">🇬🇧 +44</option>
-            <option value="+81">🇯🇵 +81</option>
-            <option value="+86">🇨🇳 +86</option>
-          </select>
-          <input
-            type="tel"
-            placeholder="010-0000-0000"
-            value={phoneInput}
-            onChange={e => setPhoneInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleSendCode(); }}
-            style={{ ...inputStyle, flex: 1 }}
-            onFocus={e => (e.target.style.borderColor = '#7c3aed')}
-            onBlur={e => (e.target.style.borderColor = 'transparent')}
-          />
-        </div>
-        <button
-          onClick={handleSendCode}
-          disabled={loading || !phoneInput.trim()}
-          style={{ ...btn(true), marginTop: 10, opacity: (loading || !phoneInput.trim()) ? 0.5 : 1 }}
-        >
-          {loading ? '발송 중...' : '인증번호 받기'}
-        </button>
-      </div>
-
       <ErrorBox />
     </>
   );

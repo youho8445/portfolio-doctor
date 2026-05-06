@@ -2557,7 +2557,7 @@ export default function AnalyzerPage() {
       )}
 
       {/* 프리미엄 비교 모달 */}
-      <PremiumCompareModal isOpen={premiumModalOpen} onClose={() => setPremiumModalOpen(false)} />
+      <PremiumCompareModal isOpen={premiumModalOpen} onClose={() => setPremiumModalOpen(false)} onCta={handleCheckout} />
 
       {/* 초보자 가이드 모달 */}
       {beginnerGuideOpen && (

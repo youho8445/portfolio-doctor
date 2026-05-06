@@ -321,9 +321,9 @@ export class AnalysisService {
     if (billingMode === 'FREE' || isTrial || billingMode === 'SOFT_PAYWALL') {
       isPremium = true;
     } else {
-      // PAID: 실제 결제 여부 확인
+      // PAID: 실제 결제 여부 확인 (사용자 단위 — 어느 포트폴리오든 결제 이력 있으면 허용)
       isPremium = userId > 0
-        ? await this.paymentsService.isUnlocked(portfolioId, userId)
+        ? await this.paymentsService.isUnlockedForUser(userId)
         : false;
     }
 

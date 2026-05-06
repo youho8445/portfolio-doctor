@@ -66,4 +66,9 @@ export class PaymentsService {
     const unlock = await this.unlockRepo.findOne({ where: { portfolioId, userId } });
     return !!unlock;
   }
+
+  async isUnlockedForUser(userId: number): Promise<boolean> {
+    const unlock = await this.unlockRepo.findOne({ where: { userId } });
+    return !!unlock;
+  }
 }

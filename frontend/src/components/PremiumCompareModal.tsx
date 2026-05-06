@@ -1,16 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onCta: () => void;
 }
 
-export default function PremiumCompareModal({ isOpen, onClose }: Props) {
-  const router = useRouter();
-
+export default function PremiumCompareModal({ isOpen, onClose, onCta }: Props) {
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -26,7 +24,7 @@ export default function PremiumCompareModal({ isOpen, onClose }: Props) {
 
   const handleCta = () => {
     onClose();
-    router.push('/checkout');
+    onCta();
   };
 
   const bars = [

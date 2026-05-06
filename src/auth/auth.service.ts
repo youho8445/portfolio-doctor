@@ -70,15 +70,25 @@ export class AuthService {
   // ── Email ────────────────────────────────────────────────────────────
   async emailSignUp(dto: RegisterDto) {
     this.validateConsents(dto);
-    const existing = await this.userRepo.findOne({ where: { email: dto.email } });
-    if (existing) throw new BadRequestException('이미 사용 중인 이메일입니다');
+    const email = dto.email.trim().toLowerCase();
+
+    const existing = await this.userRepo.findOne({ where: { email } });
+    if (existing) {
+      if (existing.googleId) {
+        throw new BadRequestException('Google로 가입된 이메일입니다. Google로 계속해주세요.');
+      }
+      if (existing.passwordHash) {
+        throw new BadRequestException('이미 이메일로 가입된 계정입니다. 로그인해주세요.');
+      }
+      throw new BadRequestException('이미 가입된 이메일입니다. 기존 로그인 방식으로 로그인해주세요.');
+    }
 
     const trialEndsAt = new Date();
     trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
     const user = this.userRepo.create({
       name: dto.name,
-      email: dto.email,
+      email,
       passwordHash: await bcrypt.hash(dto.password, 10),
       trialEndsAt,
     });
@@ -88,7 +98,8 @@ export class AuthService {
   }
 
   async emailLogin(dto: LoginDto) {
-    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.userRepo.findOne({ where: { email } });
     if (!user?.passwordHash) {
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다');
     }

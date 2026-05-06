@@ -98,12 +98,12 @@ function ConsentModal({ type, onClose }: { type: ConsentKey; onClose: () => void
   );
 }
 
-function ConsentRow({ checked, onChange, label, required, onView }: {
-  checked: boolean; onChange: (v: boolean) => void; label: string; required?: boolean; onView: () => void;
+function ConsentRow({ checked, onChange, label, subLabel, required, onView }: {
+  checked: boolean; onChange: (v: boolean) => void; label: string; subLabel?: string; required?: boolean; onView: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <button type="button" onClick={() => onChange(!checked)} className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors" style={{ background: checked ? '#7c3aed' : 'transparent', border: checked ? '2px solid #7c3aed' : '2px solid #45454f' }}>
+    <div className="flex items-start gap-3 py-1.5">
+      <button type="button" onClick={() => onChange(!checked)} className="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors mt-0.5" style={{ background: checked ? '#7c3aed' : 'transparent', border: checked ? '2px solid #7c3aed' : '2px solid #45454f' }}>
         {checked && (
           <svg viewBox="0 0 12 10" fill="none" style={{ width: 10, height: 8 }}>
             <path d="M1 5l3 3.5L11 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -111,10 +111,15 @@ function ConsentRow({ checked, onChange, label, required, onView }: {
         )}
       </button>
       <span className="flex-1 text-xs" style={{ color: '#c0bfd0' }}>
-        {required ? <span style={{ color: '#a78bfa', marginRight: 4 }}>[필수]</span> : <span style={{ color: '#6b7280', marginRight: 4 }}>[선택]</span>}
-        {label}
+        <span>
+          {required ? <span style={{ color: '#a78bfa', marginRight: 4 }}>[필수]</span> : <span style={{ color: '#6b7280', marginRight: 4 }}>[선택]</span>}
+          {label}
+        </span>
+        {subLabel && (
+          <span style={{ display: 'block', fontSize: 10.5, color: '#9ca3af', marginTop: 2 }}>{subLabel}</span>
+        )}
       </span>
-      <button type="button" onClick={onView} className="text-xs px-2 py-0.5 rounded-md flex-shrink-0" style={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(167,139,250,0.06)' }}>
+      <button type="button" onClick={onView} className="text-xs px-2 py-0.5 rounded-md flex-shrink-0 mt-0.5" style={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(167,139,250,0.06)' }}>
         보기
       </button>
     </div>
@@ -271,7 +276,7 @@ export function AuthModal() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const data = await post('/auth/email/login', { email: emailAddr, password: emailPw });
+      const data = await post('/auth/email/login', { email: emailAddr.trim().toLowerCase(), password: emailPw });
       handleSuccess(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '오류가 발생했습니다');
@@ -286,7 +291,7 @@ export function AuthModal() {
     setLoading(true); setError('');
     try {
       const data = await post('/auth/email/signup', {
-        name: emailName, email: emailAddr, password: emailPw,
+        name: emailName.trim(), email: emailAddr.trim().toLowerCase(), password: emailPw,
         agreeToTerms: signupConsent.agreeToTerms,
         agreeToPrivacy: signupConsent.agreeToPrivacy,
         agreeToRiskDisclaimer: signupConsent.agreeToRiskDisclaimer,
@@ -612,7 +617,7 @@ export function AuthModal() {
           </div>
           <ConsentRow checked={signupConsent.agreeToTerms} onChange={v => setSignupConsent(s => ({ ...s, agreeToTerms: v }))} label="이용약관 동의" required onView={() => setConsentModal('terms')} />
           <ConsentRow checked={signupConsent.agreeToPrivacy} onChange={v => setSignupConsent(s => ({ ...s, agreeToPrivacy: v }))} label="개인정보 수집 및 이용 동의" required onView={() => setConsentModal('privacy')} />
-          <ConsentRow checked={signupConsent.agreeToRiskDisclaimer} onChange={v => setSignupConsent(s => ({ ...s, agreeToRiskDisclaimer: v }))} label="투자 유의사항 확인" required onView={() => setConsentModal('risk')} />
+          <ConsentRow checked={signupConsent.agreeToRiskDisclaimer} onChange={v => setSignupConsent(s => ({ ...s, agreeToRiskDisclaimer: v }))} label="Portra AI는 투자 참고 정보를 제공하며, 최종 투자 판단은 사용자에게 있습니다." subLabel="특정 종목의 매수·매도를 권장하거나 수익을 보장하지 않습니다." required onView={() => setConsentModal('risk')} />
           <ConsentRow checked={signupConsent.agreeToMarketing} onChange={v => setSignupConsent(s => ({ ...s, agreeToMarketing: v }))} label="마케팅 정보 수신 동의" onView={() => setConsentModal('marketing')} />
         </div>
 

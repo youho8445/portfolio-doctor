@@ -25,9 +25,9 @@ export class AdminService {
     await this.settingRepo.upsert({ key: 'billing_mode', value: mode }, ['key']);
   }
 
-  async getUsers(): Promise<{ id: number; email: string | null; name: string | null; createdAt: Date }[]> {
+  async getUsers(): Promise<{ id: number; email: string | null; name: string | null; createdAt: Date; trialEndsAt: Date | null }[]> {
     const users = await this.userRepo.find({ order: { createdAt: 'DESC' } });
-    return users.map((u) => ({ id: u.id, email: u.email, name: u.name, createdAt: u.createdAt }));
+    return users.map((u) => ({ id: u.id, email: u.email, name: u.name, createdAt: u.createdAt, trialEndsAt: u.trialEndsAt ?? null }));
   }
 
   async changeUserPassword(userId: number, newPassword: string): Promise<void> {

@@ -190,6 +190,7 @@ export interface AdminUser {
   email: string;
   name: string;
   createdAt: string;
+  trialEndsAt: string | null;
 }
 
 export async function changeMyPassword(currentPassword: string, newPassword: string): Promise<void> {

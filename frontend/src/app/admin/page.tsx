@@ -70,6 +70,26 @@ function StatusBadge({ status }: { status: PriceFetchStatus['status'] }) {
   );
 }
 
+function TrialBadge({ trialEndsAt }: { trialEndsAt: string | null }) {
+  if (!trialEndsAt) return null;
+  const end = new Date(trialEndsAt);
+  const now = new Date();
+  const diffMs = end.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / 86400000);
+  if (diffMs > 0) {
+    return (
+      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.25)' }}>
+        체험 {diffDays}일 남음
+      </span>
+    );
+  }
+  return (
+    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)' }}>
+      체험 만료
+    </span>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, isLoggedIn, isLoading } = useAuth();
@@ -385,7 +405,10 @@ export default function AdminPage() {
               {users.map((u) => (
                 <div key={u.id} className="rounded-xl px-4 py-3 flex items-center justify-between gap-3" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-white truncate">{u.name}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="text-sm font-semibold text-white truncate">{u.name}</div>
+                      <TrialBadge trialEndsAt={u.trialEndsAt} />
+                    </div>
                     <div className="text-xs truncate mt-0.5" style={{ color: '#6b7280' }}>{u.email}</div>
                     <div className="text-[10px] mt-0.5" style={{ color: '#374151' }}>
                       가입: {new Date(u.createdAt).toLocaleDateString('ko-KR')}

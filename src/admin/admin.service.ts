@@ -46,6 +46,13 @@ export class AdminService {
     await this.userRepo.save(user);
   }
 
+  async revokeTrial(userId: number): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');
+    user.trialEndsAt = null;
+    await this.userRepo.save(user);
+  }
+
   async deleteUser(userId: number): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('유저를 찾을 수 없습니다.');

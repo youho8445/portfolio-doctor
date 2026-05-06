@@ -229,6 +229,14 @@ export async function grantAdminTrial(userId: number, days = 7): Promise<void> {
   if (!res.ok) throw new Error('Failed to grant trial');
 }
 
+export async function revokeAdminTrial(userId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/trial`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to revoke trial');
+}
+
 export async function deleteAdminUser(userId: number): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
     method: 'DELETE',

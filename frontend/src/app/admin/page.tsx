@@ -12,6 +12,7 @@ import {
   changeAdminUserPassword,
   deleteAdminUser,
   grantAdminTrial,
+  revokeAdminTrial,
   AdminUser,
   AdminApiError,
 } from '@/lib/api';
@@ -107,6 +108,7 @@ export default function AdminPage() {
 
   // Users
   const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [userSearch, setUserSearch] = useState('');
   const [pwModal, setPwModal] = useState<{ id: number; email: string } | null>(null);
   const [newPw, setNewPw] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
@@ -396,53 +398,88 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* 검색 */}
+          {users && users.length > 0 && (
+            <input
+              type="text"
+              placeholder="이름 또는 이메일 검색"
+              value={userSearch}
+              onChange={(e) => setUserSearch(e.target.value)}
+              className="w-full rounded-xl px-4 py-2.5 text-sm text-white outline-none"
+              style={{ background: '#141418', border: '1.5px solid rgba(255,255,255,0.08)' }}
+            />
+          )}
+
           {users === null ? (
             <div className="text-xs" style={{ color: '#4b5563' }}>불러오는 중...</div>
           ) : users.length === 0 ? (
             <div className="text-xs" style={{ color: '#4b5563' }}>가입된 유저가 없습니다.</div>
-          ) : (
-            <div className="space-y-2">
-              {users.map((u) => (
-                <div key={u.id} className="rounded-xl px-4 py-3 flex items-center justify-between gap-3" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="text-sm font-semibold text-white truncate">{u.name}</div>
-                      <TrialBadge trialEndsAt={u.trialEndsAt} />
-                    </div>
-                    <div className="text-xs truncate mt-0.5" style={{ color: '#6b7280' }}>{u.email}</div>
-                    <div className="text-[10px] mt-0.5" style={{ color: '#374151' }}>
-                      가입: {new Date(u.createdAt).toLocaleDateString('ko-KR')}
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5 shrink-0">
-                    <button
-                      onClick={() => { setPwModal({ id: u.id, email: u.email }); setPwMsg(null); setNewPw(''); }}
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
-                      style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
-                    >
-                      비밀번호
-                    </button>
-                    <button
-                      onClick={() => grantAdminTrial(u.id, 7).then(() => getAdminUsers().then(setUsers)).catch(() => {})}
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
-                      style={{ background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.2)' }}
-                      title="7일 무료 체험 부여"
-                    >
-                      체험
-                    </button>
-                    {deleteConfirm === u.id ? (
-                      <div className="flex gap-1">
-                        <button onClick={() => handleDeleteUser(u.id)} className="text-xs px-2 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}>확인</button>
-                        <button onClick={() => setDeleteConfirm(null)} className="text-xs px-2 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#9ca3af' }}>취소</button>
+          ) : (() => {
+            const q = userSearch.trim().toLowerCase();
+            const filtered = q
+              ? users.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
+              : users;
+            return (
+              <div className="space-y-2">
+                {filtered.length === 0 && (
+                  <div className="text-xs" style={{ color: '#4b5563' }}>검색 결과가 없습니다.</div>
+                )}
+                {filtered.map((u) => {
+                  const trialActive = u.trialEndsAt != null && new Date(u.trialEndsAt) > new Date();
+                  return (
+                    <div key={u.id} className="rounded-xl px-4 py-3 flex items-center justify-between gap-3" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="text-sm font-semibold text-white truncate">{u.name}</div>
+                          <TrialBadge trialEndsAt={u.trialEndsAt} />
+                        </div>
+                        <div className="text-xs truncate mt-0.5" style={{ color: '#6b7280' }}>{u.email}</div>
+                        <div className="text-[10px] mt-0.5" style={{ color: '#374151' }}>
+                          가입: {new Date(u.createdAt).toLocaleDateString('ko-KR')}
+                        </div>
                       </div>
-                    ) : (
-                      <button onClick={() => setDeleteConfirm(u.id)} className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>삭제</button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                      <div className="flex gap-1.5 shrink-0">
+                        <button
+                          onClick={() => { setPwModal({ id: u.id, email: u.email }); setPwMsg(null); setNewPw(''); }}
+                          className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
+                          style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
+                        >
+                          비밀번호
+                        </button>
+                        {trialActive ? (
+                          <button
+                            onClick={() => revokeAdminTrial(u.id).then(() => getAdminUsers().then(setUsers)).catch(() => {})}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
+                            style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)' }}
+                            title="체험 해제"
+                          >
+                            체험 해제
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => grantAdminTrial(u.id, 7).then(() => getAdminUsers().then(setUsers)).catch(() => {})}
+                            className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
+                            style={{ background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.2)' }}
+                            title="7일 무료 체험 부여"
+                          >
+                            체험 부여
+                          </button>
+                        )}
+                        {deleteConfirm === u.id ? (
+                          <div className="flex gap-1">
+                            <button onClick={() => handleDeleteUser(u.id)} className="text-xs px-2 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(239,68,68,0.2)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}>확인</button>
+                            <button onClick={() => setDeleteConfirm(null)} className="text-xs px-2 py-1.5 rounded-lg font-medium" style={{ background: 'rgba(255,255,255,0.05)', color: '#9ca3af' }}>취소</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setDeleteConfirm(u.id)} className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>삭제</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* 비밀번호 변경 모달 */}

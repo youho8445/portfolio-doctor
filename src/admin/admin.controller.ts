@@ -75,6 +75,16 @@ export class AdminController {
     return { message: `트라이얼 ${body.days ?? 7}일 부여 완료` };
   }
 
+  @Delete('users/:id/trial')
+  async revokeTrial(
+    @Req() req: { user: { email: string } },
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    this.requireAdmin(req.user.email);
+    await this.adminService.revokeTrial(id);
+    return { message: '트라이얼 해제 완료' };
+  }
+
   @Delete('users/:id')
   async deleteUser(
     @Req() req: { user: { email: string } },

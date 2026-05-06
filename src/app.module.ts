@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
 import { PortfoliosModule } from './portfolios/portfolios.module';
@@ -33,6 +34,7 @@ import { PushModule } from './push/push.module';
         synchronize: true,
       }),
     }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
     ScheduleModule.forRoot(),
     AuthModule,
     PortfoliosModule,

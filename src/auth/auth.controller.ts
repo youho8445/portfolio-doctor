@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
@@ -32,6 +33,8 @@ export class AuthController {
     return this.authService.emailSignUp(dto);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @UseGuards(ThrottlerGuard)
   @Post('email/login')
   emailLogin(@Body() dto: LoginDto) {
     return this.authService.emailLogin(dto);
@@ -101,6 +104,8 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @UseGuards(ThrottlerGuard)
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);

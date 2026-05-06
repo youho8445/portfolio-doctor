@@ -30,6 +30,13 @@ const SEND_WINDOW_MS = 10 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
+  private static readonly SALT_ROUNDS = 12;
+  private static readonly BLOCKLIST = [
+    '123456', '1234567', '12345678', '123456789', '1234567890',
+    '0987654321', 'password', 'passw0rd', 'qwerty', 'qwertyuiop',
+    'admin', 'test', '000000', '111111', 'aaaaaa', 'abcdef',
+  ];
+
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -71,6 +78,7 @@ export class AuthService {
   async emailSignUp(dto: RegisterDto) {
     this.validateConsents(dto);
     const email = dto.email.trim().toLowerCase();
+    this.validatePassword(dto.password, email);
 
     const existing = await this.userRepo.findOne({ where: { email } });
     if (existing) {
@@ -89,7 +97,7 @@ export class AuthService {
     const user = this.userRepo.create({
       name: dto.name,
       email,
-      passwordHash: await bcrypt.hash(dto.password, 10),
+      passwordHash: await bcrypt.hash(dto.password, AuthService.SALT_ROUNDS),
       trialEndsAt,
     });
     const saved = await this.userRepo.save(user);
@@ -217,7 +225,8 @@ export class AuthService {
     if (!user.passwordHash) throw new BadRequestException('이 계정은 비밀번호 로그인을 지원하지 않습니다.');
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!valid) throw new UnauthorizedException('현재 비밀번호가 올바르지 않습니다.');
-    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    this.validatePassword(newPassword);
+    user.passwordHash = await bcrypt.hash(newPassword, AuthService.SALT_ROUNDS);
     await this.userRepo.save(user);
   }
 
@@ -245,6 +254,40 @@ export class AuthService {
     const saved = await this.userRepo.save(user);
     await this.saveConsent(saved.id, consents);
     return this.issueToken(saved);
+  }
+
+  private validatePassword(password: string, email?: string): void {
+    if (password.length < 10) {
+      throw new BadRequestException(
+        '비밀번호는 10자 이상이며, 문자/숫자/특수문자 중 2가지 이상을 포함해야 합니다.',
+      );
+    }
+
+    const hasUpper   = /[A-Z]/.test(password);
+    const hasLower   = /[a-z]/.test(password);
+    const hasNumber  = /[0-9]/.test(password);
+    const hasSpecial = /[!@#$%^&*()\-_=+[\]{};:'",.<>/?\\|`~]/.test(password);
+    if ([hasUpper, hasLower, hasNumber, hasSpecial].filter(Boolean).length < 2) {
+      throw new BadRequestException(
+        '비밀번호는 10자 이상이며, 문자/숫자/특수문자 중 2가지 이상을 포함해야 합니다.',
+      );
+    }
+
+    const lower = password.toLowerCase();
+    if (AuthService.BLOCKLIST.some((p) => p.length >= 6 && lower.includes(p))) {
+      throw new BadRequestException('너무 단순하거나 자주 사용되는 비밀번호입니다.');
+    }
+
+    if (/(.)\1{4,}/.test(password)) {
+      throw new BadRequestException('같은 문자를 5번 이상 반복할 수 없습니다.');
+    }
+
+    if (email) {
+      const localPart = email.split('@')[0].toLowerCase();
+      if (localPart.length >= 3 && lower.includes(localPart)) {
+        throw new BadRequestException('비밀번호에 이메일 아이디를 포함할 수 없습니다.');
+      }
+    }
   }
 
   private validateConsents(c: { agreeToTerms: boolean; agreeToPrivacy: boolean; agreeToRiskDisclaimer: boolean }) {

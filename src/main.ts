@@ -29,6 +29,7 @@ async function bootstrap() {
 
     const app = await NestFactory.create(AppModule);
 
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
     app.enableCors({ origin: allowedOrigins, credentials: true });
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 

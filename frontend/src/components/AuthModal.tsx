@@ -555,9 +555,9 @@ export function AuthModal() {
             onFocus={e => (e.target.style.borderColor = '#7c3aed')} onBlur={e => (e.target.style.borderColor = 'transparent')} />
         </div>
         <div>
-          <label style={labelStyle}>비밀번호 (6자 이상)</label>
+          <label style={labelStyle}>비밀번호 (10자 이상)</label>
           <div style={{ position: 'relative' }}>
-            <input type={showPw ? 'text' : 'password'} value={emailPw} onChange={e => setEmailPw(e.target.value)} required minLength={6} autoComplete="new-password" style={{ ...inputStyle, paddingRight: 40 }}
+            <input type={showPw ? 'text' : 'password'} value={emailPw} onChange={e => setEmailPw(e.target.value)} required minLength={10} autoComplete="new-password" style={{ ...inputStyle, paddingRight: 40 }}
               onFocus={e => (e.target.style.borderColor = '#7c3aed')} onBlur={e => (e.target.style.borderColor = 'transparent')} />
             <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 16, height: 16 }}>
@@ -565,6 +565,15 @@ export function AuthModal() {
               </svg>
             </button>
           </div>
+          {emailPw.length > 0 && emailPw.length < 10 && (
+            <p style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>10자 이상 입력해주세요 ({emailPw.length}/10)</p>
+          )}
+          {emailPw.length >= 10 && (
+            <p style={{ fontSize: 11, color: '#10b981', marginTop: 4 }}>✓ 길이 조건 충족</p>
+          )}
+          {emailPw.length === 0 && (
+            <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>영문 대/소문자, 숫자, 특수문자 중 2가지 이상 포함 필요</p>
+          )}
         </div>
 
         {/* Consent */}
@@ -583,7 +592,7 @@ export function AuthModal() {
         </div>
 
         <ErrorBox />
-        <button type="submit" disabled={loading || !allSignupRequired} style={{ ...btn(true), opacity: (loading || !allSignupRequired) ? 0.5 : 1 }}>
+        <button type="submit" disabled={loading || !allSignupRequired || emailPw.length < 10} style={{ ...btn(true), opacity: (loading || !allSignupRequired || emailPw.length < 10) ? 0.5 : 1 }}>
           {loading ? '가입 중...' : '계정 만들기'}
         </button>
       </form>

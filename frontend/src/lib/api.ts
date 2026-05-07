@@ -249,6 +249,25 @@ export async function revokeAdminTrial(userId: number): Promise<void> {
   if (!res.ok) throw new Error('Failed to revoke trial');
 }
 
+export interface ConversionStats {
+  allTime: { event: string; count: number }[];
+  last7d:  { event: string; count: number }[];
+  funnel: {
+    ctaFromModal:        number | null;
+    checkoutFromCta:     number | null;
+    attemptFromCheckout: number | null;
+    successFromCheckout: number | null;
+  };
+}
+
+export async function getAdminConversionStats(): Promise<ConversionStats> {
+  const res = await fetch(`${API_BASE_URL}/admin/analytics/conversion`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch conversion stats');
+  return res.json();
+}
+
 export async function deleteAdminUser(userId: number): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
     method: 'DELETE',

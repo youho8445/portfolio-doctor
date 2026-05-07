@@ -4,13 +4,14 @@ import { AppSetting } from '../entities/app-setting.entity';
 import { Security } from '../entities/security.entity';
 import { Benchmark } from '../entities/benchmark.entity';
 import { User } from '../entities/user.entity';
+import { ConversionEvent } from '../entities/conversion-event.entity';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { PriceFetchService } from './price-fetch.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AppSetting, Security, Benchmark, User]),
+    TypeOrmModule.forFeature([AppSetting, Security, Benchmark, User, ConversionEvent]),
   ],
   controllers: [AdminController],
   providers: [AdminService, PriceFetchService],

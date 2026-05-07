@@ -13,8 +13,10 @@ import {
   deleteAdminUser,
   grantAdminTrial,
   revokeAdminTrial,
+  getAdminConversionStats,
   AdminUser,
   AdminApiError,
+  ConversionStats,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -106,6 +108,9 @@ export default function AdminPage() {
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Conversion stats
+  const [conversion, setConversion] = useState<ConversionStats | null>(null);
+
   // Users
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [userSearch, setUserSearch] = useState('');
@@ -129,6 +134,7 @@ export default function AdminPage() {
 
     loadFetchStatus();
     getAdminUsers().then(setUsers).catch(() => {});
+    getAdminConversionStats().then(setConversion).catch(() => {});
   }, [isLoading, isLoggedIn, user]);
 
   const loadFetchStatus = async () => {
@@ -384,6 +390,63 @@ export default function AdminPage() {
           <p className="text-[10px] text-center" style={{ color: '#374151' }}>
             자동 스케줄: 매주 월~금 오후 5시(KST) · 주말·공휴일 자동 스킵
           </p>
+        </div>
+
+        {/* ── 전환 퍼널 ── */}
+        <div className="rounded-2xl p-6 space-y-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div>
+            <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Conversion Funnel</h2>
+            <p className="text-sm text-white font-bold mt-0.5">전환 퍼널</p>
+          </div>
+
+          {conversion === null ? (
+            <div className="text-xs" style={{ color: '#4b5563' }}>불러오는 중...</div>
+          ) : (
+            <div className="space-y-4">
+              {/* 이벤트 카운트 테이블 */}
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <th className="text-left px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>이벤트</th>
+                      <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>전체</th>
+                      <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>7일</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {conversion.allTime.map((row, i) => {
+                      const d7 = conversion.last7d[i]?.count ?? 0;
+                      return (
+                        <tr key={row.event} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td className="px-4 py-2.5 font-mono" style={{ color: '#9ca3af' }}>{row.event}</td>
+                          <td className="px-4 py-2.5 text-right font-semibold text-white">{row.count.toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-right" style={{ color: '#6b7280' }}>{d7.toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 퍼널 전환율 */}
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase tracking-widest" style={{ color: '#4b5563' }}>전환율 (전체 기간)</div>
+                {[
+                  { label: 'modal → CTA 클릭',    value: conversion.funnel.ctaFromModal },
+                  { label: 'CTA → 결제 진입',      value: conversion.funnel.checkoutFromCta },
+                  { label: '결제 진입 → 결제창',    value: conversion.funnel.attemptFromCheckout },
+                  { label: '결제 진입 → 결제 완료', value: conversion.funnel.successFromCheckout },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between px-4 py-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span className="text-xs" style={{ color: '#9ca3af' }}>{label}</span>
+                    <span className="text-sm font-bold" style={{ color: value === null ? '#4b5563' : value >= 50 ? '#10b981' : value >= 20 ? '#f59e0b' : '#ef4444' }}>
+                      {value === null ? '—' : `${value}%`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── 유저 관리 ── */}

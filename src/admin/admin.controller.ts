@@ -110,4 +110,12 @@ export class AdminController {
     void this.priceFetchService.runFetch();
     return { message: '데이터 수집을 시작했습니다.' };
   }
+
+  // ── 전환 퍼널 ─────────────────────────────────────────────────────────────
+
+  @Get('analytics/conversion')
+  async getConversionStats(@Req() req: { user: { email: string } }) {
+    this.requireAdmin(req.user.email);
+    return this.adminService.getConversionStats();
+  }
 }

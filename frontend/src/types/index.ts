@@ -141,6 +141,7 @@ export type PortfolioCurrentState = {
     maxSectorName: string;
   };
   changedAt: string;
+  lastEventDetectedAt: string | null;
 } | null;
 
 export type AnalysisResult = {

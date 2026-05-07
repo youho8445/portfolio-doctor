@@ -1525,6 +1525,16 @@ export default function AnalyzerPage() {
                     );
                   })()}
 
+                  {/* ── 자동 감시 상태 ── */}
+                  <div className="flex items-center justify-between text-[11px] px-1" style={{ color: '#94a3b8' }}>
+                    <span>자동 감시 중 · 중요한 변화가 생기면 알려드립니다.</span>
+                    {portfolioState?.lastEventDetectedAt && (() => {
+                      const diffDays = Math.floor((Date.now() - new Date(portfolioState.lastEventDetectedAt!).getTime()) / 86400000);
+                      const label = diffDays === 0 ? '오늘' : diffDays === 1 ? '어제' : `${diffDays}일 전`;
+                      return <span>마지막 변화 감지: {label}</span>;
+                    })()}
+                  </div>
+
                   {/* ── 최근 변화 알림 ── */}
                   {portfolioEvents.length > 0 && (
                     <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>

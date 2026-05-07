@@ -56,43 +56,117 @@ export class MonitoringService {
     await this.saveNewEvents(portfolioId, userId, stateWithImprovement, previous);
   }
 
-  // Daily cron at 9AM KST (= 0AM UTC)
-  @Cron('0 0 * * *')
-  async runDailyDetection(): Promise<void> {
-    this.logger.log('Running daily portfolio state detection...');
+  // ─── Internal polling crons (KST times) ───────────────────────────────────
+  // These are implementation details — user-facing value is condition-based alerts.
 
+  @Cron('30 0 * * *') // KST 09:30 — KR open
+  async krOpen(): Promise<void> { await this.runChecksForMarket('KR'); }
+
+  @Cron('0 3 * * *')  // KST 12:00 — KR midday
+  async krMid(): Promise<void> { await this.runChecksForMarket('KR'); }
+
+  @Cron('20 6 * * *') // KST 15:20 — KR pre-close
+  async krClose(): Promise<void> { await this.runChecksForMarket('KR'); }
+
+  @Cron('30 14 * * *') // KST 23:30 — US open
+  async usOpen(): Promise<void> { await this.runChecksForMarket('US'); }
+
+  @Cron('0 17 * * *')  // KST 02:00 — US midday
+  async usMid(): Promise<void> { await this.runChecksForMarket('US'); }
+
+  @Cron('30 20 * * *') // KST 05:30 — US pre-close
+  async usClose(): Promise<void> { await this.runChecksForMarket('US'); }
+
+  // ─── Public: admin / testing ──────────────────────────────────────────────
+
+  async runAllChecksNow(): Promise<number> {
     const portfolios = await this.portfolioRepo.find();
     for (const portfolio of portfolios) {
       try {
-        await this.runDailyCheckForPortfolio(portfolio);
+        await this.runCheckForPortfolio(portfolio);
+      } catch (err) {
+        this.logger.warn(`Manual check failed for portfolio ${portfolio.id}: ${err}`);
+      }
+    }
+    return portfolios.length;
+  }
+
+  // ─── Core detection loop ──────────────────────────────────────────────────
+
+  private async runChecksForMarket(market: 'KR' | 'US'): Promise<void> {
+    this.logger.log(`Running ${market} market portfolio state detection...`);
+
+    const portfolios = await this.portfolioRepo.find();
+    let checked = 0;
+
+    for (const portfolio of portfolios) {
+      try {
+        const items = await this.portfolioItemRepo.find({
+          where: { portfolioId: portfolio.id },
+          relations: ['security'],
+        });
+
+        const hasMarket = items.some((i) => {
+          const country = i.security?.country?.toUpperCase() ?? '';
+          if (market === 'KR') return country === 'KR';
+          if (market === 'US') return country === 'US' || country === '';
+          return false;
+        });
+
+        // Cash-only or unknown country → KR schedule by default
+        const isAllCashOrUnknown = items.every(
+          (i) => i.security?.assetType === 'CASH' || i.security?.ticker?.toUpperCase() === 'CASH',
+        );
+        if (!hasMarket && !(market === 'KR' && isAllCashOrUnknown)) continue;
+
+        await this.runCheckForPortfolio(portfolio, items);
+        checked++;
       } catch (err) {
         this.logger.warn(`Detection failed for portfolio ${portfolio.id}: ${err}`);
       }
     }
 
-    this.logger.log('Daily detection complete.');
+    this.logger.log(`${market} detection complete — checked ${checked} portfolios.`);
   }
 
-  private async runDailyCheckForPortfolio(portfolio: Portfolio): Promise<void> {
-    const lastSnapshot = await this.snapshotRepo.findOne({
-      where: { portfolioId: portfolio.id, userId: portfolio.userId },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (!lastSnapshot) return;
-
-    const items = await this.portfolioItemRepo.find({
+  private async runCheckForPortfolio(
+    portfolio: Portfolio,
+    preloadedItems?: PortfolioItem[],
+  ): Promise<void> {
+    const items = preloadedItems ?? await this.portfolioItemRepo.find({
       where: { portfolioId: portfolio.id },
       relations: ['security'],
     });
 
     if (!items.length) return;
 
+    const lastSnapshot = await this.snapshotRepo.findOne({
+      where: { portfolioId: portfolio.id, userId: portfolio.userId },
+      order: { createdAt: 'DESC' },
+    });
+
+    const current = await this.computeCurrentState(portfolio.id, items);
+
+    // First run: no baseline snapshot — save current as baseline, no alerts
+    if (!lastSnapshot) {
+      await this.saveBaselineSnapshot(portfolio, current);
+      this.logger.log(`Baseline snapshot created for portfolio ${portfolio.id}`);
+      return;
+    }
+
+    const previous = this.snapshotToState(lastSnapshot);
+    await this.saveNewEvents(portfolio.id, portfolio.userId, current, previous);
+  }
+
+  private async computeCurrentState(
+    portfolioId: number,
+    items: PortfolioItem[],
+  ): Promise<SnapshotState> {
     const startDate = new Date();
     startDate.setFullYear(startDate.getFullYear() - 1);
     const startDateStr = startDate.toISOString().slice(0, 10);
 
-    // 포트폴리오 수익률 (price_daily 기준)
+    // Portfolio return from price_daily
     let portfolioReturn = 0;
     for (const item of items) {
       const isCash = item.security?.assetType === 'CASH' || item.security?.ticker?.toUpperCase() === 'CASH';
@@ -110,7 +184,7 @@ export class MonitoringService {
       }
     }
 
-    // 벤치마크 수익률
+    // Benchmark return (SP500)
     const sp500 = await this.benchmarkRepo.findOne({ where: { code: 'SP500' } });
     let benchmarkReturn = 0;
     if (sp500) {
@@ -125,7 +199,7 @@ export class MonitoringService {
       }
     }
 
-    // 집중도 / 섹터 계산
+    // Concentration + sector metrics
     const sortedWeights = items.map((i) => Number(i.weight)).sort((a, b) => b - a);
     const top3Concentration = sortedWeights.slice(0, 3).reduce((s, v) => s + v, 0);
 
@@ -180,7 +254,7 @@ export class MonitoringService {
       ? rebalanceResult.improvedScore - rebalanceResult.currentScore
       : 0;
 
-    const current: SnapshotState = {
+    return {
       healthScore,
       diversificationScore,
       top3Concentration: Number(top3Concentration.toFixed(2)),
@@ -194,10 +268,25 @@ export class MonitoringService {
       })),
       rebalanceImprovement,
     };
-
-    const previous = this.snapshotToState(lastSnapshot);
-    await this.saveNewEvents(portfolio.id, portfolio.userId, current, previous);
   }
+
+  private async saveBaselineSnapshot(portfolio: Portfolio, state: SnapshotState): Promise<void> {
+    const entity = this.snapshotRepo.create({
+      portfolioId: portfolio.id,
+      userId: portfolio.userId,
+      healthScore: state.healthScore,
+      diversificationScore: state.diversificationScore,
+      top3Concentration: state.top3Concentration,
+      maxSectorWeight: state.maxSectorWeight,
+      maxSectorName: state.maxSectorName,
+      portfolioReturn: 0,
+      benchmarkReturn: 0,
+      itemsJson: state.items ? JSON.stringify(state.items) : undefined,
+    });
+    await this.snapshotRepo.save(entity);
+  }
+
+  // ─── User-facing query methods ────────────────────────────────────────────
 
   async getUserEvents(userId: number): Promise<PortfolioStateEvent[]> {
     return this.eventRepo.find({
@@ -269,6 +358,12 @@ export class MonitoringService {
       else if (delta < -2) trend = 'down';
     }
 
+    // Latest event time — used to show "마지막 변화 감지" in UI
+    const latestEvent = await this.eventRepo.findOne({
+      where: { portfolioId, userId },
+      order: { detectedAt: 'DESC' },
+    });
+
     return {
       state: latest.state,
       reason: latest.reason,
@@ -281,11 +376,13 @@ export class MonitoringService {
         maxSectorName: latest.maxSectorName,
       },
       changedAt: latest.changedAt,
+      lastEventDetectedAt: latestEvent?.detectedAt ?? null,
     };
   }
 
+  // ─── Internal helpers ─────────────────────────────────────────────────────
+
   private async getPreviousSnapshot(portfolioId: number, userId: number): Promise<SnapshotState | null> {
-    // Get 2nd-latest snapshot (the one before the just-saved one)
     const snapshots = await this.snapshotRepo.find({
       where: { portfolioId, userId },
       order: { createdAt: 'DESC' },
@@ -355,7 +452,9 @@ export class MonitoringService {
 
       await this.eventRepo.save(entity);
 
-      // Web Push 발송 (구독자가 없거나 VAPID 미설정이면 no-op)
+      // Only push for warning/critical — opportunity events are stored but not pushed
+      if (event.severity === 'opportunity' || event.severity === 'info') continue;
+
       this.pushService.sendToUser(userId, event.title, event.message, {
         eventType: event.eventType,
         portfolioId,

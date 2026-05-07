@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Post, Req, UseGuards, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MonitoringService } from './monitoring.service';
 
@@ -32,5 +32,12 @@ export class MonitoringController {
   @Get('portfolios/:id/current-state')
   async getCurrentState(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.monitoringService.getCurrentState(id, req.user.id);
+  }
+
+  @Post('admin/monitoring/run-now')
+  @HttpCode(200)
+  async runMonitoringNow() {
+    const checked = await this.monitoringService.runAllChecksNow();
+    return { ok: true, checked };
   }
 }

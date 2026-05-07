@@ -79,7 +79,7 @@ export function detectStateChanges(
         events.push({
           eventType: 'OVERWEIGHT_ENTERED',
           title: '한 종목에 너무 많이 몰렸어요',
-          message: `${curItem.name || curItem.ticker} 비중이 ${curItem.weight.toFixed(1)}%가 됐어요. 한 종목에 너무 집중되면 그 회사 이슈가 전체에 영향을 줘요.`,
+          message: `${curItem.name || curItem.ticker} 비중이 ${prevWeight.toFixed(1)}%에서 ${curItem.weight.toFixed(1)}%로 증가했어요. 단일 종목 집중 위험 진입.`,
           severity: 'warning',
           metadataJson: JSON.stringify({ ticker: curItem.ticker, weight: curItem.weight }),
           impactBody: '한 종목이 50% 이상이면, 그 회사 한 곳의 이슈가 내 자산의 절반에 영향을 줘요. 분산 투자의 핵심은 한 바구니에 담지 않는 것이에요.',
@@ -97,7 +97,7 @@ export function detectStateChanges(
     events.push({
       eventType: 'SECTOR_BIAS_ENTERED',
       title: '비슷한 분야에 너무 몰리고 있어요',
-      message: `${current.maxSectorName} 분야 비중이 ${curSect.toFixed(1)}%까지 높아졌어요. 한 분야가 흔들리면 전체가 함께 영향받을 수 있어요.`,
+      message: `${current.maxSectorName} 섹터 비중이 ${prevSect.toFixed(1)}%에서 ${curSect.toFixed(1)}%로 증가했어요. 섹터 편중 위험 진입.`,
       severity: 'warning',
       impactBody: '같은 섹터 종목들은 경제 흐름에 따라 함께 움직여요. 섹터 편중은 여러 종목을 보유해도 실질적으로 분산이 안 된 상태예요.',
       actionType: 'diversify_sector',
@@ -112,7 +112,7 @@ export function detectStateChanges(
     events.push({
       eventType: 'TOP3_CONCENTRATION_ENTERED',
       title: '상위 3개 종목에 너무 집중됐어요',
-      message: `상위 3개 종목이 전체의 ${curTop3.toFixed(1)}%를 차지해요. 위험이 특정 종목에 집중되어 있어요.`,
+      message: `상위 3개 종목 비중이 ${prevTop3.toFixed(1)}%에서 ${curTop3.toFixed(1)}%로 증가했어요. 상위 집중도 위험 진입.`,
       severity: 'warning',
       impactBody: '상위 3개가 75%를 넘으면 그 3종목의 성과가 곧 포트폴리오 전체 성과예요. 나머지 종목들은 사실상 영향이 없는 셈이에요.',
       actionType: 'rebalance',

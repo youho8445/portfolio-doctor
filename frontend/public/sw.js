@@ -14,6 +14,7 @@ self.addEventListener('push', (event) => {
     icon: '/icon-192.png',
     badge: '/icon-72.png',
     tag: payload.data?.eventType ?? 'portfolio-notification',
+    renotify: true,
     data: payload.data ?? {},
     requireInteraction: payload.data?.severity === 'critical',
   };
@@ -23,6 +24,8 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const portfolioId = event.notification.data?.portfolioId;
+  const target = portfolioId ? `/analyzer?portfolioId=${portfolioId}` : '/analyzer';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
@@ -31,7 +34,7 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       if (clients.openWindow) {
-        return clients.openWindow('/analyzer');
+        return clients.openWindow(target);
       }
     }),
   );

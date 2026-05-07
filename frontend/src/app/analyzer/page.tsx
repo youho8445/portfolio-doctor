@@ -518,12 +518,21 @@ export default function AnalyzerPage() {
       if (permission !== 'granted') return;
 
       const reg = await navigator.serviceWorker.ready;
-      const vapidKey = await getVapidPublicKey();
-      if (!vapidKey) return;
+      const vapidKeyStr = await getVapidPublicKey();
+      if (!vapidKeyStr) {
+        alert('서버 설정 오류: 알림 키를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+      // Chrome/Edge requires Uint8Array for applicationServerKey
+      const padding = '='.repeat((4 - vapidKeyStr.length % 4) % 4);
+      const base64 = (vapidKeyStr + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = atob(base64);
+      const applicationServerKey = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; i++) applicationServerKey[i] = rawData.charCodeAt(i);
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: vapidKey,
+        applicationServerKey,
       });
 
       await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);

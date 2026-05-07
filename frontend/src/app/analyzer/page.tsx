@@ -642,12 +642,13 @@ export default function AnalyzerPage() {
 
   const handleCheckout = async () => {
     if (!currentPortfolioId || checkoutLoading) return;
-    void trackEvent('upgrade_attempt', user?.id);
+    void trackEvent('checkout_page_view', user?.id);
     try {
       setCheckoutLoading(true);
       const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
       const tossPayments = await loadTossPayments(process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY ?? '');
       const payment = tossPayments.payment({ customerKey: ANONYMOUS });
+      void trackEvent('upgrade_attempt', user?.id);
       await payment.requestPayment({
         method: 'CARD', amount: { currency: 'KRW', value: 2900 },
         orderId: `portfolio-${currentPortfolioId}-${Date.now()}`,

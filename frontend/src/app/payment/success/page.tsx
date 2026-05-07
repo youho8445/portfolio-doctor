@@ -12,7 +12,6 @@ function PaymentSuccessInner() {
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
 
   useEffect(() => {
-    void trackEvent('checkout_page_view', user?.id);
     const paymentKey = params.get('paymentKey');
     const orderId = params.get('orderId');
     const amount = Number(params.get('amount'));
@@ -21,6 +20,12 @@ function PaymentSuccessInner() {
     if (!paymentKey || !orderId || !amount || !portfolioId) {
       setStatus('error');
       return;
+    }
+
+    const trackedKey = `payment_tracked_${orderId}`;
+    if (!sessionStorage.getItem(trackedKey)) {
+      void trackEvent('payment_success', user?.id);
+      sessionStorage.setItem(trackedKey, '1');
     }
 
     confirmTossPayment(paymentKey, orderId, amount, portfolioId)

@@ -7,6 +7,7 @@ const VALID_EVENTS = [
   'premium_cta_click',
   'checkout_page_view',
   'upgrade_attempt',
+  'payment_success',
 ] as const;
 
 class TrackEventDto {

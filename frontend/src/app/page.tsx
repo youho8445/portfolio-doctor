@@ -59,12 +59,12 @@ export default function HomePage() {
           <div className={s.scoreCard}>
             <div className={`${s.label} ${s.eng}`}>Health Score</div>
             <div className={`${s.value} ${s.valueYellow}`}>50</div>
-            <div className={s.sub}>주식 전</div>
+            <div className={s.sub}>AI 적용 전</div>
           </div>
           <div className={s.scoreCard}>
             <div className={`${s.label} ${s.eng}`}>After AI</div>
             <div className={`${s.value} ${s.valueGreen}`}>75</div>
-            <div className={s.sub}>이후</div>
+            <div className={s.sub}>AI 적용 후</div>
           </div>
           <div className={s.scoreCard}>
             <div className={`${s.label} ${s.eng}`}>Return</div>
@@ -78,7 +78,7 @@ export default function HomePage() {
       <div className={s.section}>
         <div className={s.reveal}>
           <div className={`${s.sectionLabel} ${s.eng}`}>Features</div>
-          <h2 className={s.sectionTitle}>주식 성적 받아보는<br />진단까지 해주는 건<br />이게 처음이에요</h2>
+          <h2 className={s.sectionTitle}>주식 앱은 많은데<br />진단까지 해주는 건<br />이게 처음이에요</h2>
           <p className={s.sectionDesc}>차트 보여주는 앱은 넘치지만, 내 포트폴리오가 건강한지 알려주는 앱은 없었습니다.</p>
         </div>
 
@@ -121,12 +121,12 @@ export default function HomePage() {
           <div className={s.baRow}>
             <div className={s.baBox}>
               <div className={`${s.baNum} ${s.before} ${s.eng}`}>40</div>
-              <div className={s.baStatus}>보통</div>
+              <div className={s.baStatus}>리밸런싱 전</div>
             </div>
             <div className={s.baArrow}>→</div>
             <div className={s.baBox}>
               <div className={`${s.baNum} ${s.after} ${s.eng}`}>75</div>
-              <div className={s.baStatus}>이후</div>
+              <div className={s.baStatus}>리밸런싱 후</div>
             </div>
           </div>
           <div className={`${s.baBadge} ${s.eng}`}>+35점 개선</div>
@@ -142,8 +142,8 @@ export default function HomePage() {
       <div className={s.section}>
         <div className={s.reveal}>
           <div className={`${s.sectionLabel} ${s.eng}`}>Notifications</div>
-          <h2 className={s.sectionTitle}>저 다이어서<br />AI가 먼저 알려줬어요</h2>
-          <p className={s.sectionDesc}>매일 앱 열 필요 없습니다. 변화가 생기면 알림이 옵니다.</p>
+          <h2 className={s.sectionTitle}>안 들어와도<br />AI가 먼저 알려줘요</h2>
+          <p className={s.sectionDesc}>매일 확인 안 해도 됩니다. 변화가 생기면 알림이 먼저 옵니다.</p>
         </div>
 
         <div className={`${s.notifMock} ${s.reveal}`}>
@@ -165,7 +165,7 @@ export default function HomePage() {
         <div className={`${s.notifMock} ${s.reveal}`}>
           <div className={`${s.notifDot} ${s.purple}`} />
           <div>
-            <div className={s.notifText}><strong>삼성전자 관련 뉴스 3건</strong><br />시간이이자 사우리 최고 치 경쟁</div>
+            <div className={s.notifText}><strong>삼성전자 관련 뉴스 3건</strong><br />시가총액 사상 최고치 경신</div>
             <div className={s.notifTime}>어제 오전 10:30</div>
           </div>
         </div>

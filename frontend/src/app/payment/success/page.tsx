@@ -2,14 +2,17 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { confirmTossPayment } from '@/lib/api';
+import { confirmTossPayment, trackEvent } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 function PaymentSuccessInner() {
   const router = useRouter();
   const params = useSearchParams();
+  const { user } = useAuth();
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
 
   useEffect(() => {
+    void trackEvent('checkout_page_view', user?.id);
     const paymentKey = params.get('paymentKey');
     const orderId = params.get('orderId');
     const amount = Number(params.get('amount'));

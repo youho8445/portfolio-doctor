@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { trackEvent } from '@/lib/api';
 
 interface Props {
   isOpen: boolean;
@@ -9,6 +11,8 @@ interface Props {
 }
 
 export default function PremiumCompareModal({ isOpen, onClose, onCta }: Props) {
+  const { user } = useAuth();
+
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -23,6 +27,7 @@ export default function PremiumCompareModal({ isOpen, onClose, onCta }: Props) {
   if (!isOpen) return null;
 
   const handleCta = () => {
+    void trackEvent('premium_cta_click', user?.id);
     onClose();
     onCta();
   };

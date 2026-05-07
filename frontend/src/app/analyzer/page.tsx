@@ -30,6 +30,7 @@ import {
   markAllEventsRead,
   markEventRead,
   registerPushSubscription,
+  trackEvent,
   updatePortfolio,
 } from '@/lib/api';
 import {
@@ -641,6 +642,7 @@ export default function AnalyzerPage() {
 
   const handleCheckout = async () => {
     if (!currentPortfolioId || checkoutLoading) return;
+    void trackEvent('upgrade_attempt', user?.id);
     try {
       setCheckoutLoading(true);
       const { loadTossPayments, ANONYMOUS } = await import('@tosspayments/tosspayments-sdk');
@@ -736,7 +738,7 @@ export default function AnalyzerPage() {
                         <button
                           className="mt-2 text-[11px] font-semibold px-3 py-1.5 rounded-lg transition-all"
                           style={{ background: '#f1f5f9', color: '#64748b' }}
-                          onClick={(e) => { e.stopPropagation(); setNotifOpen(false); setPremiumModalOpen(true); }}
+                          onClick={(e) => { e.stopPropagation(); setNotifOpen(false); setPremiumModalOpen(true); void trackEvent('premium_modal_open', user?.id); }}
                         >
                           🔒 자세한 이유 보기
                         </button>

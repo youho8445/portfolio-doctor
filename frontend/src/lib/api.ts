@@ -1,5 +1,17 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+export async function trackEvent(event: string, userId?: number | null): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/analytics/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, userId: userId ?? null }),
+    });
+  } catch {
+    // fire-and-forget
+  }
+}
+
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('auth_token');

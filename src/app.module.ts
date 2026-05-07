@@ -14,6 +14,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { AdminModule } from './admin/admin.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { PushModule } from './push/push.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   controllers: [AppController],
@@ -46,6 +47,7 @@ import { PushModule } from './push/push.module';
     AdminModule,
     MonitoringModule,
     PushModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

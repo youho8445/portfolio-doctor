@@ -19,10 +19,16 @@ import { MockSmsProvider } from './sms/mock-sms.provider';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') ?? 'default-secret',
-        signOptions: { expiresIn: '7d' },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        if (!secret) {
+          throw new Error('[Auth] JWT_SECRET environment variable is required but not set. App cannot start.');
+        }
+        return {
+          secret,
+          signOptions: { expiresIn: '72h' },
+        };
+      },
     }),
   ],
   controllers: [AuthController],

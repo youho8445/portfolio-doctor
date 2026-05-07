@@ -41,7 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${stored}` },
       })
-        .then((r) => r.ok ? r.json() : null)
+        .then((r) => {
+          if (r.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('auth_user');
+            setToken(null);
+            setUser(null);
+            return null;
+          }
+          return r.ok ? r.json() : null;
+        })
         .then((u) => { if (u) { setUser(u); localStorage.setItem('auth_user', JSON.stringify(u)); } })
         .catch(() => {});
     }

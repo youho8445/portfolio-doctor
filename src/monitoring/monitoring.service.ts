@@ -41,7 +41,8 @@ export class MonitoringService {
     private readonly pushService: PushService,
   ) {}
 
-  // Called immediately after a user-triggered analysis + snapshot save
+  // Called immediately after a user-triggered analysis.
+  // Saves today's snapshot and fires events if state changed since last snapshot.
   async detectAfterAnalysis(
     portfolioId: number,
     userId: number,
@@ -50,9 +51,22 @@ export class MonitoringService {
   ): Promise<void> {
     const stateWithImprovement: SnapshotState = { ...current, rebalanceImprovement };
 
-    const previous = await this.getPreviousSnapshot(portfolioId, userId);
-    if (!previous) return;
+    // Capture previous state BEFORE saving the new snapshot
+    const lastSnapshot = await this.snapshotRepo.findOne({
+      where: { portfolioId, userId },
+      order: { createdAt: 'DESC' },
+    });
 
+    const portfolio = await this.portfolioRepo.findOne({ where: { id: portfolioId, userId } });
+    if (!portfolio) return;
+
+    // Save today's snapshot (at most once per day)
+    await this.saveSnapshotIfNeeded(portfolio, stateWithImprovement);
+
+    // First run — baseline saved, no events
+    if (!lastSnapshot) return;
+
+    const previous = this.snapshotToState(lastSnapshot);
     await this.saveNewEvents(portfolioId, userId, stateWithImprovement, previous);
   }
 
@@ -147,9 +161,11 @@ export class MonitoringService {
 
     const current = await this.computeCurrentState(portfolio.id, items);
 
-    // First run: no baseline snapshot — save current as baseline, no alerts
+    // Save today's snapshot (at most once per day)
+    await this.saveSnapshotIfNeeded(portfolio, current);
+
+    // First run: baseline saved, no events
     if (!lastSnapshot) {
-      await this.saveBaselineSnapshot(portfolio, current);
       this.logger.log(`Baseline snapshot created for portfolio ${portfolio.id}`);
       return;
     }
@@ -268,6 +284,22 @@ export class MonitoringService {
       })),
       rebalanceImprovement,
     };
+  }
+
+  // Saves a snapshot for today if one doesn't already exist for this portfolio.
+  // Keeps at most one snapshot per day (used as the comparison baseline for the next check).
+  private async saveSnapshotIfNeeded(portfolio: Portfolio, state: SnapshotState): Promise<void> {
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+    const existingToday = await this.snapshotRepo.findOne({
+      where: {
+        portfolioId: portfolio.id,
+        userId: portfolio.userId,
+        createdAt: MoreThanOrEqual(todayMidnight),
+      },
+    });
+    if (existingToday) return;
+    await this.saveBaselineSnapshot(portfolio, state);
   }
 
   private async saveBaselineSnapshot(portfolio: Portfolio, state: SnapshotState): Promise<void> {

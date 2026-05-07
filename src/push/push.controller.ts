@@ -26,4 +26,15 @@ export class PushController {
     await this.pushService.unsubscribe(req.user.id, body.endpoint);
     return { ok: true };
   }
+
+  @Post('test')
+  async testPush(@Req() req: any) {
+    await this.pushService.sendToUser(
+      req.user.id,
+      '알림 테스트',
+      '브라우저 알림이 정상 작동합니다! 포트폴리오에 변화가 생기면 이렇게 알려드려요.',
+      { eventType: 'test', portfolioId: null, severity: 'info' },
+    );
+    return { ok: true };
+  }
 }

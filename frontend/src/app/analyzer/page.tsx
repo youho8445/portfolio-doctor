@@ -30,6 +30,7 @@ import {
   markAllEventsRead,
   markEventRead,
   registerPushSubscription,
+  sendTestPush,
   trackEvent,
   updatePortfolio,
 } from '@/lib/api';
@@ -499,6 +500,15 @@ export default function AnalyzerPage() {
     }
   };
 
+  const vapidKeyToUint8Array = (keyStr: string): Uint8Array => {
+    const padding = '='.repeat((4 - keyStr.length % 4) % 4);
+    const base64 = (keyStr + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const arr = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i++) arr[i] = rawData.charCodeAt(i);
+    return arr;
+  };
+
   const handleEnablePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     if (Notification.permission === 'denied') {
@@ -507,7 +517,6 @@ export default function AnalyzerPage() {
     }
     try {
       setPushLoading(true);
-      // timeout: 15초 안에 사용자가 응답하지 않으면 loading 해제
       const permissionWithTimeout = Promise.race([
         Notification.requestPermission(),
         new Promise<NotificationPermission>((_, reject) =>
@@ -523,29 +532,36 @@ export default function AnalyzerPage() {
         alert('서버 설정 오류: 알림 키를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
         return;
       }
-      // Chrome/Edge requires Uint8Array for applicationServerKey
-      const padding = '='.repeat((4 - vapidKeyStr.length % 4) % 4);
-      const base64 = (vapidKeyStr + padding).replace(/-/g, '+').replace(/_/g, '/');
-      const rawData = atob(base64);
-      const applicationServerKey = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; i++) applicationServerKey[i] = rawData.charCodeAt(i);
+
+      // Always unsubscribe existing subscription first (handles VAPID key rotation)
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) await existing.unsubscribe();
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey,
+        applicationServerKey: vapidKeyToUint8Array(vapidKeyStr),
       });
 
       await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
       setPushEnabled(true);
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'timeout') {
-        // Edge 등에서 권한 요청 팝업을 못 찾는 경우 — 주소창을 확인하도록 안내
         alert('알림 권한 요청이 응답 없이 초과되었습니다.\n주소창 오른쪽의 벨/알림 아이콘을 클릭해 허용해주세요.');
       } else {
         console.error('Push subscription failed', err);
+        alert('알림 설정에 실패했습니다. 잠시 후 다시 시도해주세요.');
       }
     } finally {
       setPushLoading(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    try {
+      await sendTestPush();
+      // success — notification will appear via service worker
+    } catch {
+      alert('테스트 알림 전송 실패. 다시 시도해주세요.');
     }
   };
 
@@ -789,8 +805,17 @@ export default function AnalyzerPage() {
         {typeof window !== 'undefined' && 'Notification' in window && (
           <div className="px-4 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
             {pushEnabled ? (
-              <div className="flex items-center gap-2 text-xs" style={{ color: '#10b981' }}>
-                <span>●</span> 브라우저 알림 켜짐
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
+                  <span>●</span> 브라우저 알림 켜짐
+                </div>
+                <button
+                  onClick={handleTestPush}
+                  className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all hover:opacity-80"
+                  style={{ background: accent.light, color: accent.hex }}
+                >
+                  테스트 알림
+                </button>
               </div>
             ) : (
               <button

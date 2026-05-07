@@ -347,6 +347,14 @@ export async function unregisterPushSubscription(endpoint: string): Promise<void
   });
 }
 
+export async function sendTestPush(): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/push/test`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to send test push');
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

@@ -501,9 +501,20 @@ export default function AnalyzerPage() {
 
   const handleEnablePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (Notification.permission === 'denied') {
+      alert('브라우저 알림이 차단되어 있습니다.\n주소창 왼쪽 자물쇠(또는 정보) 아이콘 → 알림 → 허용 으로 변경 후 다시 시도해주세요.');
+      return;
+    }
     try {
       setPushLoading(true);
-      const permission = await Notification.requestPermission();
+      // timeout: 15초 안에 사용자가 응답하지 않으면 loading 해제
+      const permissionWithTimeout = Promise.race([
+        Notification.requestPermission(),
+        new Promise<NotificationPermission>((_, reject) =>
+          setTimeout(() => reject(new Error('timeout')), 15000),
+        ),
+      ]);
+      const permission = await permissionWithTimeout;
       if (permission !== 'granted') return;
 
       const reg = await navigator.serviceWorker.ready;
@@ -517,8 +528,13 @@ export default function AnalyzerPage() {
 
       await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
       setPushEnabled(true);
-    } catch (err) {
-      console.error('Push subscription failed', err);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'timeout') {
+        // Edge 등에서 권한 요청 팝업을 못 찾는 경우 — 주소창을 확인하도록 안내
+        alert('알림 권한 요청이 응답 없이 초과되었습니다.\n주소창 오른쪽의 벨/알림 아이콘을 클릭해 허용해주세요.');
+      } else {
+        console.error('Push subscription failed', err);
+      }
     } finally {
       setPushLoading(false);
     }
@@ -774,7 +790,11 @@ export default function AnalyzerPage() {
                 className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
                 style={{ background: accent.light, color: accent.hex }}
               >
-                {pushLoading ? '요청 중...' : '🔔 브라우저 알림 켜기'}
+                {pushLoading
+                  ? '주소창의 알림 아이콘을 클릭해 허용해주세요'
+                  : Notification.permission === 'denied'
+                  ? '🔕 알림 차단됨 (설정에서 허용)'
+                  : '🔔 브라우저 알림 켜기'}
               </button>
             )}
           </div>

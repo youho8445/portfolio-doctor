@@ -92,7 +92,7 @@ export class AuthService {
     }
 
     const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
     const user = this.userRepo.create({
       name: dto.name,
@@ -241,7 +241,7 @@ export class AuthService {
   ) {
     this.validateConsents(consents);
     const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+    trialEndsAt.setDate(trialEndsAt.getDate() + 30);
 
     const user = this.userRepo.create({
       name: data.name ?? null,

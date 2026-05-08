@@ -71,8 +71,8 @@ export class AdminController {
     @Body() body: { days?: number },
   ) {
     this.requireAdmin(req.user.email);
-    await this.adminService.grantTrial(id, body.days ?? 7);
-    return { message: `트라이얼 ${body.days ?? 7}일 부여 완료` };
+    await this.adminService.grantTrial(id, body.days ?? 30);
+    return { message: `트라이얼 ${body.days ?? 30}일 부여 완료` };
   }
 
   @Delete('users/:id/trial')

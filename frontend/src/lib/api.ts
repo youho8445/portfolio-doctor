@@ -232,7 +232,7 @@ export async function changeAdminUserPassword(userId: number, password: string):
   if (!res.ok) throw new Error('Failed to change password');
 }
 
-export async function grantAdminTrial(userId: number, days = 7): Promise<void> {
+export async function grantAdminTrial(userId: number, days = 30): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/trial`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },

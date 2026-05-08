@@ -520,10 +520,10 @@ export default function AdminPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => grantAdminTrial(u.id, 7).then(() => getAdminUsers().then(setUsers)).catch(() => {})}
+                            onClick={() => grantAdminTrial(u.id, 30).then(() => getAdminUsers().then(setUsers)).catch(() => {})}
                             className="text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all"
                             style={{ background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.2)' }}
-                            title="7일 무료 체험 부여"
+                            title="30일 무료 체험 부여"
                           >
                             체험 부여
                           </button>

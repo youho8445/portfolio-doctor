@@ -7,6 +7,9 @@ import dynamic from 'next/dynamic';
 const TickerModal = dynamic(() => import('@/components/TickerModal'), { ssr: false });
 const BeginnerGuide = dynamic(() => import('@/components/BeginnerGuide'), { ssr: false });
 const PremiumCompareModal = dynamic(() => import('@/components/PremiumCompareModal'), { ssr: false });
+const GlossaryDrawer = dynamic(() => import('@/components/GlossaryDrawer'), { ssr: false });
+const MarketIndexCard = dynamic(() => import('@/components/MarketIndexCard'), { ssr: false });
+import TermTooltip from '@/components/TermTooltip';
 import type { BeginnerResult } from '@/components/BeginnerGuide';
 import { PortraLogo } from '@/components/brand/PortraLogo';
 import { buildRiskTags, buildRiskExplanation } from '@/lib/riskSignal';
@@ -221,6 +224,8 @@ export default function AnalyzerPage() {
   const [premiumModalOpen, setPremiumModalOpen] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
+  const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [marketModalOpen, setMarketModalOpen] = useState(false);
 
   const tickerNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -1129,13 +1134,29 @@ export default function AnalyzerPage() {
                 <p className="hidden lg:block text-sm mt-1.5" style={{ color: '#94a3b8' }}>
                   내 포트폴리오의 흐름을 AI로 관리하세요
                 </p>
-                <button
-                  onClick={() => setBeginnerGuideOpen(true)}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
-                  style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}
-                >
-                  <span>🌱</span> 주식이 처음이신가요? 투자 성향 테스트
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setBeginnerGuideOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
+                    style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}
+                  >
+                    <span>🌱</span> 주식이 처음이신가요? 투자 성향 테스트
+                  </button>
+                  <button
+                    onClick={() => setGlossaryOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
+                    style={{ background: '#ede9fe', color: '#7c3aed', border: '1px solid #ddd6fe' }}
+                  >
+                    <span>📘</span> 투자 용어 사전
+                  </button>
+                  <button
+                    onClick={() => setMarketModalOpen(true)}
+                    className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
+                    style={{ background: '#f0fdf4', color: '#059669', border: '1px solid #bbf7d0' }}
+                  >
+                    <span>📊</span> 시장 보기
+                  </button>
+                </div>
               </div>
 
               {/* 데스크탑: 알림 벨 + 분석 결과 스탯 카드 */}
@@ -1179,7 +1200,7 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
                   <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>분산도</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}><TermTooltip term="분산">분산도</TermTooltip></div>
                     <div className="font-black" style={{ fontSize: 28, color: '#10b981', lineHeight: 1 }}>
                       {analysis.diversificationScore}
                     </div>
@@ -1209,7 +1230,7 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
                   <div className="rounded-xl px-4 py-2.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                    <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>분산도</div>
+                    <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}><TermTooltip term="분산">분산도</TermTooltip></div>
                     <div className="font-black" style={{ fontSize: 22, color: '#10b981', lineHeight: 1 }}>
                       {analysis.diversificationScore}
                     </div>
@@ -2517,6 +2538,7 @@ export default function AnalyzerPage() {
 
             {/* ── 뉴스 사이드 컬럼 (항상 표시) ── */}
             <div className="hidden lg:block shrink-0 sticky top-14" style={{ width: 300 }}>
+              <MarketIndexCard className="mb-3" />
               <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
                   <div>
@@ -2663,6 +2685,12 @@ export default function AnalyzerPage() {
 
       {/* 프리미엄 비교 모달 */}
       <PremiumCompareModal isOpen={premiumModalOpen} onClose={() => setPremiumModalOpen(false)} onCta={handleCheckout} />
+
+      {/* 투자 용어 사전 */}
+      <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
+
+      {/* 시장 한눈에 보기 — 모바일 모달 */}
+      {marketModalOpen && <MarketIndexCard modal onClose={() => setMarketModalOpen(false)} />}
 
       {/* 초보자 가이드 모달 */}
       {beginnerGuideOpen && (

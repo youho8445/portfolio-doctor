@@ -366,6 +366,21 @@ export async function sendTestPush(): Promise<void> {
   }
 }
 
+export interface MarketIndex {
+  symbol: string;
+  name: string;
+  description: string;
+  value: number | null;
+  changePercent: number | null;
+  stale: boolean;
+}
+
+export async function getMarketIndices(): Promise<{ updatedAt: string; indices: MarketIndex[] }> {
+  const res = await fetch(`${API_BASE_URL}/market/indices`, { cache: 'no-store' });
+  if (!res.ok) return { updatedAt: '', indices: [] };
+  return res.json();
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

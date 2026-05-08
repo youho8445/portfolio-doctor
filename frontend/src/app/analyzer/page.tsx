@@ -490,6 +490,17 @@ export default function AnalyzerPage() {
     } finally { setPwSaving(false); }
   };
 
+  const goHome = () => {
+    setPortfolioName('새 포트폴리오');
+    setItems([]);
+    setCurrentPortfolioId(null);
+    setAnalysis(null);
+    setPortfolioState(null);
+    setActiveTab('input');
+    setMobileSidebarOpen(false);
+    setNotifOpen(false);
+  };
+
   const handleNotificationAction = (portfolioId: number) => {
     setNotifOpen(false);
     if (!portfolioId) return;
@@ -847,7 +858,7 @@ export default function AnalyzerPage() {
   const SidebarContent = () => (
     <>
       {/* 로고 */}
-      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
+      <div className="px-5 py-4 cursor-pointer" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }} onClick={goHome}>
         <PortraLogo size={30} />
       </div>
 
@@ -985,6 +996,7 @@ export default function AnalyzerPage() {
   // ── 렌더 ──────────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f3ee', color: '#1c1c1e' }}>
+      {notifOpen && <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />}
 
       {/* ── 데스크탑 사이드바 ── */}
       <aside
@@ -1071,7 +1083,7 @@ export default function AnalyzerPage() {
                 <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
             </button>
-            <PortraLogo size={26} />
+            <button onClick={goHome} className="cursor-pointer"><PortraLogo size={26} /></button>
             <div className="flex items-center gap-2">
               {/* 모바일 알림 벨 */}
               {(() => {
@@ -1093,7 +1105,7 @@ export default function AnalyzerPage() {
                       )}
                     </button>
                     {notifOpen && (
-                      <div className="fixed z-50 rounded-2xl shadow-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', top: 56, left: 16, right: 16 }}>
+                      <div className="fixed z-50 rounded-2xl shadow-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', top: 56, left: 16, right: 16 }} onClick={(e) => e.stopPropagation()}>
                         {/* 드롭다운 내용은 아래 데스크탑 버전과 공유 */}
                         {renderNotifDropdown()}
                       </div>
@@ -1112,7 +1124,7 @@ export default function AnalyzerPage() {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
               <div>
                 <h1 className="hidden lg:block">
-                  <PortraLogo size={42} />
+                  <button onClick={goHome} className="cursor-pointer"><PortraLogo size={42} /></button>
                 </h1>
                 <p className="hidden lg:block text-sm mt-1.5" style={{ color: '#94a3b8' }}>
                   내 포트폴리오의 흐름을 AI로 관리하세요
@@ -1150,7 +1162,7 @@ export default function AnalyzerPage() {
                       )}
                     </button>
                     {notifOpen && (
-                      <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl shadow-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4' }}>
+                      <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl shadow-xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4' }} onClick={(e) => e.stopPropagation()}>
                         {renderNotifDropdown()}
                       </div>
                     )}

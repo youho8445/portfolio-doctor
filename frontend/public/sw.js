@@ -39,12 +39,14 @@ self.addEventListener('notificationclick', (event) => {
   console.log('[SW] notification clicked');
   event.notification.close();
   const portfolioId = event.notification.data?.portfolioId;
-  const target = portfolioId ? `/analyzer?portfolioId=${portfolioId}` : '/analyzer';
+  const path = portfolioId ? `/analyzer?portfolioId=${portfolioId}` : '/analyzer';
+  const target = self.location.origin + path;
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes('/analyzer') && 'focus' in client) {
-          return client.focus();
+          client.focus();
+          return client.navigate(target);
         }
       }
       if (clients.openWindow) {

@@ -1646,6 +1646,37 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
 
+                  {/* ── 브라우저 알림 설정 ── */}
+                  {typeof window !== 'undefined' && 'Notification' in window && (
+                    <div className="rounded-2xl px-4 py-3.5" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
+                      <div className="flex items-center justify-between mb-2.5">
+                        <span className="text-[11px] font-semibold" style={{ color: '#64748b' }}>브라우저 알림 설정</span>
+                        {pushEnabled && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#d1fae5', color: '#065f46' }}>● 켜짐</span>
+                        )}
+                      </div>
+                      {pushEnabled ? (
+                        <button
+                          onClick={handleTestPush}
+                          disabled={pushLoading}
+                          className="w-full rounded-xl py-2 text-xs font-bold transition-all disabled:opacity-50"
+                          style={{ background: testPushSent ? '#16a34a' : accent.hex, color: '#ffffff' }}
+                        >
+                          {pushLoading ? '전송 중...' : testPushSent ? '✓ 윈도우 알림 전송됨!' : '🔔 테스트 알림 보내기'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleEnablePush}
+                          disabled={pushLoading}
+                          className="w-full rounded-xl py-2 text-xs font-bold transition-all disabled:opacity-50"
+                          style={{ background: accent.hex, color: '#ffffff' }}
+                        >
+                          {pushLoading ? '설정 중...' : Notification.permission === 'denied' ? '🔕 알림 차단됨 (설정에서 허용)' : '🔔 윈도우 알림 켜기'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* ── 최근 변화 알림 ── */}
                   {portfolioEvents.length > 0 && (
                     <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>

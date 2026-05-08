@@ -30,13 +30,8 @@ export class PushService {
   }
 
   async subscribe(userId: number, endpoint: string, keys: { p256dh: string; auth: string }): Promise<void> {
-    // Upsert by endpoint — handles re-subscription with updated keys
-    const existing = await this.subRepo.findOne({ where: { userId, endpoint } });
-    if (existing) {
-      existing.keysJson = JSON.stringify(keys);
-      await this.subRepo.save(existing);
-      return;
-    }
+    // Replace all existing subscriptions — keeps only the most recent domain/device
+    await this.subRepo.delete({ userId });
     const sub = this.subRepo.create({ userId, endpoint, keysJson: JSON.stringify(keys) });
     await this.subRepo.save(sub);
   }

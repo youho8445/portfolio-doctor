@@ -30,14 +30,14 @@ export class PushService {
   }
 
   async subscribe(userId: number, endpoint: string, keys: { p256dh: string; auth: string }): Promise<void> {
+    // Upsert by endpoint — handles re-subscription with updated keys
     const existing = await this.subRepo.findOne({ where: { userId, endpoint } });
-    if (existing) return;
-
-    const sub = this.subRepo.create({
-      userId,
-      endpoint,
-      keysJson: JSON.stringify(keys),
-    });
+    if (existing) {
+      existing.keysJson = JSON.stringify(keys);
+      await this.subRepo.save(existing);
+      return;
+    }
+    const sub = this.subRepo.create({ userId, endpoint, keysJson: JSON.stringify(keys) });
     await this.subRepo.save(sub);
   }
 
@@ -45,34 +45,42 @@ export class PushService {
     await this.subRepo.delete({ userId, endpoint });
   }
 
-  async sendToUser(userId: number, title: string, body: string, data?: Record<string, unknown>): Promise<void> {
-    if (!this.vapidConfigured) return;
+  async sendToUser(userId: number, title: string, body: string, data?: Record<string, unknown>): Promise<{ sent: number; failed: number }> {
+    if (!this.vapidConfigured) {
+      this.logger.warn('sendToUser skipped — VAPID not configured');
+      return { sent: 0, failed: 0 };
+    }
 
     const subs = await this.subRepo.find({ where: { userId } });
-    const payload = JSON.stringify({ title, body, data: data ?? {} });
+    if (!subs.length) {
+      this.logger.warn(`sendToUser: no subscriptions for userId ${userId}`);
+      return { sent: 0, failed: 0 };
+    }
 
+    const payload = JSON.stringify({ title, body, data: data ?? {} });
     const removes: number[] = [];
+    let sent = 0;
+    let failed = 0;
+
     await Promise.all(
       subs.map(async (sub) => {
         try {
           const keys = JSON.parse(sub.keysJson) as { p256dh: string; auth: string };
-          await webpush.sendNotification(
-            { endpoint: sub.endpoint, keys },
-            payload,
-          );
+          await webpush.sendNotification({ endpoint: sub.endpoint, keys }, payload);
+          sent++;
         } catch (err: any) {
-          // 410 Gone = subscription expired/unregistered
           if (err?.statusCode === 410 || err?.statusCode === 404) {
             removes.push(sub.id);
           } else {
-            this.logger.warn(`Push failed for sub ${sub.id}: ${err?.message}`);
+            this.logger.warn(`Push failed for sub ${sub.id}: ${err?.statusCode} ${err?.message}`);
           }
+          failed++;
         }
       }),
     );
 
-    if (removes.length) {
-      await this.subRepo.delete(removes);
-    }
+    if (removes.length) await this.subRepo.delete(removes);
+    this.logger.log(`Push to userId ${userId}: sent=${sent} failed=${failed}`);
+    return { sent, failed };
   }
 }

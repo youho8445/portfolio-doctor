@@ -561,12 +561,35 @@ export default function AnalyzerPage() {
   const [testPushSent, setTestPushSent] = useState(false);
 
   const handleTestPush = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      alert('이 브라우저는 푸시 알림을 지원하지 않습니다.');
+      return;
+    }
     try {
+      setPushLoading(true);
+      // Re-subscribe to ensure subscription is fresh with current VAPID key
+      const reg = await navigator.serviceWorker.ready;
+      const vapidKeyStr = await getVapidPublicKey();
+      if (!vapidKeyStr) {
+        alert('서버 연결 오류: 로그인 상태를 확인해주세요.');
+        return;
+      }
+      const existing = await reg.pushManager.getSubscription();
+      if (existing) await existing.unsubscribe();
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKeyToUint8Array(vapidKeyStr),
+      });
+      await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
+      // Send test push
       await sendTestPush();
       setTestPushSent(true);
       setTimeout(() => setTestPushSent(false), 3000);
-    } catch {
-      alert('테스트 알림 전송 실패. 서버 연결을 확인해주세요.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`알림 테스트 실패: ${msg}`);
+    } finally {
+      setPushLoading(false);
     }
   };
 

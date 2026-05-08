@@ -257,6 +257,7 @@ export default function AnalyzerPage() {
 
   useEffect(() => {
     if (authLoading) return;
+    void trackEvent('page_view_analyzer', user?.id);
     if (!isLoggedIn) { openModal(); return; }
     loadSavedPortfolios();
     getDataFreshness().then((d) => setLastPriceDate(d.lastPriceDate)).catch(() => {});

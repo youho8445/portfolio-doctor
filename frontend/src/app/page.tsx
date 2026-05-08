@@ -30,7 +30,7 @@ export default function HomePage() {
       {/* HERO */}
       <div className={s.hero}>
         <div className={s.logoArea}>
-          <Image src="/portra-icon.svg" width={36} height={36} alt="Portra AI" className={s.logoIconImg} />
+          <Image src="/portra-logo.png" width={36} height={36} alt="Portra AI" className={s.logoIconImg} />
           <span className={`${s.logoText} ${s.eng}`}>Portra AI</span>
         </div>
 

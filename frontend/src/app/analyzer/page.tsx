@@ -833,16 +833,17 @@ export default function AnalyzerPage() {
         {typeof window !== 'undefined' && 'Notification' in window && (
           <div className="px-4 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
             {pushEnabled ? (
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
                   <span>●</span> 브라우저 알림 켜짐
                 </div>
                 <button
                   onClick={handleTestPush}
-                  className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all hover:opacity-80"
-                  style={{ background: testPushSent ? '#f0fdf4' : accent.light, color: testPushSent ? '#16a34a' : accent.hex }}
+                  disabled={pushLoading}
+                  className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
+                  style={{ background: testPushSent ? '#16a34a' : accent.hex, color: '#ffffff' }}
                 >
-                  {testPushSent ? '전송됨 ✓' : '테스트 알림'}
+                  {pushLoading ? '전송 중...' : testPushSent ? '✓ 윈도우 알림 전송됨!' : '🔔 테스트 알림 보내기'}
                 </button>
               </div>
             ) : (

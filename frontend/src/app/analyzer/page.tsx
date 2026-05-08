@@ -544,6 +544,8 @@ export default function AnalyzerPage() {
 
       await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
       setPushEnabled(true);
+      // Immediately send a test push so the user can confirm it works
+      try { await sendTestPush(); } catch { /* best-effort */ }
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'timeout') {
         alert('알림 권한 요청이 응답 없이 초과되었습니다.\n주소창 오른쪽의 벨/알림 아이콘을 클릭해 허용해주세요.');
@@ -556,12 +558,15 @@ export default function AnalyzerPage() {
     }
   };
 
+  const [testPushSent, setTestPushSent] = useState(false);
+
   const handleTestPush = async () => {
     try {
       await sendTestPush();
-      // success — notification will appear via service worker
+      setTestPushSent(true);
+      setTimeout(() => setTestPushSent(false), 3000);
     } catch {
-      alert('테스트 알림 전송 실패. 다시 시도해주세요.');
+      alert('테스트 알림 전송 실패. 서버 연결을 확인해주세요.');
     }
   };
 
@@ -812,9 +817,9 @@ export default function AnalyzerPage() {
                 <button
                   onClick={handleTestPush}
                   className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all hover:opacity-80"
-                  style={{ background: accent.light, color: accent.hex }}
+                  style={{ background: testPushSent ? '#f0fdf4' : accent.light, color: testPushSent ? '#16a34a' : accent.hex }}
                 >
-                  테스트 알림
+                  {testPushSent ? '전송됨 ✓' : '테스트 알림'}
                 </button>
               </div>
             ) : (

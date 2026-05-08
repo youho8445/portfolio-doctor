@@ -14,7 +14,7 @@ export interface PortraAppIconProps { size?: number; className?: string; }
 export function PortraSymbol({ size = 36, className }: PortraSymbolProps) {
   return (
     <span className={className} style={{ display: 'inline-flex', flexShrink: 0 }} aria-label="Portra AI">
-      <Image src="/portra-logo.png" width={size} height={size} alt="Portra AI" style={{ objectFit: 'contain' }} />
+      <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Portra AI" style={{ objectFit: 'contain' }} />
     </span>
   );
 }
@@ -36,7 +36,7 @@ export function PortraLogo({
       role="img"
       aria-label="Portra AI"
     >
-      <Image src="/portra-logo.png" width={size} height={size} alt="Portra AI" style={{ objectFit: 'contain', flexShrink: 0 }} />
+      <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Portra AI" style={{ objectFit: 'contain', flexShrink: 0 }} />
       {showText && (
         <span style={{
           fontFamily: 'var(--font-dm-sans), Inter, -apple-system, sans-serif',

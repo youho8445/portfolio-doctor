@@ -865,7 +865,7 @@ export default function AnalyzerPage() {
     <>
       {/* 로고 */}
       <div className="px-5 py-4 cursor-pointer" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }} onClick={goHome}>
-        <PortraLogo size={40} />
+        <PortraLogo size={56} />
       </div>
 
       {/* 포트폴리오 목록 */}
@@ -1089,7 +1089,7 @@ export default function AnalyzerPage() {
                 <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
               </svg>
             </button>
-            <button onClick={goHome} className="cursor-pointer"><PortraLogo size={36} /></button>
+            <button onClick={goHome} className="cursor-pointer"><PortraLogo size={48} /></button>
             <div className="flex items-center gap-2">
               {/* 모바일 알림 벨 */}
               {(() => {
@@ -1130,7 +1130,7 @@ export default function AnalyzerPage() {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
               <div>
                 <h1 className="hidden lg:block">
-                  <button onClick={goHome} className="cursor-pointer"><PortraLogo size={52} /></button>
+                  <button onClick={goHome} className="cursor-pointer"><PortraLogo size={72} /></button>
                 </h1>
                 <p className="hidden lg:block text-sm mt-1.5" style={{ color: '#94a3b8' }}>
                   내 포트폴리오의 흐름을 AI로 관리하세요

@@ -1,4 +1,15 @@
+self.addEventListener('install', () => {
+  console.log('[SW] install');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[SW] activate');
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener('push', (event) => {
+  console.log('[SW] push event received', event.data ? 'has data' : 'no data');
   if (!event.data) return;
 
   let payload;
@@ -7,6 +18,8 @@ self.addEventListener('push', (event) => {
   } catch {
     payload = { title: '포트폴리오 알림', body: event.data.text() };
   }
+
+  console.log('[SW] showing notification', payload.title);
 
   const title = payload.title ?? '포트폴리오 알림';
   const options = {
@@ -23,6 +36,7 @@ self.addEventListener('push', (event) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] notification clicked');
   event.notification.close();
   const portfolioId = event.notification.data?.portfolioId;
   const target = portfolioId ? `/analyzer?portfolioId=${portfolioId}` : '/analyzer';

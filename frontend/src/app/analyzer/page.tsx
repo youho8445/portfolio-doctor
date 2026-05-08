@@ -500,14 +500,6 @@ export default function AnalyzerPage() {
     }
   };
 
-  const vapidKeyToUint8Array = (keyStr: string): Uint8Array => {
-    const padding = '='.repeat((4 - keyStr.length % 4) % 4);
-    const base64 = (keyStr + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = atob(base64);
-    const arr = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; i++) arr[i] = rawData.charCodeAt(i);
-    return arr;
-  };
 
   const handleEnablePush = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -524,34 +516,38 @@ export default function AnalyzerPage() {
         ),
       ]);
       const permission = await permissionWithTimeout;
+      console.log('[Push] permission:', permission);
       if (permission !== 'granted') return;
 
       const reg = await navigator.serviceWorker.ready;
+      console.log('[Push] SW ready, scope:', reg.scope);
+
       const vapidKeyStr = await getVapidPublicKey();
+      console.log('[Push] VAPID key fetched:', vapidKeyStr ? vapidKeyStr.slice(0, 20) + '…' : 'EMPTY');
       if (!vapidKeyStr) {
         alert('서버 설정 오류: 알림 키를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.');
         return;
       }
 
-      // Always unsubscribe existing subscription first (handles VAPID key rotation)
       const existing = await reg.pushManager.getSubscription();
-      if (existing) await existing.unsubscribe();
+      if (existing) {
+        console.log('[Push] unsubscribing existing');
+        await existing.unsubscribe();
+      }
 
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKeyToUint8Array(vapidKeyStr),
-      });
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyStr });
+      console.log('[Push] subscribed, endpoint:', sub.endpoint.slice(0, 50) + '…');
 
       await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
+      console.log('[Push] subscription registered on server');
       setPushEnabled(true);
-      // Immediately send a test push so the user can confirm it works
-      try { await sendTestPush(); } catch { /* best-effort */ }
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'timeout') {
         alert('알림 권한 요청이 응답 없이 초과되었습니다.\n주소창 오른쪽의 벨/알림 아이콘을 클릭해 허용해주세요.');
       } else {
-        console.error('Push subscription failed', err);
-        alert('알림 설정에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[Push] enable failed:', err);
+        alert(`알림 설정 실패: ${msg}`);
       }
     } finally {
       setPushLoading(false);
@@ -567,26 +563,38 @@ export default function AnalyzerPage() {
     }
     try {
       setPushLoading(true);
-      // Re-subscribe to ensure subscription is fresh with current VAPID key
+      console.log('[Push] test: starting re-subscribe flow');
+
       const reg = await navigator.serviceWorker.ready;
+      console.log('[Push] test: SW ready', reg.scope);
+
       const vapidKeyStr = await getVapidPublicKey();
+      console.log('[Push] test: VAPID key:', vapidKeyStr ? vapidKeyStr.slice(0, 20) + '…' : 'EMPTY');
       if (!vapidKeyStr) {
         alert('서버 연결 오류: 로그인 상태를 확인해주세요.');
         return;
       }
+
       const existing = await reg.pushManager.getSubscription();
-      if (existing) await existing.unsubscribe();
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: vapidKeyToUint8Array(vapidKeyStr),
-      });
+      if (existing) {
+        console.log('[Push] test: unsubscribing old');
+        await existing.unsubscribe();
+      }
+
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyStr });
+      console.log('[Push] test: new subscription endpoint:', sub.endpoint.slice(0, 50) + '…');
+
       await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
-      // Send test push
+      console.log('[Push] test: subscription saved to server');
+
       await sendTestPush();
+      console.log('[Push] test: /push/test call succeeded — waiting for SW push event');
+
       setTestPushSent(true);
       setTimeout(() => setTestPushSent(false), 3000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error('[Push] test failed:', err);
       alert(`알림 테스트 실패: ${msg}`);
     } finally {
       setPushLoading(false);

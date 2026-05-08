@@ -329,7 +329,7 @@ export async function getVapidPublicKey(): Promise<string> {
 }
 
 export async function registerPushSubscription(sub: PushSubscriptionJSON): Promise<void> {
-  await fetch(`${API_BASE_URL}/push/subscribe`, {
+  const res = await fetch(`${API_BASE_URL}/push/subscribe`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({
@@ -337,6 +337,7 @@ export async function registerPushSubscription(sub: PushSubscriptionJSON): Promi
       keys: sub.keys,
     }),
   });
+  if (!res.ok) throw new Error(`구독 등록 실패 (${res.status}): 로그인 상태를 확인해주세요`);
 }
 
 export async function unregisterPushSubscription(endpoint: string): Promise<void> {
@@ -352,7 +353,10 @@ export async function sendTestPush(): Promise<void> {
     method: 'POST',
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error('Failed to send test push');
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || `서버 오류 (${res.status})`);
+  }
 }
 
 export async function analyzePortfolio(

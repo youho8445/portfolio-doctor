@@ -484,9 +484,6 @@ export class MonitoringService {
 
       await this.eventRepo.save(entity);
 
-      // Only push for warning/critical — opportunity events are stored but not pushed
-      if (event.severity === 'opportunity' || event.severity === 'info') continue;
-
       this.pushService.sendToUser(userId, event.title, event.message, {
         eventType: event.eventType,
         portfolioId,

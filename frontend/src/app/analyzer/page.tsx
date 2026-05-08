@@ -27,6 +27,7 @@ import {
   getPortfolioCurrentState,
   getStateEvents,
   getVapidPublicKey,
+  deleteAllNotifications,
   markAllEventsRead,
   markEventRead,
   registerPushSubscription,
@@ -491,11 +492,22 @@ export default function AnalyzerPage() {
 
   const handleNotificationAction = (portfolioId: number) => {
     setNotifOpen(false);
+    if (!portfolioId) return;
+
+    const scrollToRebalance = () => {
+      setTimeout(() => {
+        const el = document.getElementById('rebalance-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    };
+
     if (currentPortfolioId === portfolioId && analysis) {
       setActiveTab('result');
-      setTimeout(() => {
-        document.getElementById('rebalance-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      scrollToRebalance();
+    } else {
+      // Switch to the target portfolio and let user run analysis
+      const target = savedPortfolios.find((p) => p.id === portfolioId);
+      if (target) handleLoadPortfolio(target);
     }
   };
 
@@ -705,14 +717,29 @@ export default function AnalyzerPage() {
       <>
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #f1f5f9' }}>
           <span className="text-sm font-bold text-[#1c1c1e]">알림</span>
-          {unread > 0 && (
-            <button
-              onClick={async () => { await markAllEventsRead(); setNotifications((n) => n.map((e) => ({ ...e, isRead: true }))); }}
-              className="text-[11px] font-semibold"
-              style={{ color: accent.hex }}
-            >
-              모두 읽음
-            </button>
+          {notifications.length > 0 && (
+            <div className="flex items-center gap-3">
+              {unread > 0 && (
+                <button
+                  onClick={async () => { await markAllEventsRead(); setNotifications((n) => n.map((e) => ({ ...e, isRead: true }))); }}
+                  className="text-[11px] font-semibold"
+                  style={{ color: accent.hex }}
+                >
+                  모두 읽음
+                </button>
+              )}
+              <button
+                onClick={async () => {
+                  if (!window.confirm('알림을 모두 삭제하시겠습니까?')) return;
+                  await deleteAllNotifications();
+                  setNotifications([]);
+                }}
+                className="text-[11px] font-semibold"
+                style={{ color: '#94a3b8' }}
+              >
+                모두 지우기
+              </button>
+            </div>
           )}
         </div>
         <div className="max-h-80 overflow-y-auto">

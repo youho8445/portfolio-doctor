@@ -341,6 +341,10 @@ export class MonitoringService {
     await this.eventRepo.update({ userId, isRead: false }, { isRead: true });
   }
 
+  async deleteAllEvents(userId: number): Promise<void> {
+    await this.eventRepo.delete({ userId });
+  }
+
   async getPortfolioEvents(portfolioId: number, userId: number): Promise<PortfolioStateEvent[]> {
     return this.eventRepo.find({
       where: { portfolioId, userId },

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, Post, Req, UseGuards, HttpCode } from '@nestjs/common';
+import { Controller, Delete, Get, Param, ParseIntPipe, Post, Req, UseGuards, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MonitoringService } from './monitoring.service';
 
@@ -21,6 +21,12 @@ export class MonitoringController {
   @Post('notifications/read-all')
   async markAllRead(@Req() req: any) {
     await this.monitoringService.markAllRead(req.user.id);
+    return { ok: true };
+  }
+
+  @Delete('notifications')
+  async deleteAll(@Req() req: any) {
+    await this.monitoringService.deleteAllEvents(req.user.id);
     return { ok: true };
   }
 

@@ -299,6 +299,13 @@ export async function markAllEventsRead(): Promise<void> {
   });
 }
 
+export async function deleteAllNotifications(): Promise<void> {
+  await fetch(`${API_BASE_URL}/notifications`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+}
+
 export async function getPortfolioStateEvents(portfolioId: number): Promise<import('../types').StateEvent[]> {
   const res = await fetch(`${API_BASE_URL}/portfolios/${portfolioId}/state-events`, {
     cache: 'no-store',

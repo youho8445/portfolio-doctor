@@ -8,7 +8,9 @@ import { PriceDaily } from '../entities/price-daily.entity';
 import { Benchmark } from '../entities/benchmark.entity';
 import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { PortfolioState } from '../entities/portfolio-state.entity';
+import { User } from '../entities/user.entity';
 import { PushModule } from '../push/push.module';
+import { AdminModule } from '../admin/admin.module';
 import { MonitoringService } from './monitoring.service';
 import { MonitoringController } from './monitoring.controller';
 
@@ -16,9 +18,10 @@ import { MonitoringController } from './monitoring.controller';
   imports: [
     TypeOrmModule.forFeature([
       PortfolioStateEvent, PortfolioSnapshot, Portfolio, PortfolioItem,
-      PriceDaily, Benchmark, BenchmarkPriceDaily, PortfolioState,
+      PriceDaily, Benchmark, BenchmarkPriceDaily, PortfolioState, User,
     ]),
     PushModule,
+    AdminModule,
   ],
   controllers: [MonitoringController],
   providers: [MonitoringService],

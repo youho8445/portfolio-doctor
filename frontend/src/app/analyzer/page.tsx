@@ -30,7 +30,6 @@ import {
   markAllEventsRead,
   markEventRead,
   registerPushSubscription,
-  sendTestPush,
   trackEvent,
   updatePortfolio,
 } from '@/lib/api';
@@ -554,53 +553,6 @@ export default function AnalyzerPage() {
     }
   };
 
-  const [testPushSent, setTestPushSent] = useState(false);
-
-  const handleTestPush = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('이 브라우저는 푸시 알림을 지원하지 않습니다.');
-      return;
-    }
-    try {
-      setPushLoading(true);
-      console.log('[Push] test: starting re-subscribe flow');
-
-      const reg = await navigator.serviceWorker.ready;
-      console.log('[Push] test: SW ready', reg.scope);
-
-      const vapidKeyStr = await getVapidPublicKey();
-      console.log('[Push] test: VAPID key:', vapidKeyStr ? vapidKeyStr.slice(0, 20) + '…' : 'EMPTY');
-      if (!vapidKeyStr) {
-        alert('서버 연결 오류: 로그인 상태를 확인해주세요.');
-        return;
-      }
-
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) {
-        console.log('[Push] test: unsubscribing old');
-        await existing.unsubscribe();
-      }
-
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyStr });
-      console.log('[Push] test: new subscription endpoint:', sub.endpoint.slice(0, 50) + '…');
-
-      await registerPushSubscription(sub.toJSON() as PushSubscriptionJSON);
-      console.log('[Push] test: subscription saved to server');
-
-      await sendTestPush();
-      console.log('[Push] test: /push/test call succeeded — waiting for SW push event');
-
-      setTestPushSent(true);
-      setTimeout(() => setTestPushSent(false), 3000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[Push] test failed:', err);
-      alert(`알림 테스트 실패: ${msg}`);
-    } finally {
-      setPushLoading(false);
-    }
-  };
-
   const handleSearch = async () => {
     if (!search.trim()) return;
     try { setError(null); setLoadingSearch(true); setSearchDone(false); setSearchResults(await getSecurities(search)); setSearchDone(true); }
@@ -838,21 +790,11 @@ export default function AnalyzerPage() {
             })
           )}
         </div>
-        {typeof window !== 'undefined' && 'Notification' in window && (
+        {typeof window !== 'undefined' && 'Notification' in window && user?.isPremiumUser && (
           <div className="px-4 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
             {pushEnabled ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
-                  <span>●</span> 브라우저 알림 켜짐
-                </div>
-                <button
-                  onClick={handleTestPush}
-                  disabled={pushLoading}
-                  className="w-full rounded-xl py-2 text-xs font-semibold transition-all disabled:opacity-50"
-                  style={{ background: testPushSent ? '#16a34a' : accent.hex, color: '#ffffff' }}
-                >
-                  {pushLoading ? '전송 중...' : testPushSent ? '✓ 윈도우 알림 전송됨!' : '🔔 테스트 알림 보내기'}
-                </button>
+              <div className="flex items-center gap-1.5 text-xs" style={{ color: '#10b981' }}>
+                <span>●</span> 브라우저 알림 켜짐
               </div>
             ) : (
               <button
@@ -1645,37 +1587,6 @@ export default function AnalyzerPage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* ── 브라우저 알림 설정 ── */}
-                  {typeof window !== 'undefined' && 'Notification' in window && (
-                    <div className="rounded-2xl px-4 py-3.5" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-[11px] font-semibold" style={{ color: '#64748b' }}>브라우저 알림 설정</span>
-                        {pushEnabled && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#d1fae5', color: '#065f46' }}>● 켜짐</span>
-                        )}
-                      </div>
-                      {pushEnabled ? (
-                        <button
-                          onClick={handleTestPush}
-                          disabled={pushLoading}
-                          className="w-full rounded-xl py-2 text-xs font-bold transition-all disabled:opacity-50"
-                          style={{ background: testPushSent ? '#16a34a' : accent.hex, color: '#ffffff' }}
-                        >
-                          {pushLoading ? '전송 중...' : testPushSent ? '✓ 윈도우 알림 전송됨!' : '🔔 테스트 알림 보내기'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={handleEnablePush}
-                          disabled={pushLoading}
-                          className="w-full rounded-xl py-2 text-xs font-bold transition-all disabled:opacity-50"
-                          style={{ background: accent.hex, color: '#ffffff' }}
-                        >
-                          {pushLoading ? '설정 중...' : Notification.permission === 'denied' ? '🔕 알림 차단됨 (설정에서 허용)' : '🔔 윈도우 알림 켜기'}
-                        </button>
-                      )}
-                    </div>
-                  )}
 
                   {/* ── 최근 변화 알림 ── */}
                   {portfolioEvents.length > 0 && (

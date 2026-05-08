@@ -10,7 +10,9 @@ import { PriceDaily } from '../entities/price-daily.entity';
 import { Benchmark } from '../entities/benchmark.entity';
 import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
 import { PortfolioState } from '../entities/portfolio-state.entity';
+import { User } from '../entities/user.entity';
 import { PushService } from '../push/push.service';
+import { AdminService } from '../admin/admin.service';
 import { detectStateChanges, SnapshotState } from './state-change-detector';
 import { calculateState, StateInput } from './portfolio-state.calculator';
 import { computeScore } from '../analysis/score.engine';
@@ -38,7 +40,10 @@ export class MonitoringService {
     private readonly benchmarkPriceRepo: Repository<BenchmarkPriceDaily>,
     @InjectRepository(PortfolioState)
     private readonly stateRepo: Repository<PortfolioState>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly pushService: PushService,
+    private readonly adminService: AdminService,
   ) {}
 
   // Called immediately after a user-triggered analysis.
@@ -483,6 +488,14 @@ export class MonitoringService {
       });
 
       await this.eventRepo.save(entity);
+
+      const [billingMode, user] = await Promise.all([
+        this.adminService.getBillingMode(),
+        this.userRepo.findOne({ where: { id: userId } }),
+      ]);
+      const isTrial = user?.trialEndsAt != null && user.trialEndsAt > new Date();
+      const canPush = billingMode === 'FREE' || billingMode === 'SOFT_PAYWALL' || isTrial;
+      if (!canPush) continue;
 
       this.pushService.sendToUser(userId, event.title, event.message, {
         eventType: event.eventType,

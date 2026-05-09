@@ -24,59 +24,92 @@ export interface ScoreInput {
   hasStaleData?: boolean;
 }
 
+// M1: English sector names from Yahoo Finance → Korean display
+const KO_SECTOR: Record<string, string> = {
+  'Information Technology': 'IT',
+  'Technology': 'IT',
+  'Healthcare': '헬스케어',
+  'Health Care': '헬스케어',
+  'Financials': '금융',
+  'Financial Services': '금융',
+  'Consumer Discretionary': '소비재',
+  'Consumer Staples': '필수소비재',
+  'Industrials': '산업재',
+  'Energy': '에너지',
+  'Materials': '소재',
+  'Real Estate': '부동산',
+  'Utilities': '유틸리티',
+  'Communication Services': '통신',
+  'Telecommunication Services': '통신',
+};
+
 export function computeScore(input: ScoreInput): {
   healthScore: number;
   scoreBreakdown: ScoreRule[];
   warnings: string[];
 } {
-  const { items, top3Concentration, maxSectorWeight, portfolioReturn, benchmarkReturn, hasStaleData } = input;
+  const { items, top3Concentration, maxSectorWeight, maxSectorName, portfolioReturn, benchmarkReturn, hasStaleData } = input;
 
   const isCashItem = (i: ItemMeta) =>
     i.assetType === 'CASH' || i.ticker.toUpperCase() === 'CASH';
 
   const nonCashItems = items.filter((i) => !isCashItem(i));
   const stockItems = nonCashItems.filter((i) => i.assetType !== 'ETF');
+  // M3: ETF-only portfolios are already diversified — rules need different thresholds
+  const isEtfOnly = nonCashItems.length > 0 && stockItems.length === 0;
 
   const rules: ScoreRule[] = [];
   const warnings: string[] = [];
   let healthScore = 100;
 
-  // Rule 1: 종목 수
-  const holdingsPass = nonCashItems.length >= 3;
+  // Rule 1: 종목 수 — M3: ETF-only portfolios pass regardless of count
+  const holdingsPass = isEtfOnly || nonCashItems.length >= 3;
   rules.push({
     label: '여러 종목에 나눠서 투자하고 있나요?',
     passed: holdingsPass,
     delta: holdingsPass ? 0 : -10,
-    why: '종목이 적으면 그 중 하나가 크게 떨어질 때 계좌 전체가 흔들려요.',
-    action: `종목을 ${Math.max(0, 3 - nonCashItems.length)}개만 더 추가해 보세요. 서로 다른 회사면 더 좋아요.`,
+    why: isEtfOnly
+      ? '이미 여러 자산에 나눠 투자하는 상품 중심이에요. ETF 하나만으로도 수백 개 회사에 분산되어 있어요.'
+      : '종목이 적으면 그 중 하나가 크게 떨어질 때 계좌 전체가 흔들려요.',
+    action: isEtfOnly
+      ? ''
+      : `종목을 ${Math.max(0, 3 - nonCashItems.length)}개만 더 추가해 보세요. 서로 다른 회사면 더 좋아요.`,
   });
   if (!holdingsPass) {
     warnings.push(`지금은 ${nonCashItems.length}개 종목만 갖고 있어요. ${3 - nonCashItems.length}개만 더 추가하면 한 종목이 떨어져도 충격이 줄어들어요`);
     healthScore -= 10;
   }
 
-  // Rule 2: 상위 3종목 집중
-  const top3Pass = top3Concentration < 75;
+  // Rule 2: 상위 3종목 집중 — M3: ETF-only uses a 95% threshold (internally diversified)
+  const top3Pass = isEtfOnly ? top3Concentration < 95 : top3Concentration < 75;
   rules.push({
     label: '한두 종목에 너무 많은 돈이 몰려 있지 않나요?',
     passed: top3Pass,
     delta: top3Pass ? 0 : -20,
-    why: '상위 종목들에 대부분이 쏠려 있으면, 그 중 하나가 나쁜 뉴스를 맞았을 때 계좌가 크게 흔들려요.',
-    action: '비중이 높은 종목을 조금 줄이고, 그 돈으로 다른 종목을 추가해 보세요.',
+    why: isEtfOnly
+      ? 'ETF는 이미 여러 자산에 나눠 투자하는 상품이에요. ETF끼리 성격이 비슷하다면 다른 종류로 다양화하면 좋아요.'
+      : '상위 종목들에 대부분이 쏠려 있으면, 그 중 하나가 나쁜 뉴스를 맞았을 때 계좌가 크게 흔들려요.',
+    action: isEtfOnly
+      ? '비슷한 성격의 ETF만 있다면, 채권·해외 등 다른 종류의 ETF도 추가해 보세요.'
+      : '비중이 높은 종목을 조금 줄이고, 그 돈으로 다른 종목을 추가해 보세요.',
   });
   if (!top3Pass) {
-    warnings.push(`상위 3개 종목에 ${top3Concentration.toFixed(0)}%가 몰려 있어요. 한 종목이 갑자기 떨어지면 계좌 전체가 크게 흔들릴 수 있어요`);
+    warnings.push(isEtfOnly
+      ? `상위 ETF 상품에 ${top3Concentration.toFixed(0)}%가 몰려 있어요. 다른 성격의 ETF를 추가하면 더 안정적이에요`
+      : `상위 3개 종목에 ${top3Concentration.toFixed(0)}%가 몰려 있어요. 한 종목이 갑자기 떨어지면 계좌 전체가 크게 흔들릴 수 있어요`
+    );
     healthScore -= 20;
   }
 
-  // Rule 3: 같은 업종 집중
+  // Rule 3: 같은 업종 집중 — M1: use actual sector name instead of hardcoded "IT"
   const sectorPass = maxSectorWeight < 65;
+  const sectorDisplayName = KO_SECTOR[maxSectorName] || maxSectorName || '특정 업종';
   rules.push({
     label: '비슷한 종류의 회사에 너무 집중되어 있지 않나요?',
     passed: sectorPass,
     delta: sectorPass ? 0 : -20,
     why: '같은 분야 회사들은 같은 시기에 함께 오르고 내려요. 한 분야가 어려워지면 한꺼번에 타격받아요.',
-    action: 'IT 주식이 많다면 의료·소비재 등 다른 분야 주식을 1~2개 추가해 보세요.',
+    action: `${sectorDisplayName} 비중이 높다면 의료·소비재 등 다른 분야 주식을 1~2개 추가해 보세요.`,
   });
   if (!sectorPass) {
     warnings.push(`비슷한 업종 주식에 ${maxSectorWeight.toFixed(0)}%가 몰려 있어요. 그 업종이 어려워지면 한꺼번에 타격받을 수 있어요`);

@@ -254,26 +254,34 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
   }
 
   // ── Rule 4: ETF 제안 — 이미 ETF 보유 중이거나 종목 수 < 5일 때만 ─────────
+  // M2: recommend a market-appropriate ETF (Korean portfolio → KODEX 200, US/mixed → VOO)
+  const isKRTicker = (t: string) => t.endsWith('.KS') || t.endsWith('.KQ');
+  const totalNonCashWeight = nonCash.reduce((s, i) => s + i.weight, 0);
+  const krNonCashWeight = nonCash.filter((i) => isKRTicker(i.ticker)).reduce((s, i) => s + i.weight, 0);
+  const isKrHeavy = totalNonCashWeight > 0 && krNonCashWeight / totalNonCashWeight > 0.5;
+  const suggestedEtfTicker = isKrHeavy ? '069500' : 'VOO';
+  const suggestedEtfLabel = isKrHeavy ? 'KODEX 200 (한국 전체 시장)' : 'VOO (미국 전체 시장)';
+
   const etfShortfall = Math.max(0, 20 - etfWeight);
   if (etfShortfall > 0 && (hasAnyEtf || stockItems.length < 5) && stockItems.length >= 1) {
     const addPct = r1(Math.min(etfShortfall, freedWeight > 0 ? freedWeight : etfShortfall));
-    const voo = weightMap.get('VOO');
-    const fromPct = r1(voo?.weight ?? 0);
+    const existingEtf = weightMap.get(suggestedEtfTicker);
+    const fromPct = r1(existingEtf?.weight ?? 0);
     const toPct = r1(fromPct + addPct);
-    if (voo) {
-      voo.weight = toPct;
+    if (existingEtf) {
+      existingEtf.weight = toPct;
     } else {
-      weightMap.set('VOO', { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: 'VOO (미국 전체 시장)' });
+      weightMap.set(suggestedEtfTicker, { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: suggestedEtfLabel });
     }
     freedWeight = r1(Math.max(0, freedWeight - addPct));
     actions.push({
-      ticker: 'VOO',
-      label: 'VOO (미국 전체 시장)',
+      ticker: suggestedEtfTicker,
+      label: suggestedEtfLabel,
       type: 'add',
       from: fromPct,
       to: toPct,
       delta: addPct,
-      text: `VOO (미국 전체 시장) ${fromPct > 0 ? `${fromPct}% → ${toPct}%` : `${toPct}% 추가`} (+${addPct}%)`,
+      text: `${suggestedEtfLabel} ${fromPct > 0 ? `${fromPct}% → ${toPct}%` : `${toPct}% 추가`} (+${addPct}%)`,
     });
   }
 

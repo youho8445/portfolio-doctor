@@ -22,6 +22,8 @@ export function computeInsights(input: InsightInput): InsightOutput {
   const etfItems = nonCash.filter((i) => i.assetType === 'ETF');
   const stockItems = nonCash.filter((i) => i.assetType !== 'ETF');
   const etfWeight = etfItems.reduce((s, i) => s + i.weight, 0);
+  // M3: ETF-only portfolios are already diversified — use relaxed scoring
+  const isEtfOnly = etfItems.length > 0 && stockItems.length === 0;
 
   const scorableSectors = sectorExposure.filter(
     (s) => s.sector !== 'Cash' && s.sector !== 'ETF',
@@ -34,23 +36,25 @@ export function computeInsights(input: InsightInput): InsightOutput {
   // ── Diversification Score ────────────────────────────────────────────────
   let divScore = 100;
 
-  // 보유 종목 수 (현금·ETF 제외 기준)
-  if (nonCash.length < 4) divScore -= 25;
-  else if (nonCash.length < 7) divScore -= 10;
+  // 보유 종목 수 — M3: ETF-only portfolios skip this penalty (each ETF is already diversified)
+  if (!isEtfOnly) {
+    if (nonCash.length < 4) divScore -= 25;
+    else if (nonCash.length < 7) divScore -= 10;
+  }
 
-  // 상위 3종목 집중도
-  if (top3Concentration >= 80) divScore -= 25;
-  else if (top3Concentration >= 60) divScore -= 15;
-  else if (top3Concentration >= 40) divScore -= 5;
+  // 상위 3종목 집중도 — M3: ETF-only uses 95% threshold
+  if (top3Concentration >= (isEtfOnly ? 95 : 80)) divScore -= 25;
+  else if (!isEtfOnly && top3Concentration >= 60) divScore -= 15;
+  else if (!isEtfOnly && top3Concentration >= 40) divScore -= 5;
 
-  // 최대 섹터 집중도
+  // 최대 섹터 집중도 (ETF-only: topSectorWeight is 0 since ETF bucket is excluded, so never fires)
   if (topSectorWeight >= 70) divScore -= 25;
   else if (topSectorWeight >= 50) divScore -= 15;
   else if (topSectorWeight >= 35) divScore -= 5;
 
-  // 섹터 다양성
-  if (uniqueSectorCount <= 1) divScore -= 15;
-  else if (uniqueSectorCount <= 2) divScore -= 5;
+  // 섹터 다양성 — M3: ETF-only skips (uniqueSectorCount is 0 for ETF-only, would always fire)
+  if (!isEtfOnly && uniqueSectorCount <= 1) divScore -= 15;
+  else if (!isEtfOnly && uniqueSectorCount <= 2) divScore -= 5;
 
   // ETF 포함 시 다양성 보너스
   if (etfWeight >= 30) divScore += 10;
@@ -120,7 +124,17 @@ export function computeInsights(input: InsightInput): InsightOutput {
   }
 
   if (etfWeight === 0 && stockItems.length >= 1) {
-    rebalanceHints.push('VOO, SPY 같은 "미국 전체 시장 펀드"를 10~20% 추가하면 수백 개 회사에 자동으로 분산돼요');
+    // M2: recommend a market-appropriate ETF based on portfolio composition
+    const totalNonCashWeight = nonCash.reduce((s, i) => s + i.weight, 0);
+    const krWeight = items
+      .filter((i) => i.ticker.endsWith('.KS') || i.ticker.endsWith('.KQ'))
+      .reduce((s, i) => s + i.weight, 0);
+    const isKrHeavy = totalNonCashWeight > 0 && krWeight / totalNonCashWeight > 0.5;
+    rebalanceHints.push(
+      isKrHeavy
+        ? 'KODEX 200 같은 "한국 전체 시장 펀드"를 10~20% 추가하면 수백 개 회사에 자동으로 분산돼요'
+        : 'VOO, SPY 같은 "미국 전체 시장 펀드"를 10~20% 추가하면 수백 개 회사에 자동으로 분산돼요',
+    );
   }
 
   if (nonCash.length < 3) {

@@ -51,9 +51,9 @@ export default function HomePage() {
         </p>
 
         <Link href="/analyzer" className={s.ctaBtn}>
-          무료로 진단받기 →
+          30일 무료로 시작하기 →
         </Link>
-        <div className={s.ctaSub}>가입 없이 바로 시작 · 완전 무료</div>
+        <div className={s.ctaSub}>회원가입 후 30일 무료 · 언제든 해지</div>
 
         <div className={s.scores}>
           <div className={s.scoreCard}>
@@ -207,9 +207,9 @@ export default function HomePage() {
       <div className={s.finalCta}>
         <div className={s.divider} style={{ marginBottom: '40px' }} />
         <h2 className={s.finalTitle}>내 포트폴리오,<br />한 번 진단받아 보세요</h2>
-        <p className={s.finalDesc}>가입도 결제도 없습니다.<br />종목만 넣으면 AI가 바로 분석합니다.</p>
+        <p className={s.finalDesc}>지금 가입하면 30일 무료 체험이 시작됩니다.<br />종목만 넣으면 AI가 바로 분석합니다.</p>
         <Link href="/analyzer" className={s.ctaBtnFinal}>
-          무료로 시작하기 →
+          무료 체험 시작하기 →
         </Link>
       </div>
 

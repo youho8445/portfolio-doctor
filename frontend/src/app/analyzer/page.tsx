@@ -1523,10 +1523,11 @@ export default function AnalyzerPage() {
                               onChange={(e) => { const raw = isUS(item.ticker) ? e.target.value.replace(/[^0-9.]/g, '') : e.target.value.replace(/[^0-9]/g, ''); updateAvgCost(item.securityId, raw ? Number(raw) : 0); }}
                               className="w-24 rounded-lg px-2 py-1.5 text-right text-sm outline-none tabular-nums"
                               style={{ background: '#ffffff', border: '1px solid #e8ecf4', color: '#94a3b8' }}
-                              placeholder={isUS(item.ticker) ? '평단가($)' : '평단가'}
+                              placeholder={isUS(item.ticker) ? '평단가' : '평단가'}
                               onFocus={(e) => (e.target.style.borderColor = accent.hex)}
                               onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                             />
+                            <span className="text-xs shrink-0 tabular-nums" style={{ color: '#94a3b8' }}>{isUS(item.ticker) ? '$' : '원'}</span>
                           </div>
                         </div>
                       ))}
@@ -1571,6 +1572,28 @@ export default function AnalyzerPage() {
 
               return (
                 <div className="space-y-5">
+
+                  {/* H1: stale price warning */}
+                  {analysis.hasStalePrices && (
+                    <div className="rounded-xl px-4 py-3 text-sm flex items-start gap-2.5"
+                      style={{ background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }}>
+                      <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }}>
+                        <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
+                      </svg>
+                      <span>일부 가격 데이터가 최신이 아닐 수 있어요. 수익률 비교는 이번 분석에서 제외됩니다.</span>
+                    </div>
+                  )}
+
+                  {/* H3: currency warning */}
+                  {analysis.currencyWarnings && analysis.currencyWarnings.length > 0 && (
+                    <div className="rounded-xl px-4 py-3 text-sm flex items-start gap-2.5"
+                      style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412' }}>
+                      <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }}>
+                        <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
+                      </svg>
+                      <span>{analysis.currencyWarnings.join(', ')} 종목의 평단가 통화를 확인해주세요. 미국 주식 평단가는 달러($)로 입력해야 합니다.</span>
+                    </div>
+                  )}
 
                   {/* ── 포트폴리오 상태 카드 ── */}
                   {portfolioState && (() => {

@@ -81,6 +81,18 @@ export class AnalysisService {
 
     const startDate = this.getStartDate(period);
 
+    // ── 가격 데이터 보장 + stale 감지 ──
+    const staleTickers: string[] = [];
+    const priceStaleMap = new Map<number, boolean>(); // securityId → isStale (cache per analysis run)
+
+    const ensurePrice = async (securityId: number, ticker: string): Promise<boolean> => {
+      if (priceStaleMap.has(securityId)) return priceStaleMap.get(securityId)!;
+      const isStale = await this.ensurePriceData(securityId, ticker);
+      priceStaleMap.set(securityId, isStale);
+      if (isStale) staleTickers.push(ticker);
+      return isStale;
+    };
+
     // ── 포트폴리오 수익률 계산 ──
     let portfolioReturn = 0;
 
@@ -91,7 +103,7 @@ export class AnalysisService {
 
       if (isCash) continue; // 현금은 수익률 0으로 처리
 
-      await this.ensurePriceData(item.securityId, item.security?.ticker ?? '');
+      await ensurePrice(item.securityId, item.security?.ticker ?? '');
 
       const prices = await this.priceDailyRepository.find({
         where: {
@@ -175,11 +187,14 @@ export class AnalysisService {
     // ── 개인 수익률 계산 (평단가 기반) ──────────────────────────────────────
     // 평단가가 있는 종목에 한해 현재가 대비 수익률 계산
     const personalReturns: { ticker: string; returnPct: number; weight: number }[] = [];
+    // H3: 통화 단위 불일치 의심 종목 (returnPct > 900% or < -99.9%)
+    const currencyWarnings: string[] = [];
+    const RETURN_SANITY_PCT = 900;
 
     for (const item of items) {
       if (!item.avgCost || Number(item.avgCost) <= 0) continue;
 
-      await this.ensurePriceData(item.securityId, item.security?.ticker ?? '');
+      await ensurePrice(item.securityId, item.security?.ticker ?? '');
 
       const prices = await this.priceDailyRepository.find({
         where: { securityId: item.securityId },
@@ -191,6 +206,15 @@ export class AnalysisService {
         const currentPrice = Number(prices[0].close);
         const cost = Number(item.avgCost);
         const returnPct = ((currentPrice - cost) / cost) * 100;
+
+        // H3: extreme return % strongly suggests currency unit mismatch (e.g. KRW avgCost vs USD price)
+        if (Math.abs(returnPct) > RETURN_SANITY_PCT) {
+          const ticker = item.security?.ticker ?? '';
+          this.logger.warn(`[CURRENCY-CHECK] ${ticker}: returnPct=${returnPct.toFixed(0)}% (avgCost=${cost}, close=${currentPrice}) — 통화 불일치 의심, 수익률 제외`);
+          currencyWarnings.push(ticker);
+          continue;
+        }
+
         personalReturns.push({
           ticker: item.security?.ticker ?? '',
           returnPct: Number(returnPct.toFixed(2)),
@@ -222,6 +246,7 @@ export class AnalysisService {
       maxSectorName,
       portfolioReturn,
       benchmarkReturn,
+      hasStaleData: staleTickers.length > 0,
     });
 
     // ── 인사이트 엔진 ──
@@ -355,6 +380,9 @@ export class AnalysisService {
       isTrial,
       trialEndsAt,
       diversificationPercentile,
+      hasStalePrices: staleTickers.length > 0,
+      staleTickers,
+      currencyWarnings,
     };
   }
 
@@ -380,14 +408,52 @@ export class AnalysisService {
     }
   }
 
-  /** 가격 데이터가 없는 종목을 yfinance에서 실시간 fetch해 DB에 저장 */
-  private async ensurePriceData(securityId: number, ticker: string): Promise<void> {
+  /** 가격 데이터를 보장하고 stale 여부를 반환 (true = stale / 데이터 없음) */
+  private async ensurePriceData(securityId: number, ticker: string): Promise<boolean> {
+    const STALE_DAYS = 14; // 14 calendar days without new data = stale
+
     const existing = await this.priceDailyRepository.findOne({
       where: { securityId },
       order: { tradeDate: 'DESC' },
     });
-    if (existing) return; // 이미 데이터 있음
 
+    if (existing) {
+      const lastDate = new Date(existing.tradeDate);
+      const daysDiff = (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysDiff <= STALE_DAYS) return false; // fresh
+
+      // Stale — try incremental refresh
+      this.logger.log(`[STALE] ${ticker} 마지막 가격이 ${Math.floor(daysDiff)}일 전 → 갱신 시도`);
+      try {
+        const period1 = new Date(existing.tradeDate);
+        period1.setDate(period1.getDate() + 1);
+        const period2 = new Date();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any[] = await yf.historical(ticker, { period1, period2 });
+        if (result && result.length > 0) {
+          const rows = result.map((r: { date: Date; close?: number; adjClose?: number; volume?: number }) => ({
+            securityId,
+            tradeDate: new Date(r.date).toISOString().slice(0, 10),
+            close: r.close ?? r.adjClose ?? 0,
+            volume: r.volume ?? 0,
+          }));
+          await this.priceDailyRepository
+            .createQueryBuilder()
+            .insert()
+            .into(PriceDaily)
+            .values(rows)
+            .orUpdate(['close', 'volume'], ['securityId', 'tradeDate'])
+            .execute();
+          this.logger.log(`[STALE-REFRESH] ${ticker} — ${rows.length}건 갱신`);
+          return false; // refreshed
+        }
+      } catch (e) {
+        this.logger.error(`[STALE-REFRESH] ${ticker} 실패: ${e}`);
+      }
+      return true; // still stale after refresh attempt
+    }
+
+    // No data at all — fetch full 1-year history
     try {
       this.logger.log(`[AUTO-FETCH] ${ticker} 가격 데이터 없음 → yfinance 수집 시작`);
       const period1 = new Date();
@@ -398,7 +464,7 @@ export class AnalysisService {
       const result: any[] = await yf.historical(ticker, { period1, period2 });
       if (!result || result.length === 0) {
         this.logger.warn(`[AUTO-FETCH] ${ticker} — 데이터 없음`);
-        return;
+        return true;
       }
 
       const rows = result.map((r: { date: Date; close?: number; adjClose?: number; volume?: number }) => ({
@@ -417,8 +483,10 @@ export class AnalysisService {
         .execute();
 
       this.logger.log(`[AUTO-FETCH] ${ticker} — ${rows.length}건 저장 완료`);
+      return false;
     } catch (e) {
       this.logger.error(`[AUTO-FETCH] ${ticker} 실패: ${e}`);
+      return true;
     }
   }
 

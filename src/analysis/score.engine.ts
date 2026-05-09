@@ -21,6 +21,7 @@ export interface ScoreInput {
   maxSectorName: string;
   portfolioReturn: number;
   benchmarkReturn: number;
+  hasStaleData?: boolean;
 }
 
 export function computeScore(input: ScoreInput): {
@@ -28,7 +29,7 @@ export function computeScore(input: ScoreInput): {
   scoreBreakdown: ScoreRule[];
   warnings: string[];
 } {
-  const { items, top3Concentration, maxSectorWeight, portfolioReturn, benchmarkReturn } = input;
+  const { items, top3Concentration, maxSectorWeight, portfolioReturn, benchmarkReturn, hasStaleData } = input;
 
   const isCashItem = (i: ItemMeta) =>
     i.assetType === 'CASH' || i.ticker.toUpperCase() === 'CASH';
@@ -98,19 +99,29 @@ export function computeScore(input: ScoreInput): {
     healthScore -= 10;
   }
 
-  // Rule 5: 시장 평균 대비 수익
-  const excessReturn = portfolioReturn - benchmarkReturn;
-  const benchmarkPass = excessReturn >= -5;
-  rules.push({
-    label: '미국 시장 평균만큼 수익이 나고 있나요?',
-    passed: benchmarkPass,
-    delta: benchmarkPass ? 0 : -10,
-    why: '미국 시장 전체에 분산 투자하는 방법은 장기적으로 꾸준히 성장하는 경향이 있어요.',
-    action: 'VOO나 SPY 같은 미국 전체 시장 펀드를 일부 추가해 보세요.',
-  });
-  if (!benchmarkPass) {
-    warnings.push(`미국 시장 평균보다 ${Math.abs(excessReturn).toFixed(1)}% 낮은 수익이에요. 미국 전체 시장 펀드를 일부 추가하면 도움이 될 수 있어요`);
-    healthScore -= 10;
+  // Rule 5: 시장 평균 대비 수익 (가격 데이터가 stale이면 점수에 영향 없음)
+  if (hasStaleData) {
+    rules.push({
+      label: '미국 시장 평균만큼 수익이 나고 있나요?',
+      passed: true,
+      delta: 0,
+      why: '일부 가격 데이터가 최신이 아니어서 이번엔 수익률 비교를 건너뛰었어요.',
+      action: '',
+    });
+  } else {
+    const excessReturn = portfolioReturn - benchmarkReturn;
+    const benchmarkPass = excessReturn >= -5;
+    rules.push({
+      label: '미국 시장 평균만큼 수익이 나고 있나요?',
+      passed: benchmarkPass,
+      delta: benchmarkPass ? 0 : -10,
+      why: '미국 시장 전체에 분산 투자하는 방법은 장기적으로 꾸준히 성장하는 경향이 있어요.',
+      action: 'VOO나 SPY 같은 미국 전체 시장 펀드를 일부 추가해 보세요.',
+    });
+    if (!benchmarkPass) {
+      warnings.push(`미국 시장 평균보다 ${Math.abs(excessReturn).toFixed(1)}% 낮은 수익이에요. 미국 전체 시장 펀드를 일부 추가하면 도움이 될 수 있어요`);
+      healthScore -= 10;
+    }
   }
 
   // 현금 과다 (점수 차감 없음)

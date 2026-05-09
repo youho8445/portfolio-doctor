@@ -17,6 +17,7 @@ type AuthContextType = {
   token: string | null;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isLoggedIn: boolean;
   isLoading: boolean;
   isModalOpen: boolean;
@@ -32,10 +33,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Fetch latest user data from /auth/me and update state
+  const refreshUser = useCallback(async (): Promise<void> => {
+    const stored = localStorage.getItem('auth_token');
+    if (!stored) return;
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${stored}` },
+      });
+      if (r.status === 401) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+        setToken(null);
+        setUser(null);
+        return;
+      }
+      if (r.ok) {
+        const u = await r.json();
+        setUser(u);
+        localStorage.setItem('auth_user', JSON.stringify(u));
+      }
+    } catch { /* network error — keep existing state */ }
+  }, []);
+
   useEffect(() => {
     const stored = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('auth_user');
     if (stored && storedUser) {
+      // Show cached state immediately for fast render, but do NOT mark loading=false
+      // until /auth/me confirms the latest premium/trial status from backend
       setToken(stored);
       setUser(JSON.parse(storedUser));
       fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
@@ -52,9 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return r.ok ? r.json() : null;
         })
         .then((u) => { if (u) { setUser(u); localStorage.setItem('auth_user', JSON.stringify(u)); } })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setIsLoading(false)); // wait for /auth/me before unblocking UI
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = useCallback((t: string, u: AuthUser) => {
@@ -76,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const closeModal = useCallback(() => setIsModalOpen(false), []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoggedIn: !!token, isLoading, isModalOpen, openModal, closeModal }}>
+    <AuthContext.Provider value={{ user, token, login, logout, refreshUser, isLoggedIn: !!token, isLoading, isModalOpen, openModal, closeModal }}>
       {children}
     </AuthContext.Provider>
   );

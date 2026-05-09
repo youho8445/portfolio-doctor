@@ -169,4 +169,7 @@ export type AnalysisResult = {
   isTrial: boolean;
   trialEndsAt: string | null;
   diversificationPercentile: number;
+  hasStalePrices?: boolean;
+  staleTickers?: string[];
+  currencyWarnings?: string[];
 };

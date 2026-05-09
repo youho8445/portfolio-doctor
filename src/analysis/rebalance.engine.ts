@@ -1,3 +1,5 @@
+import { pickEtf } from './etf-pick';
+
 export interface RebalanceItem {
   ticker: string;
   name?: string;
@@ -254,13 +256,19 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
   }
 
   // ── Rule 4: ETF 제안 — 이미 ETF 보유 중이거나 종목 수 < 5일 때만 ─────────
-  // M2: recommend a market-appropriate ETF (Korean portfolio → KODEX 200, US/mixed → VOO)
   const isKRTicker = (t: string) => t.endsWith('.KS') || t.endsWith('.KQ');
   const totalNonCashWeight = nonCash.reduce((s, i) => s + i.weight, 0);
   const krNonCashWeight = nonCash.filter((i) => isKRTicker(i.ticker)).reduce((s, i) => s + i.weight, 0);
   const isKrHeavy = totalNonCashWeight > 0 && krNonCashWeight / totalNonCashWeight > 0.5;
-  const suggestedEtfTicker = isKrHeavy ? '069500' : 'VOO';
-  const suggestedEtfLabel = isKrHeavy ? 'KODEX 200 (한국 전체 시장)' : 'VOO (미국 전체 시장)';
+  const suggestedEtf = pickEtf({
+    nonCashTickers: nonCash.map((i) => i.ticker),
+    isKrHeavy,
+    topSectorName,
+    topSectorWeight,
+    isSingleStock: stockItems.length === 1,
+  });
+  const suggestedEtfTicker = suggestedEtf.ticker;
+  const suggestedEtfLabel = suggestedEtf.label;
 
   const etfShortfall = Math.max(0, 20 - etfWeight);
   if (etfShortfall > 0 && (hasAnyEtf || stockItems.length < 5) && stockItems.length >= 1) {

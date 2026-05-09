@@ -1,3 +1,5 @@
+import { pickEtf } from './etf-pick';
+
 export interface InsightInput {
   items: { ticker: string; weight: number; sector: string; assetType: string }[];
   top3Concentration: number;
@@ -124,17 +126,19 @@ export function computeInsights(input: InsightInput): InsightOutput {
   }
 
   if (etfWeight === 0 && stockItems.length >= 1) {
-    // M2: recommend a market-appropriate ETF based on portfolio composition
     const totalNonCashWeight = nonCash.reduce((s, i) => s + i.weight, 0);
     const krWeight = items
       .filter((i) => i.ticker.endsWith('.KS') || i.ticker.endsWith('.KQ'))
       .reduce((s, i) => s + i.weight, 0);
     const isKrHeavy = totalNonCashWeight > 0 && krWeight / totalNonCashWeight > 0.5;
-    rebalanceHints.push(
-      isKrHeavy
-        ? 'KODEX 200 같은 "한국 전체 시장 펀드"를 10~20% 추가하면 수백 개 회사에 자동으로 분산돼요'
-        : 'VOO, SPY 같은 "미국 전체 시장 펀드"를 10~20% 추가하면 수백 개 회사에 자동으로 분산돼요',
-    );
+    const etf = pickEtf({
+      nonCashTickers: nonCash.map((i) => i.ticker),
+      isKrHeavy,
+      topSectorName,
+      topSectorWeight,
+      isSingleStock: stockItems.length === 1,
+    });
+    rebalanceHints.push(etf.hint);
   }
 
   if (nonCash.length < 3) {

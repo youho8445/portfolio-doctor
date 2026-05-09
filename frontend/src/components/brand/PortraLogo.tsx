@@ -5,6 +5,7 @@ import Image from 'next/image';
 export interface PortraLogoProps {
   size?: number;
   showText?: boolean;
+  showIcon?: boolean;
   variant?: 'light' | 'dark';
   className?: string;
 }
@@ -22,6 +23,7 @@ export function PortraSymbol({ size = 36, className }: PortraSymbolProps) {
 export function PortraLogo({
   size = 36,
   showText = true,
+  showIcon = true,
   variant = 'light',
   className,
 }: PortraLogoProps) {
@@ -36,7 +38,7 @@ export function PortraLogo({
       role="img"
       aria-label="Portra AI"
     >
-      <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Portra AI" style={{ objectFit: 'contain', flexShrink: 0 }} />
+      {showIcon && <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Portra AI" style={{ objectFit: 'contain', flexShrink: 0 }} />}
       {showText && (
         <span style={{
           fontFamily: 'var(--font-dm-sans), Inter, -apple-system, sans-serif',

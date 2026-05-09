@@ -54,22 +54,23 @@ export default function HomePage() {
           30일 무료로 시작하기 →
         </Link>
         <div className={s.ctaSub}>회원가입 후 30일 무료 · 언제든 해지</div>
+        <div className={s.ctaDisclaimer}>분석 결과는 투자 참고 정보이며 수익을 보장하지 않습니다.</div>
 
         <div className={s.scores}>
           <div className={s.scoreCard}>
             <div className={`${s.label} ${s.eng}`}>Health Score</div>
             <div className={`${s.value} ${s.valueYellow}`}>50</div>
-            <div className={s.sub}>AI 적용 전</div>
+            <div className={s.sub}>예시 · 적용 전</div>
           </div>
           <div className={s.scoreCard}>
             <div className={`${s.label} ${s.eng}`}>After AI</div>
             <div className={`${s.value} ${s.valueGreen}`}>75</div>
-            <div className={s.sub}>AI 적용 후</div>
+            <div className={s.sub}>예시 · 적용 후</div>
           </div>
           <div className={s.scoreCard}>
             <div className={`${s.label} ${s.eng}`}>Return</div>
             <div className={`${s.value} ${s.valuePurple}`}>+46%</div>
-            <div className={s.sub}>평가수익</div>
+            <div className={s.sub}>예시 수익</div>
           </div>
         </div>
       </div>

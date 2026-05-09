@@ -662,7 +662,7 @@ export default function AnalyzerPage() {
         setTickerQuotes(map);
       });
       await loadSavedPortfolios();
-    } catch { setError('분석에 실패했습니다. 백엔드 서버를 확인하세요.'); }
+    } catch { setError('분석에 실패했습니다. 잠시 후 다시 시도해주세요. 문제가 계속되면 문의해주세요.'); }
     finally { setLoadingAnalyze(false); }
   };
 
@@ -2183,12 +2183,12 @@ export default function AnalyzerPage() {
                                     {fmtKRW(row.currentKRW)}원 → {fmtKRW(row.targetKRW)}원
                                   </div>
                                   <div className="shrink-0 text-xs font-bold tabular-nums" style={{ color: row.deltaKRW > 1000 ? '#10b981' : row.deltaKRW < -1000 ? '#ef4444' : '#94a3b8' }}>
-                                    {row.deltaKRW > 1000 ? `+${fmtKRW(row.deltaKRW)}원 매수` : row.deltaKRW < -1000 ? `${fmtKRW(row.deltaKRW)}원 매도` : '유지'}
+                                    {row.deltaKRW > 1000 ? `+${fmtKRW(row.deltaKRW)}원 추가` : row.deltaKRW < -1000 ? `${fmtKRW(row.deltaKRW)}원 비중 축소` : '유지'}
                                   </div>
                                 </div>
                               ))}
                               <p className="text-[10px] mt-2 mb-3 leading-relaxed" style={{ color: '#94a3b8' }}>
-                                * 추천 비중을 기준으로 계산한 참고값입니다. 실제 매매 단가와 다를 수 있어요.
+                                * 추천 비중 기준 참고값입니다. 이 시뮬레이션은 참고용이며 실제 거래를 권유하지 않습니다.
                               </p>
                               <button
                                 onClick={handleApplyAdjustment}

@@ -27,7 +27,7 @@ export function PortraLogo({
 }: PortraLogoProps) {
   const color = variant === 'dark' ? '#ffffff' : '#0f172a';
   const fontSize = Math.round(size * 0.36);
-  const gap = Math.round(size * 0.2);
+  const gap = Math.max(6, Math.round(size * 0.1));
 
   return (
     <div

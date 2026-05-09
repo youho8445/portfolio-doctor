@@ -26,8 +26,8 @@ export function PortraLogo({
   className,
 }: PortraLogoProps) {
   const color = variant === 'dark' ? '#ffffff' : '#0f172a';
-  const fontSize = Math.round(size * 0.72);
-  const gap = Math.round(size * 0.28);
+  const fontSize = Math.round(size * 0.36);
+  const gap = Math.round(size * 0.2);
 
   return (
     <div
@@ -45,6 +45,7 @@ export function PortraLogo({
           color,
           letterSpacing: '-0.025em',
           lineHeight: 1,
+          whiteSpace: 'nowrap',
           userSelect: 'none',
         }}>
           Portra AI

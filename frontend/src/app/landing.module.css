@@ -35,7 +35,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 60px 24px 40px;
+  padding: 48px 24px 32px;
   position: relative;
 }
 
@@ -66,15 +66,15 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   position: relative;
   z-index: 1;
 }
 
 .logoIconImg {
-  width: 72px;
+  width: 108px;
   height: 72px;
-  border-radius: 16px;
+  object-fit: contain;
 }
 
 .logoText {
@@ -92,11 +92,11 @@
   background: #252833;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 100px;
-  padding: 8px 16px;
+  padding: 7px 14px;
   font-size: 13px;
   color: #3EDBA8;
   font-weight: 500;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
   position: relative;
   z-index: 1;
   animation: fadeUp 0.8s ease both;
@@ -116,11 +116,11 @@
 }
 
 .heroTitle {
-  font-size: clamp(28px, 7vw, 48px);
+  font-size: clamp(26px, 7vw, 44px);
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.2;
   letter-spacing: -1.5px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   position: relative;
   z-index: 1;
   animation: fadeUp 0.8s 0.1s ease both;
@@ -135,11 +135,11 @@
 }
 
 .heroDesc {
-  font-size: clamp(15px, 3.5vw, 18px);
+  font-size: clamp(14px, 3.5vw, 16px);
   color: #9CA3AF;
-  line-height: 1.7;
-  max-width: 400px;
-  margin-bottom: 36px;
+  line-height: 1.65;
+  max-width: 360px;
+  margin-bottom: 28px;
   position: relative;
   z-index: 1;
   animation: fadeUp 0.8s 0.2s ease both;
@@ -185,9 +185,9 @@
 /* === SCORE CARDS === */
 .scores {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
-  margin-top: 48px;
+  margin-top: 32px;
   position: relative;
   z-index: 1;
   animation: fadeUp 0.8s 0.4s ease both;

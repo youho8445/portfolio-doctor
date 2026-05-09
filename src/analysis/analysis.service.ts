@@ -207,16 +207,22 @@ export class AnalysisService {
         const cost = Number(item.avgCost);
         const returnPct = ((currentPrice - cost) / cost) * 100;
 
-        // H3: extreme return % strongly suggests currency unit mismatch (e.g. KRW avgCost vs USD price)
-        if (Math.abs(returnPct) > RETURN_SANITY_PCT) {
-          const ticker = item.security?.ticker ?? '';
-          this.logger.warn(`[CURRENCY-CHECK] ${ticker}: returnPct=${returnPct.toFixed(0)}% (avgCost=${cost}, close=${currentPrice}) — 통화 불일치 의심, 수익률 제외`);
+        // H3: currency unit mismatch detection
+        // Case A: astronomical gain (e.g. USD avgCost entered as 0.10 for a $175 stock)
+        // Case B: KRW avgCost entered for a US stock (e.g. avgCost=230000 vs currentPrice=175 → cost is ~1300x)
+        const ticker = item.security?.ticker ?? '';
+        const isUSStock = !ticker.endsWith('.KS') && !ticker.endsWith('.KQ');
+        const likelyCurrencyMismatch =
+          Math.abs(returnPct) > RETURN_SANITY_PCT ||
+          (isUSStock && cost > currentPrice * 500);
+        if (likelyCurrencyMismatch) {
+          this.logger.warn(`[CURRENCY-CHECK] ${ticker}: returnPct=${returnPct.toFixed(0)}% cost=${cost} close=${currentPrice} isUS=${isUSStock} — 통화 불일치 의심, 수익률 제외`);
           currencyWarnings.push(ticker);
           continue;
         }
 
         personalReturns.push({
-          ticker: item.security?.ticker ?? '',
+          ticker,
           returnPct: Number(returnPct.toFixed(2)),
           weight: Number(item.weight),
         });

@@ -44,6 +44,7 @@ import {
   Portfolio,
   PortfolioCurrentState,
   PortfolioInputItem,
+  PortfolioSummary,
   RebalanceAction,
   SavedPortfolioItem,
   ScoreRule,
@@ -324,6 +325,19 @@ export default function AnalyzerPage() {
     if (inputMode === 'amount' && totalAmount > 0) return (toKRW(item) / totalAmount) * 100;
     return Number(item.weight || 0);
   };
+
+  const modalPortfolioSummary = useMemo((): PortfolioSummary | undefined => {
+    if (!analysis) return undefined;
+    const nonCash = items.filter(i => i.ticker.toUpperCase() !== 'CASH');
+    const sorted = [...nonCash].sort((a, b) => getItemWeight(b) - getItemWeight(a));
+    const top = sorted[0];
+    const topHolding = top
+      ? { name: top.displayNameKo || top.name || top.ticker, ticker: top.ticker, weight: getItemWeight(top) }
+      : null;
+    const topSector = analysis.sectorExposure.filter(s => s.sector !== 'Cash' && s.sector !== 'ETF')[0] ?? null;
+    return { healthScore: analysis.healthScore, top3Concentration: analysis.top3Concentration, topHolding, topSector };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysis, items, inputMode, totalAmount]);
 
   const handleApplyRebalance = async () => {
     if (!analysis?.rebalanceResult || !currentPortfolioId) return;
@@ -2708,7 +2722,7 @@ export default function AnalyzerPage() {
       )}
 
       {/* 프리미엄 비교 모달 */}
-      <PremiumCompareModal isOpen={premiumModalOpen} onClose={() => setPremiumModalOpen(false)} onCta={handleCheckout} />
+      <PremiumCompareModal isOpen={premiumModalOpen} onClose={() => setPremiumModalOpen(false)} onCta={handleCheckout} portfolioSummary={modalPortfolioSummary} />
 
       {/* 투자 용어 사전 */}
       <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />

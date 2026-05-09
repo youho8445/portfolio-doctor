@@ -144,6 +144,13 @@ export type PortfolioCurrentState = {
   lastEventDetectedAt: string | null;
 } | null;
 
+export type PortfolioSummary = {
+  healthScore: number;
+  top3Concentration: number;
+  topHolding: { name: string; ticker: string; weight: number } | null;
+  topSector: { sector: string; weight: number } | null;
+};
+
 export type AnalysisResult = {
   portfolioId: number;
   portfolioName: string;

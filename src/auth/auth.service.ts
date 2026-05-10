@@ -219,6 +219,18 @@ export class AuthService {
     return user;
   }
 
+  async updateProfile(
+    userId: number,
+    dto: { investorStyle?: string; marketPref?: string; productPref?: string },
+  ): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('유저를 찾을 수 없습니다.');
+    if (dto.investorStyle !== undefined) user.investorStyle = dto.investorStyle;
+    if (dto.marketPref !== undefined) user.marketPref = dto.marketPref;
+    if (dto.productPref !== undefined) user.productPref = dto.productPref;
+    await this.userRepo.save(user);
+  }
+
   async changePassword(userId: number, currentPassword: string, newPassword: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('유저를 찾을 수 없습니다.');

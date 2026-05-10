@@ -33,6 +33,8 @@ export interface BeginnerResult {
   suggestions: BeginnerSuggestion[];
   unaffordable: BeginnerSuggestion[];
   warnings: string[];
+  marketPref: MarketPref;
+  productPref: ProductPref;
 }
 
 interface AssetDef {
@@ -303,6 +305,8 @@ export default function BeginnerGuide({ onClose, onStart, accentHex = '#7c3aed',
       suggestions: executable,
       unaffordable,
       warnings,
+      marketPref: market!,
+      productPref: product!,
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prices, pricesLoading, step]);

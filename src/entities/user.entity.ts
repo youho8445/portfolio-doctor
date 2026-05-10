@@ -26,6 +26,15 @@ export class User {
   @Column({ default: false })
   phoneVerified: boolean;
 
+  @Column({ type: 'varchar', length: 20, nullable: true, default: null })
+  investorStyle: string | null;
+
+  @Column({ type: 'varchar', length: 10, nullable: true, default: null })
+  marketPref: string | null;
+
+  @Column({ type: 'varchar', length: 10, nullable: true, default: null })
+  productPref: string | null;
+
   @Column({ type: 'datetime', nullable: true, default: null })
   trialEndsAt: Date | null;
 

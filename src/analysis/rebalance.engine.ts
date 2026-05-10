@@ -8,11 +8,18 @@ export interface RebalanceItem {
   assetType: string;
 }
 
+export interface UserProfile {
+  investorStyle?: string;
+  marketPref?: string;
+  productPref?: string;
+}
+
 export interface RebalanceInput {
   items: RebalanceItem[];
   currentScore: number;
   sectorExposure: { sector: string; weight: number }[];
   baselineItems?: RebalanceItem[];
+  userProfile?: UserProfile;
 }
 
 export interface RebalanceSuggestion {
@@ -138,7 +145,7 @@ function computeDrift(
 
 // ── 메인 엔진 ─────────────────────────────────────────────────────────────────
 export function computeRebalance(input: RebalanceInput): RebalanceOutput {
-  const { items, currentScore, sectorExposure, baselineItems } = input;
+  const { items, currentScore, sectorExposure, baselineItems, userProfile } = input;
 
   const nonCash = items.filter(
     (i) => i.assetType !== 'CASH' && i.ticker.toUpperCase() !== 'CASH',
@@ -255,42 +262,60 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
     }
   }
 
-  // ── Rule 4: ETF 제안 — 이미 ETF 보유 중이거나 종목 수 < 5일 때만 ─────────
+  // ── Rule 4: ETF 제안 — productPref가 STOCK이면 안내 메시지로 대체 ─────────
   const isKRTicker = (t: string) => t.endsWith('.KS') || t.endsWith('.KQ');
   const totalNonCashWeight = nonCash.reduce((s, i) => s + i.weight, 0);
   const krNonCashWeight = nonCash.filter((i) => isKRTicker(i.ticker)).reduce((s, i) => s + i.weight, 0);
   const isKrHeavy = totalNonCashWeight > 0 && krNonCashWeight / totalNonCashWeight > 0.5;
-  const suggestedEtf = pickEtf({
-    nonCashTickers: nonCash.map((i) => i.ticker),
-    isKrHeavy,
-    topSectorName,
-    topSectorWeight,
-    isSingleStock: stockItems.length === 1,
-  });
-  const suggestedEtfTicker = suggestedEtf.ticker;
-  const suggestedEtfLabel = suggestedEtf.label;
 
-  const etfShortfall = Math.max(0, 20 - etfWeight);
-  if (etfShortfall > 0 && (hasAnyEtf || stockItems.length < 5) && stockItems.length >= 1) {
-    const addPct = r1(Math.min(etfShortfall, freedWeight > 0 ? freedWeight : etfShortfall));
-    const existingEtf = weightMap.get(suggestedEtfTicker);
-    const fromPct = r1(existingEtf?.weight ?? 0);
-    const toPct = r1(fromPct + addPct);
-    if (existingEtf) {
-      existingEtf.weight = toPct;
-    } else {
-      weightMap.set(suggestedEtfTicker, { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: suggestedEtfLabel });
-    }
-    freedWeight = r1(Math.max(0, freedWeight - addPct));
+  const productPref = userProfile?.productPref?.toUpperCase();
+  const marketPrefOverride = (userProfile?.marketPref?.toUpperCase() ?? undefined) as 'KR' | 'US' | 'BOTH' | 'ANY' | undefined;
+
+  if (productPref === 'STOCK') {
+    // User prefers individual stocks — skip ETF recommendation, show advisory instead
     actions.push({
-      ticker: suggestedEtfTicker,
-      label: suggestedEtfLabel,
+      ticker: '_no_etf_note',
+      label: '개별주 중심 안내',
       type: 'add',
-      from: fromPct,
-      to: toPct,
-      delta: addPct,
-      text: `${suggestedEtfLabel} ${fromPct > 0 ? `${fromPct}% → ${toPct}%` : `${toPct}% 추가`} (+${addPct}%)`,
+      from: 0,
+      to: 0,
+      delta: 0,
+      text: 'ETF를 선호하지 않는 설정입니다. 개별주 중심 포트폴리오는 변동성이 커질 수 있으니 종목 수와 업종 분산을 함께 확인해보세요.',
     });
+  } else {
+    const suggestedEtf = pickEtf({
+      nonCashTickers: nonCash.map((i) => i.ticker),
+      isKrHeavy,
+      topSectorName,
+      topSectorWeight,
+      isSingleStock: stockItems.length === 1,
+      marketPrefOverride,
+    });
+    const suggestedEtfTicker = suggestedEtf.ticker;
+    const suggestedEtfLabel = suggestedEtf.label;
+
+    const etfShortfall = Math.max(0, 20 - etfWeight);
+    if (etfShortfall > 0 && (hasAnyEtf || stockItems.length < 5) && stockItems.length >= 1) {
+      const addPct = r1(Math.min(etfShortfall, freedWeight > 0 ? freedWeight : etfShortfall));
+      const existingEtf = weightMap.get(suggestedEtfTicker);
+      const fromPct = r1(existingEtf?.weight ?? 0);
+      const toPct = r1(fromPct + addPct);
+      if (existingEtf) {
+        existingEtf.weight = toPct;
+      } else {
+        weightMap.set(suggestedEtfTicker, { weight: toPct, isNew: true, assetType: 'ETF', sector: 'ETF', name: suggestedEtfLabel });
+      }
+      freedWeight = r1(Math.max(0, freedWeight - addPct));
+      actions.push({
+        ticker: suggestedEtfTicker,
+        label: suggestedEtfLabel,
+        type: 'add',
+        from: fromPct,
+        to: toPct,
+        delta: addPct,
+        text: `${suggestedEtfLabel} ${fromPct > 0 ? `${fromPct}% → ${toPct}%` : `${toPct}% 추가`} (+${addPct}%) — 참고 후보`,
+      });
+    }
   }
 
   // ── Rule 5: 섹터 집중 > 60% → 안내 메시지 (종목 강제 X) ─────────────────
@@ -336,7 +361,9 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
   const improvedScore = calcScore(suggestedItems);
 
   // ── 텍스트 생성 ───────────────────────────────────────────────────────────
-  const realActions = actions.filter((a) => a.ticker !== '_sector_div');
+  const realActions = actions.filter(
+    (a) => a.ticker !== '_sector_div' && a.ticker !== '_no_etf_note',
+  );
 
   let summary: string;
   if (baselineDrift.length > 0) {

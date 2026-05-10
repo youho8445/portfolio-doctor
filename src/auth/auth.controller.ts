@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +9,7 @@ import { GoogleAuthDto } from './dto/google-auth.dto';
 import { PhoneSendDto } from './dto/phone-send.dto';
 import { PhoneVerifyDto } from './dto/phone-verify.dto';
 import { CompleteSignupDto } from './dto/complete-signup.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AppSetting } from '../entities/app-setting.entity';
 import { isAdminEmail } from '../admin/admin-email.helper';
@@ -80,7 +81,20 @@ export class AuthController {
       trialEndsAt: user.trialEndsAt ?? null,
       isPremiumUser,
       isAdmin,
+      investorStyle: user.investorStyle ?? null,
+      marketPref: user.marketPref ?? null,
+      productPref: user.productPref ?? null,
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  async updateProfile(
+    @Req() req: { user: { id: number } },
+    @Body() dto: UpdateProfileDto,
+  ) {
+    await this.authService.updateProfile(req.user.id, dto);
+    return { message: 'OK' };
   }
 
   @Post('logout')

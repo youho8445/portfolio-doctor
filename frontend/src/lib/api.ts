@@ -381,6 +381,24 @@ export async function getMarketIndices(): Promise<{ updatedAt: string; indices: 
   return res.json();
 }
 
+export async function saveUserProfile(profile: {
+  investorStyle: string;
+  marketPref: string;
+  productPref: string;
+}): Promise<void> {
+  const token = getToken();
+  if (!token) return; // not logged in — silently skip
+  try {
+    await fetch(`${API_BASE_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(profile),
+    });
+  } catch {
+    // fire-and-forget — profile save failure must not break the main flow
+  }
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

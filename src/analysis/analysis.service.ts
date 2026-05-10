@@ -270,12 +270,24 @@ export class AnalysisService {
       ? await this.historyService.getBaselineItems(portfolioId, userId)
       : null;
 
+    // ── 사용자 프로필 조회 (리밸런스 개인화 + trial 체크 공용) ──
+    let userRow: import('../entities/user.entity').User | null = null;
+    if (userId > 0) {
+      const { User } = await import('../entities/user.entity');
+      userRow = await this.portfolioRepository.manager.findOne(User, { where: { id: userId } });
+    }
+
     // ── 리밸런싱 엔진 ──
     const rebalanceResult = computeRebalance({
       items: itemMetas,
       currentScore: diversificationScore,
       sectorExposure,
       baselineItems: baselineItems ?? undefined,
+      userProfile: userRow ? {
+        investorStyle: userRow.investorStyle ?? undefined,
+        marketPref: userRow.marketPref ?? undefined,
+        productPref: userRow.productPref ?? undefined,
+      } : undefined,
     });
 
     // ── 스냅샷 저장 + 히스토리 조회 ──
@@ -334,18 +346,12 @@ export class AnalysisService {
 
     const billingMode = await this.adminService.getBillingMode();
 
-    // 트라이얼 체크
+    // 트라이얼 체크 (userRow는 위에서 이미 조회됨)
     let isTrial = false;
     let trialEndsAt: Date | null = null;
-    if (userId > 0) {
-      const { User } = await import('../entities/user.entity');
-      // Use dataSource-free approach: check via historyService's repo or pass user directly
-      // We'll inject UserRepository instead — for now use a lightweight query via portfolioRepository's dataSource
-      const userRow = await this.portfolioRepository.manager.findOne(User, { where: { id: userId } });
-      if (userRow?.trialEndsAt && new Date(userRow.trialEndsAt) > new Date()) {
-        isTrial = true;
-        trialEndsAt = userRow.trialEndsAt;
-      }
+    if (userRow?.trialEndsAt && new Date(userRow.trialEndsAt) > new Date()) {
+      isTrial = true;
+      trialEndsAt = userRow.trialEndsAt;
     }
 
     let isPremium: boolean;

@@ -34,6 +34,7 @@ import {
   markAllEventsRead,
   markEventRead,
   registerPushSubscription,
+  saveUserProfile,
   trackEvent,
   updatePortfolio,
 } from '@/lib/api';
@@ -2738,6 +2739,12 @@ export default function AnalyzerPage() {
           usdKrw={usdKrw?.rate ?? 1400}
           onClose={() => setBeginnerGuideOpen(false)}
           onStart={async (result) => {
+            // Persist investor profile (fire-and-forget; silently skipped if not logged in)
+            void saveUserProfile({
+              investorStyle: result.style,
+              marketPref: result.marketPref.toUpperCase(),
+              productPref: result.productPref.toUpperCase(),
+            });
             setBeginnerResult(result);
             setBeginnerGuideOpen(false);
             setActiveTab('input');

@@ -64,11 +64,14 @@ export function pickEtf(params: {
   topSectorName: string;
   topSectorWeight: number;
   isSingleStock: boolean;
+  marketPrefOverride?: 'KR' | 'US' | 'BOTH' | 'ANY';
 }): EtfCandidate {
-  const { nonCashTickers, isKrHeavy, topSectorName, topSectorWeight, isSingleStock } = params;
+  const { nonCashTickers, isKrHeavy, topSectorName, topSectorWeight, isSingleStock, marketPrefOverride } = params;
   const seed = tickerSeed(nonCashTickers);
 
-  if (isKrHeavy) {
+  // Explicit marketPref overrides the heuristic; BOTH/ANY fall through to heuristic
+  const useKR = marketPrefOverride === 'KR' || (marketPrefOverride !== 'US' && isKrHeavy);
+  if (useKR) {
     return KR_POOL[seed % KR_POOL.length];
   }
 

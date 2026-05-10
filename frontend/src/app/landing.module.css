@@ -200,15 +200,17 @@
   position: relative;
   z-index: 1;
   animation: fadeUp 0.8s 0.4s ease both;
+  width: 100%;
 }
 
 .scoreCard {
   background: #1A1D27;
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 16px;
-  padding: 20px 24px;
+  padding: 20px 16px;
   text-align: center;
-  min-width: 130px;
+  flex: 1;
+  min-width: 0;
 }
 
 .scoreCard .label {
@@ -224,7 +226,7 @@
 .scoreCard .value {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800;
-  font-size: 36px;
+  font-size: clamp(24px, 7vw, 36px);
   letter-spacing: -1px;
 }
 

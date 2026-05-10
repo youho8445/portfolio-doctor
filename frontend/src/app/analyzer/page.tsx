@@ -1579,7 +1579,12 @@ export default function AnalyzerPage() {
             {activeTab === 'result' && analysis && (() => {
               const risk = riskLabel(analysis.healthScore);
               const isPremium = analysis.isPremium ?? false;
-              const top3Actions = analysis.rebalanceResult?.actions?.slice(0, 3) ?? [];
+              const allRebalActions = analysis.rebalanceResult?.actions ?? [];
+              const noEtfNoteAction = allRebalActions.find((a) => a.ticker === '_no_etf_note');
+              const top3Actions = [
+                ...allRebalActions.filter((a) => a.ticker !== '_no_etf_note').slice(0, 3),
+                ...(noEtfNoteAction ? [noEtfNoteAction] : []),
+              ];
               const scoreDelta = analysis.rebalanceResult ? analysis.rebalanceResult.improvedScore - analysis.rebalanceResult.currentScore : 0;
               const conclusion = analysis.rebalanceResult?.summary ?? (analysis.healthScore >= 80 ? '포트폴리오가 잘 분산되어 있습니다.' : '포트폴리오 개선이 필요합니다.');
 
@@ -2026,8 +2031,8 @@ export default function AnalyzerPage() {
                           <div className={`p-5 space-y-3${!isPremium ? ' blur-[3px] select-none pointer-events-none' : ''}`}>
                             <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#94a3b8' }}>Recommended Actions</div>
                             {top3Actions.map((action: RebalanceAction, i: number) => (
-                              <div key={action.ticker} onClick={() => action.ticker !== '_sector_div' && setTickerModal({ ticker: action.ticker, displayName: action.label, rebalanceAction: action })}
-                                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-opacity${action.ticker !== '_sector_div' ? ' cursor-pointer hover:opacity-75' : ''}`} style={{
+                              <div key={action.ticker} onClick={() => !action.ticker.startsWith('_') && setTickerModal({ ticker: action.ticker, displayName: action.label, rebalanceAction: action })}
+                                className={`flex items-center gap-3 rounded-xl px-4 py-3 transition-opacity${!action.ticker.startsWith('_') ? ' cursor-pointer hover:opacity-75' : ''}`} style={{
                                 background: action.type === 'reduce' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
                                 border: `1px solid ${action.type === 'reduce' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`,
                               }}>
@@ -2038,7 +2043,7 @@ export default function AnalyzerPage() {
                                 <div className="flex-1 min-w-0">
                                   <span className="text-sm" style={{ color: "#1c1c1e" }}>{action.text}</span>
                                   {(() => {
-                                    const q = action.ticker !== '_sector_div' ? tickerQuotes[action.ticker] : undefined;
+                                    const q = !action.ticker.startsWith('_') ? tickerQuotes[action.ticker] : undefined;
                                     if (!q) return null;
                                     const tags = buildRiskTags(q, action.type as 'reduce' | 'add');
                                     const explanation = buildRiskExplanation(q, action.type as 'reduce' | 'add');
@@ -2058,7 +2063,7 @@ export default function AnalyzerPage() {
                                     );
                                   })()}
                                 </div>
-                                {action.ticker !== '_sector_div' && (
+                                {!action.ticker.startsWith('_') && (
                                   <span className="font-black text-lg shrink-0" style={{ color: action.type === 'reduce' ? '#ef4444' : '#10b981' }}>
                                     {action.type === 'reduce' ? '↓' : '↑'}
                                   </span>

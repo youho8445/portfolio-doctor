@@ -199,7 +199,7 @@ export default function HomePage() {
           <div className={`${s.stepNum} ${s.eng}`}>3</div>
           <div>
             <h4 className={s.stepTitle}>매일 알림 받기</h4>
-            <p className={s.stepDesc}>변화가 생기면 AI가 먼저 알려줍니다. 그냥 켜만 두면 됩니다.</p>
+            <p className={s.stepDesc}>변화가 생기면 AI가 먼저 알려줍니다. 그냥 켜두기만 하면 됩니다.</p>
           </div>
         </div>
       </div>

@@ -14,8 +14,8 @@ export interface PortraAppIconProps { size?: number; className?: string; }
 
 export function PortraSymbol({ size = 36, className }: PortraSymbolProps) {
   return (
-    <span className={className} style={{ display: 'inline-flex', flexShrink: 0 }} aria-label="Portra AI">
-      <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Portra AI" style={{ objectFit: 'contain' }} />
+    <span className={className} style={{ display: 'inline-flex', flexShrink: 0 }} aria-label="Pobalance">
+      <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Pobalance" style={{ objectFit: 'contain' }} />
     </span>
   );
 }
@@ -36,9 +36,9 @@ export function PortraLogo({
       className={`flex items-center${className ? ` ${className}` : ''}`}
       style={{ gap }}
       role="img"
-      aria-label="Portra AI"
+      aria-label="Pobalance"
     >
-      {showIcon && <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Portra AI" style={{ objectFit: 'contain', flexShrink: 0 }} />}
+      {showIcon && <Image src="/portra-logo.png" width={Math.round(size * 1.5)} height={size} alt="Pobalance" style={{ objectFit: 'contain', flexShrink: 0 }} />}
       {showText && (
         <span style={{
           fontFamily: 'var(--font-dm-sans), Inter, -apple-system, sans-serif',
@@ -50,7 +50,7 @@ export function PortraLogo({
           whiteSpace: 'nowrap',
           userSelect: 'none',
         }}>
-          Portra AI
+          Pobalance
         </span>
       )}
     </div>
@@ -62,7 +62,7 @@ export function PortraAppIcon({ size = 64, className }: PortraAppIconProps) {
     <div
       className={className}
       role="img"
-      aria-label="Portra AI"
+      aria-label="Pobalance"
       style={{
         width: size, height: size,
         borderRadius: Math.round(size * 0.22),
@@ -72,7 +72,7 @@ export function PortraAppIcon({ size = 64, className }: PortraAppIconProps) {
         overflow: 'hidden',
       }}
     >
-      <Image src="/portra-logo.png" width={size} height={size} alt="Portra AI" style={{ objectFit: 'contain' }} />
+      <Image src="/portra-logo.png" width={size} height={size} alt="Pobalance" style={{ objectFit: 'contain' }} />
     </div>
   );
 }

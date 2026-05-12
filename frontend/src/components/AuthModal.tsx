@@ -52,19 +52,19 @@ interface PendingProfile {
 const CONSENT_CONTENTS = {
   terms: {
     title: '이용약관',
-    body: `제1조 (목적)\n본 약관은 Portra AI(이하 "서비스")의 이용조건 및 절차, 서비스 이용자와 운영자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.\n\n제2조 (서비스 정의)\nPortra AI는 사용자가 입력한 투자 포트폴리오 데이터를 기반으로 분석 정보를 제공하는 서비스입니다. 본 서비스는 투자 자문업 등록 없이 운영되는 정보 제공 서비스이며, 특정 종목의 매수·매도를 추천하거나 수익을 보장하지 않습니다.\n\n제3조 (회원가입)\n① 서비스 이용을 원하는 자는 본 약관에 동의하고 회원가입을 신청해야 합니다.\n② 1인 1계정 원칙을 준수해야 하며, 타인의 정보를 도용하여 가입할 수 없습니다.\n\n제4조 (서비스 이용)\n① 서비스는 30일 무료 체험 후 유료 전환됩니다.\n② 운영자는 서비스의 내용을 사전 고지 후 변경하거나 중단할 수 있습니다.\n\n제5조 (책임 제한)\n서비스 내 분석 결과는 참고 정보에 불과하며, 이를 기반으로 한 투자 결과에 대해 운영자는 책임지지 않습니다.\n\n시행일: 2026년 4월 1일`,
+    body: `제1조 (목적)\n본 약관은 Pobalance(이하 "서비스")의 이용조건 및 절차, 서비스 이용자와 운영자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.\n\n제2조 (서비스 정의)\nPobalance는 사용자가 입력한 투자 포트폴리오 데이터를 기반으로 분석 정보를 제공하는 서비스입니다. 본 서비스는 투자 자문업 등록 없이 운영되는 정보 제공 서비스이며, 특정 종목의 매수·매도를 추천하거나 수익을 보장하지 않습니다.\n\n제3조 (회원가입)\n① 서비스 이용을 원하는 자는 본 약관에 동의하고 회원가입을 신청해야 합니다.\n② 1인 1계정 원칙을 준수해야 하며, 타인의 정보를 도용하여 가입할 수 없습니다.\n\n제4조 (서비스 이용)\n① 서비스는 30일 무료 체험 후 유료 전환됩니다.\n② 운영자는 서비스의 내용을 사전 고지 후 변경하거나 중단할 수 있습니다.\n\n제5조 (책임 제한)\n서비스 내 분석 결과는 참고 정보에 불과하며, 이를 기반으로 한 투자 결과에 대해 운영자는 책임지지 않습니다.\n\n시행일: 2026년 4월 1일`,
   },
   privacy: {
     title: '개인정보 수집 및 이용',
-    body: `Portra AI는 서비스 제공을 위해 다음과 같이 개인정보를 수집·이용합니다.\n\n1. 수집 항목\n  - 필수: 이름, 이메일 또는 전화번호, 비밀번호(암호화 저장)\n  - 선택: 마케팅 수신 동의 여부\n\n2. 수집 목적\n  - 회원 식별 및 로그인 처리\n  - 서비스 이용 기록 관리\n  - 고객 문의 처리\n\n3. 보유 및 이용 기간\n  - 회원 탈퇴 시까지 보유\n  - 관계 법령에 따라 일정 기간 보관이 필요한 경우 해당 기간 동안 보관\n\n4. 제3자 제공\n  - 원칙적으로 개인정보를 외부에 제공하지 않습니다.\n\n5. 동의 거부 권리\n  - 개인정보 수집·이용에 동의하지 않을 수 있으나, 거부 시 서비스 이용이 불가합니다.\n\n시행일: 2026년 4월 1일`,
+    body: `Pobalance는 서비스 제공을 위해 다음과 같이 개인정보를 수집·이용합니다.\n\n1. 수집 항목\n  - 필수: 이름, 이메일 또는 전화번호, 비밀번호(암호화 저장)\n  - 선택: 마케팅 수신 동의 여부\n\n2. 수집 목적\n  - 회원 식별 및 로그인 처리\n  - 서비스 이용 기록 관리\n  - 고객 문의 처리\n\n3. 보유 및 이용 기간\n  - 회원 탈퇴 시까지 보유\n  - 관계 법령에 따라 일정 기간 보관이 필요한 경우 해당 기간 동안 보관\n\n4. 제3자 제공\n  - 원칙적으로 개인정보를 외부에 제공하지 않습니다.\n\n5. 동의 거부 권리\n  - 개인정보 수집·이용에 동의하지 않을 수 있으나, 거부 시 서비스 이용이 불가합니다.\n\n시행일: 2026년 4월 1일`,
   },
   risk: {
     title: '투자 유의사항',
-    body: `Portra AI 서비스를 이용하시기 전에 다음 사항을 반드시 확인하세요.\n\n1. 본 서비스는 투자 참고 정보만을 제공합니다.\n   분석 결과는 투자 판단을 돕기 위한 참고 정보이며, 특정 종목의 매수·매도 추천이나 수익 보장을 의미하지 않습니다.\n\n2. 투자 원금 손실 위험이 있습니다.\n   모든 투자에는 원금 손실 위험이 존재하며, 과거 수익률이 미래 수익률을 보장하지 않습니다.\n\n3. 최종 투자 판단은 본인의 책임입니다.\n   서비스 내 제공되는 점수, 추천, 분석 정보를 맹목적으로 따르지 마시고, 전문 투자 자문가와 상담 후 본인의 판단에 따라 투자하시기 바랍니다.\n\n4. 본 서비스는 금융투자업 인가를 받은 서비스가 아닙니다.\n\n시행일: 2026년 4월 1일`,
+    body: `Pobalance 서비스를 이용하시기 전에 다음 사항을 반드시 확인하세요.\n\n1. 본 서비스는 투자 참고 정보만을 제공합니다.\n   분석 결과는 투자 판단을 돕기 위한 참고 정보이며, 특정 종목의 매수·매도 추천이나 수익 보장을 의미하지 않습니다.\n\n2. 투자 원금 손실 위험이 있습니다.\n   모든 투자에는 원금 손실 위험이 존재하며, 과거 수익률이 미래 수익률을 보장하지 않습니다.\n\n3. 최종 투자 판단은 본인의 책임입니다.\n   서비스 내 제공되는 점수, 추천, 분석 정보를 맹목적으로 따르지 마시고, 전문 투자 자문가와 상담 후 본인의 판단에 따라 투자하시기 바랍니다.\n\n4. 본 서비스는 금융투자업 인가를 받은 서비스가 아닙니다.\n\n시행일: 2026년 4월 1일`,
   },
   marketing: {
     title: '마케팅 정보 수신 동의 (선택)',
-    body: `Portra AI는 아래와 같이 마케팅 정보를 발송할 수 있습니다.\n\n1. 수신 채널: 이메일\n\n2. 발송 내용\n  - 서비스 업데이트 및 새로운 기능 안내\n  - 투자 관련 정보 및 뉴스레터\n  - 프로모션 및 이벤트 안내\n\n3. 수신 거부\n  - 언제든지 마이페이지 또는 수신 이메일의 하단 링크를 통해 수신 거부할 수 있습니다.\n\n4. 동의 거부 시 불이익\n  - 마케팅 정보 수신 동의는 선택 사항이며, 동의하지 않아도 서비스 이용에 제한이 없습니다.\n\n시행일: 2026년 4월 1일`,
+    body: `Pobalance는 아래와 같이 마케팅 정보를 발송할 수 있습니다.\n\n1. 수신 채널: 이메일\n\n2. 발송 내용\n  - 서비스 업데이트 및 새로운 기능 안내\n  - 투자 관련 정보 및 뉴스레터\n  - 프로모션 및 이벤트 안내\n\n3. 수신 거부\n  - 언제든지 마이페이지 또는 수신 이메일의 하단 링크를 통해 수신 거부할 수 있습니다.\n\n4. 동의 거부 시 불이익\n  - 마케팅 정보 수신 동의는 선택 사항이며, 동의하지 않아도 서비스 이용에 제한이 없습니다.\n\n시행일: 2026년 4월 1일`,
   },
 };
 
@@ -540,7 +540,7 @@ export function AuthModal() {
       <Logo />
       <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 20 }}>계정 만들기</h1>
       <div style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#7c3aed', lineHeight: 1.6 }}>
-        Portra AI는 수익을 보장하는 서비스가 아닙니다.<br />분석 결과는 투자 참고 정보입니다.
+        Pobalance는 수익을 보장하는 서비스가 아닙니다.<br />분석 결과는 투자 참고 정보입니다.
       </div>
 
       <form onSubmit={handleEmailSignup} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -587,7 +587,7 @@ export function AuthModal() {
           </div>
           <ConsentRow checked={signupConsent.agreeToTerms} onChange={v => setSignupConsent(s => ({ ...s, agreeToTerms: v }))} label="이용약관 동의" required onView={() => setConsentModal('terms')} />
           <ConsentRow checked={signupConsent.agreeToPrivacy} onChange={v => setSignupConsent(s => ({ ...s, agreeToPrivacy: v }))} label="개인정보 수집 및 이용 동의" required onView={() => setConsentModal('privacy')} />
-          <ConsentRow checked={signupConsent.agreeToRiskDisclaimer} onChange={v => setSignupConsent(s => ({ ...s, agreeToRiskDisclaimer: v }))} label="Portra AI는 투자 참고 정보를 제공하며, 최종 투자 판단은 사용자에게 있습니다." subLabel="특정 종목의 매수·매도를 권장하거나 수익을 보장하지 않습니다." required onView={() => setConsentModal('risk')} />
+          <ConsentRow checked={signupConsent.agreeToRiskDisclaimer} onChange={v => setSignupConsent(s => ({ ...s, agreeToRiskDisclaimer: v }))} label="Pobalance는 투자 참고 정보를 제공하며, 최종 투자 판단은 사용자에게 있습니다." subLabel="특정 종목의 매수·매도를 권장하거나 수익을 보장하지 않습니다." required onView={() => setConsentModal('risk')} />
           <ConsentRow checked={signupConsent.agreeToMarketing} onChange={v => setSignupConsent(s => ({ ...s, agreeToMarketing: v }))} label="마케팅 정보 수신 동의" onView={() => setConsentModal('marketing')} />
         </div>
 

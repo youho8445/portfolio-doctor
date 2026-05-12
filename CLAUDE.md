@@ -1,8 +1,8 @@
-# Portra AI — Development Rules
+# Pobalance — Development Rules
 
 ## 1. Product Identity
 
-- Portra AI is a portfolio risk-management and monitoring product.
+- Pobalance is a portfolio risk-management and monitoring product.
 - It is not a stock prediction app.
 - It is not an investment advisory service.
 - It must not promise returns.

@@ -30,8 +30,8 @@ export default function HomePage() {
       {/* HERO */}
       <div className={s.hero}>
         <div className={s.logoArea}>
-          <Image src="/portra-logo.png" width={108} height={72} alt="Portra AI" className={s.logoIconImg} />
-          <span className={`${s.logoText} ${s.eng}`}>Portra AI</span>
+          <Image src="/portra-logo.png" width={108} height={72} alt="Pobalance" className={s.logoIconImg} />
+          <span className={`${s.logoText} ${s.eng}`}>Pobalance</span>
         </div>
 
         <div className={s.badge}>
@@ -222,7 +222,7 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer className={s.footer}>
-        <span className={s.eng}>Portra AI</span> · 내 포트폴리오의 AI 주치의<br />
+        <span className={s.eng}>Pobalance</span> · 내 포트폴리오의 AI 주치의<br />
         <a href="mailto:youho2636@gmail.com" style={{ marginTop: '8px', display: 'inline-block' }}>문의하기</a>
       </footer>
 

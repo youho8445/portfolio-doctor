@@ -4,11 +4,11 @@ import { Controller, Get } from '@nestjs/common';
 export class AppController {
   @Get()
   root() {
-    return { status: 'ok', service: 'portra-ai-api' };
+    return { status: 'ok', service: 'pobalance-api' };
   }
 
   @Get('health')
   health() {
-    return { status: 'ok', service: 'portra-ai-api' };
+    return { status: 'ok', service: 'pobalance-api' };
   }
 }

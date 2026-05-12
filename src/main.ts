@@ -17,7 +17,7 @@ async function bootstrap() {
   // NestJS takes over the port once fully initialized.
   const probe = http.createServer((_, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end('{"status":"starting","service":"portra-ai-api"}');
+    res.end('{"status":"starting","service":"pobalance-api"}');
   });
   await new Promise<void>((resolve) => probe.listen(port, '0.0.0.0', resolve));
   console.log(`[startup] probe listening on port ${port}`);

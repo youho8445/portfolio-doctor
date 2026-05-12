@@ -21,7 +21,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Portra AI',
+  title: 'Pobalance',
   description: '내 포트폴리오의 흐름을 AI로 관리하세요',
 };
 

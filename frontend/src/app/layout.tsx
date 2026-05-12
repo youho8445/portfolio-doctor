@@ -21,7 +21,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'Pobalance',
+  title: 'PoBalance',
   description: '내 포트폴리오의 흐름을 AI로 관리하세요',
 };
 

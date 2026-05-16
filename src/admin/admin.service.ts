@@ -65,7 +65,12 @@ export class AdminService {
   async getPageTrafficStats() {
     const PAGE_EVENTS = ['page_view_landing', 'page_view_analyzer', 'analysis_run', 'checkout_page_view', 'payment_success'];
 
-    const [allTimeRows, last7dRows] = await Promise.all([
+    // KST 자정 (UTC+9 → 전날 15:00 UTC)
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    kstNow.setUTCHours(0, 0, 0, 0);
+    const todayStart = new Date(kstNow.getTime() - 9 * 60 * 60 * 1000);
+
+    const [allTimeRows, last7dRows, todayRows] = await Promise.all([
       this.conversionRepo.createQueryBuilder('e')
         .select('e.event', 'event')
         .addSelect('COUNT(*)', 'count')
@@ -79,17 +84,26 @@ export class AdminService {
         .andWhere('e.createdAt >= :since', { since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) })
         .groupBy('e.event')
         .getRawMany<{ event: string; count: string }>(),
+      this.conversionRepo.createQueryBuilder('e')
+        .select('e.event', 'event')
+        .addSelect('COUNT(*)', 'count')
+        .where('e.event IN (:...events)', { events: PAGE_EVENTS })
+        .andWhere('e.createdAt >= :since', { since: todayStart })
+        .groupBy('e.event')
+        .getRawMany<{ event: string; count: string }>(),
     ]);
 
     const toMap = (rows: { event: string; count: string }[]) =>
       rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.event]: Number(r.count) }), {});
 
-    const all = toMap(allTimeRows);
-    const d7  = toMap(last7dRows);
+    const all   = toMap(allTimeRows);
+    const d7    = toMap(last7dRows);
+    const today = toMap(todayRows);
 
     return {
-      allTime: PAGE_EVENTS.map((e) => ({ event: e, count: all[e] ?? 0 })),
-      last7d:  PAGE_EVENTS.map((e) => ({ event: e, count: d7[e]  ?? 0 })),
+      allTime: PAGE_EVENTS.map((e) => ({ event: e, count: all[e]   ?? 0 })),
+      last7d:  PAGE_EVENTS.map((e) => ({ event: e, count: d7[e]    ?? 0 })),
+      today:   PAGE_EVENTS.map((e) => ({ event: e, count: today[e] ?? 0 })),
     };
   }
 

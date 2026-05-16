@@ -271,6 +271,7 @@ export async function getAdminConversionStats(): Promise<ConversionStats> {
 export interface PageTrafficStats {
   allTime: { event: string; count: number }[];
   last7d:  { event: string; count: number }[];
+  today:   { event: string; count: number }[];
 }
 
 export async function getAdminPageTrafficStats(): Promise<PageTrafficStats> {

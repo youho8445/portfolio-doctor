@@ -409,6 +409,7 @@ export default function AdminPage() {
                     <th className="text-left px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>단계</th>
                     <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>전체</th>
                     <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>7일</th>
+                    <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#a78bfa' }}>오늘</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -419,13 +420,15 @@ export default function AdminPage() {
                     { event: 'checkout_page_view',  label: '④ 결제 페이지 진입' },
                     { event: 'payment_success',     label: '⑤ 결제 완료' },
                   ].map(({ event, label }) => {
-                    const allRow = pageTraffic.allTime.find((r) => r.event === event);
-                    const d7Row  = pageTraffic.last7d.find((r) => r.event === event);
+                    const allRow   = pageTraffic.allTime.find((r) => r.event === event);
+                    const d7Row    = pageTraffic.last7d.find((r) => r.event === event);
+                    const todayRow = pageTraffic.today.find((r) => r.event === event);
                     return (
                       <tr key={event} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                         <td className="px-4 py-2.5" style={{ color: '#9ca3af' }}>{label}</td>
                         <td className="px-4 py-2.5 text-right font-semibold text-white">{(allRow?.count ?? 0).toLocaleString()}</td>
                         <td className="px-4 py-2.5 text-right" style={{ color: '#6b7280' }}>{(d7Row?.count ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-2.5 text-right font-semibold" style={{ color: '#a78bfa' }}>{(todayRow?.count ?? 0).toLocaleString()}</td>
                       </tr>
                     );
                   })}

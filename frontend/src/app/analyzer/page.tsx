@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -10,6 +10,8 @@ const PremiumCompareModal = dynamic(() => import('@/components/PremiumCompareMod
 const GlossaryDrawer = dynamic(() => import('@/components/GlossaryDrawer'), { ssr: false });
 const MarketIndexCard = dynamic(() => import('@/components/MarketIndexCard'), { ssr: false });
 import TermTooltip from '@/components/TermTooltip';
+import GlossaryTrigger from '@/components/GlossaryTrigger';
+import { GlossaryContext } from '@/contexts/GlossaryContext';
 import type { BeginnerResult } from '@/components/BeginnerGuide';
 import { PortraLogo } from '@/components/brand/PortraLogo';
 import { buildRiskTags, buildRiskExplanation } from '@/lib/riskSignal';
@@ -227,6 +229,11 @@ export default function AnalyzerPage() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
+  const [glossaryQuery, setGlossaryQuery] = useState('');
+  const openGlossaryFor = useCallback((term: string) => {
+    setGlossaryQuery(term);
+    setGlossaryOpen(true);
+  }, []);
   const [marketModalOpen, setMarketModalOpen] = useState(false);
 
   const tickerNameMap = useMemo(() => {
@@ -1016,6 +1023,7 @@ export default function AnalyzerPage() {
 
   // ── 렌더 ──────────────────────────────────────────────────────────────────
   return (
+    <GlossaryContext.Provider value={{ openFor: openGlossaryFor }}>
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f3ee', color: '#1c1c1e' }}>
       {notifOpen && <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />}
 
@@ -1210,13 +1218,13 @@ export default function AnalyzerPage() {
               {analysis && (
                 <div className="flex gap-3 flex-wrap">
                   <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>건강 점수</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>건강 점수 <GlossaryTrigger term="변동성" /></div>
                     <div className="font-black" style={{ fontSize: 28, color: analysis.healthScore >= 80 ? '#059669' : analysis.healthScore >= 60 ? '#f59e0b' : '#ef4444', lineHeight: 1 }}>
                       {analysis.healthScore}
                     </div>
                   </div>
                   <div className="rounded-2xl px-5 py-3.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}><TermTooltip term="분산">분산도</TermTooltip></div>
+                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>분산도 <GlossaryTrigger term="분산투자" /></div>
                     <div className="font-black" style={{ fontSize: 28, color: '#10b981', lineHeight: 1 }}>
                       {analysis.diversificationScore}
                     </div>
@@ -1246,7 +1254,7 @@ export default function AnalyzerPage() {
                     </div>
                   </div>
                   <div className="rounded-xl px-4 py-2.5 text-right" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                    <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}><TermTooltip term="분산">분산도</TermTooltip></div>
+                    <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>분산도 <GlossaryTrigger term="분산투자" /></div>
                     <div className="font-black" style={{ fontSize: 22, color: '#10b981', lineHeight: 1 }}>
                       {analysis.diversificationScore}
                     </div>
@@ -1763,11 +1771,11 @@ export default function AnalyzerPage() {
                       {/* 스타일 + 분산도 */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
-                          <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>투자 스타일</div>
+                          <div className="text-[10px] uppercase tracking-widest mb-1 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>투자 스타일 <GlossaryTrigger term="집중투자" /></div>
                           <div className="text-sm font-bold text-[#1c1c1e]">{analysis.portfolioStyle}</div>
                         </div>
                         <div className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
-                          <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>분산도</div>
+                          <div className="text-[10px] uppercase tracking-widest mb-1 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>분산도 <GlossaryTrigger term="변동성" /></div>
                           <div className="text-sm font-bold" style={{ color: '#10b981' }}>{analysis.diversificationScore}</div>
                           {analysis.diversificationPercentile > 0 && (
                             <div className="text-[10px] mt-0.5" style={{ color: '#94a3b8' }}>
@@ -1783,7 +1791,7 @@ export default function AnalyzerPage() {
                       <div className="flex items-center justify-between mb-5">
                         <div>
                           <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>Asset Allocation</div>
-                          <div className="text-sm font-bold text-[#1c1c1e]">섹터별 분산 현황</div>
+                          <div className="text-sm font-bold text-[#1c1c1e] flex items-center gap-1.5">섹터별 분산 현황 <GlossaryTrigger term="섹터" /></div>
                         </div>
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)' }}>
                           <IconPieChart className="w-4.5 h-4.5" style={{ width: 18, height: 18, color: '#10b981' }} />
@@ -1971,10 +1979,10 @@ export default function AnalyzerPage() {
                         {/* 헤더 */}
                         <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: accent.light }}>
                           <div>
-                            <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>Rebalancing Strategy</div>
+                            <div className="text-xs font-semibold uppercase tracking-widest mb-0.5 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>Rebalancing Strategy <GlossaryTrigger term="리밸런싱" /></div>
                             {scoreDelta > 0 ? (
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-[#1c1c1e] text-sm">리밸런싱 후 분산도</span>
+                                <span className="font-bold text-[#1c1c1e] text-sm">리밸런싱 후 분산도 <GlossaryTrigger term="벤치마크" /></span>
                                 <span className="font-black" style={{ color: '#64748b' }}>{analysis.rebalanceResult.currentScore}</span>
                                 <span style={{ color: '#94a3b8' }}>→</span>
                                 <span className="font-black" style={{ color: '#10b981' }}>{analysis.rebalanceResult.improvedScore}</span>
@@ -2349,6 +2357,12 @@ export default function AnalyzerPage() {
                             </div>
                           ))}
                         </div>
+                        <div className="pt-3 mt-1 flex items-center gap-2 flex-wrap" style={{ borderTop: '1px solid #f1f5f9' }}>
+                          <span className="text-[10px]" style={{ color: '#94a3b8' }}>투자 심리 용어</span>
+                          <GlossaryTrigger term="FOMO" label="FOMO" />
+                          <GlossaryTrigger term="군중심리" label="군중심리" />
+                          <GlossaryTrigger term="패닉셀" label="패닉셀" />
+                        </div>
                       </div>
                     );
                   })()}
@@ -2382,7 +2396,7 @@ export default function AnalyzerPage() {
                       {/* 헤더 */}
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>내 투자 수익률</div>
+                          <div className="text-xs font-semibold uppercase tracking-widest mb-0.5 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>내 투자 수익률 <GlossaryTrigger term="수익률" /></div>
                           <div className="text-[11px]" style={{ color: '#94a3b8' }}>평단가 기준 · 미국주식 평단가는 달러($)로 입력</div>
                         </div>
                         <div className={`text-3xl font-black shrink-0 ${retColor(analysis.personalReturn)}`}>
@@ -2406,7 +2420,7 @@ export default function AnalyzerPage() {
                             <div className="text-sm font-bold text-[#1c1c1e]">{fmtKRW(totalCurrentKRW)}</div>
                           </div>
                           <div className="text-right">
-                            <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: '#94a3b8' }}>평가손익</div>
+                            <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>평가손익 <GlossaryTrigger term="평가손익" /></div>
                             <div className="text-sm font-bold" style={{ color: profitColor(totalProfitKRW) }}>{fmtProfit(totalProfitKRW)}</div>
                           </div>
                         </div>
@@ -2731,7 +2745,7 @@ export default function AnalyzerPage() {
       <PremiumCompareModal isOpen={premiumModalOpen} onClose={() => setPremiumModalOpen(false)} onCta={handleCheckout} portfolioSummary={modalPortfolioSummary} />
 
       {/* 투자 용어 사전 */}
-      <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
+      <GlossaryDrawer open={glossaryOpen} onClose={() => { setGlossaryOpen(false); setGlossaryQuery(''); }} initialQuery={glossaryQuery} />
 
       {/* 시장 한눈에 보기 — 모바일 모달 */}
       {marketModalOpen && <MarketIndexCard modal onClose={() => setMarketModalOpen(false)} />}
@@ -2774,5 +2788,6 @@ export default function AnalyzerPage() {
         />
       )}
     </div>
+    </GlossaryContext.Provider>
   );
 }

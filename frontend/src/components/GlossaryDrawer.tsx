@@ -6,24 +6,42 @@ import { GLOSSARY, GLOSSARY_CATEGORIES, type GlossaryCategory } from '@/data/glo
 interface Props {
   open: boolean;
   onClose: () => void;
+  initialQuery?: string;
 }
 
-export default function GlossaryDrawer({ open, onClose }: Props) {
+const ORDERED_CATEGORIES = [
+  '기본 개념',
+  '투자 행동',
+  '리스크 관리',
+  '시장/지수',
+  '재무지표',
+  '투자자/수급',
+  '심리/밈 용어',
+] as const;
+
+const CAT_COLOR: Record<string, { bg: string; text: string }> = {
+  '기본 개념':    { bg: '#fef3c7', text: '#d97706' },
+  '투자 행동':   { bg: '#fee2e2', text: '#dc2626' },
+  '리스크 관리': { bg: '#ede9fe', text: '#7c3aed' },
+  '시장/지수':   { bg: '#dbeafe', text: '#2563eb' },
+  '재무지표':    { bg: '#d1fae5', text: '#059669' },
+  '투자자/수급': { bg: '#e0f2fe', text: '#0284c7' },
+  '심리/밈 용어': { bg: '#fce7f3', text: '#db2777' },
+};
+
+export default function GlossaryDrawer({ open, onClose, initialQuery }: Props) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<GlossaryCategory>('전체');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Reset state when opened
   useEffect(() => {
     if (open) {
-      setQuery('');
+      setQuery(initialQuery ?? '');
       setCategory('전체');
-      // Small delay so the element is visible before focusing
       setTimeout(() => inputRef.current?.focus(), 80);
     }
-  }, [open]);
+  }, [open, initialQuery]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -31,7 +49,6 @@ export default function GlossaryDrawer({ open, onClose }: Props) {
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  // Lock body scroll while open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
@@ -44,16 +61,20 @@ export default function GlossaryDrawer({ open, onClose }: Props) {
   if (!open) return null;
 
   const q = query.trim().toLowerCase();
+
   const filtered = GLOSSARY.filter((t) => {
     const matchCat = category === '전체' || t.category === category;
-    const matchQ = !q || t.term.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
+    const matchQ =
+      !q ||
+      t.term.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      (t.aliases?.some((a) => a.toLowerCase().includes(q)) ?? false);
     return matchCat && matchQ;
   });
 
-  // Group by category when no search query
   const grouped = q
     ? null
-    : (['기초', '시장', '투자자', '포트폴리오'] as const).map((cat) => ({
+    : ORDERED_CATEGORIES.map((cat) => ({
         label: cat,
         terms: filtered.filter((t) => t.category === cat),
       })).filter((g) => g.terms.length > 0);
@@ -96,7 +117,7 @@ export default function GlossaryDrawer({ open, onClose }: Props) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="용어 검색..."
+            placeholder="용어 검색... (예: FOMO, 손절, PER)"
             className="w-full rounded-xl px-3 py-2.5 text-sm outline-none mb-3"
             style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4', color: '#1c1c1e' }}
             onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
@@ -131,14 +152,12 @@ export default function GlossaryDrawer({ open, onClose }: Props) {
               <div className="text-xs mt-1">다른 키워드로 검색해보세요</div>
             </div>
           ) : q ? (
-            // Flat list when searching
             <div className="space-y-2">
               {filtered.map((t) => (
-                <TermCard key={t.term} term={t.term} category={t.category} description={t.description} />
+                <TermCard key={t.term} term={t} />
               ))}
             </div>
           ) : (
-            // Grouped by category
             <div className="space-y-5">
               {(grouped ?? []).map((group) => (
                 <div key={group.label}>
@@ -150,7 +169,7 @@ export default function GlossaryDrawer({ open, onClose }: Props) {
                   </div>
                   <div className="space-y-2">
                     {group.terms.map((t) => (
-                      <TermCard key={t.term} term={t.term} category={t.category} description={t.description} />
+                      <TermCard key={t.term} term={t} />
                     ))}
                   </div>
                 </div>
@@ -159,7 +178,7 @@ export default function GlossaryDrawer({ open, onClose }: Props) {
           )}
         </div>
 
-        {/* Footer note */}
+        {/* Footer */}
         <div className="px-5 py-3 shrink-0" style={{ borderTop: '1px solid #f1f5f9' }}>
           <p className="text-[10px] text-center" style={{ color: '#cbd5e1' }}>
             * 참고용 설명이며 투자 권유가 아닙니다
@@ -170,14 +189,8 @@ export default function GlossaryDrawer({ open, onClose }: Props) {
   );
 }
 
-function TermCard({ term, category, description }: { term: string; category: string; description: string }) {
-  const catColor: Record<string, { bg: string; text: string }> = {
-    기초: { bg: '#fef3c7', text: '#d97706' },
-    시장: { bg: '#dbeafe', text: '#2563eb' },
-    투자자: { bg: '#d1fae5', text: '#059669' },
-    포트폴리오: { bg: '#ede9fe', text: '#7c3aed' },
-  };
-  const colors = catColor[category] ?? { bg: '#f1f5f9', text: '#64748b' };
+function TermCard({ term: t }: { term: import('@/data/glossary').GlossaryTerm }) {
+  const colors = CAT_COLOR[t.category] ?? { bg: '#f1f5f9', text: '#64748b' };
 
   return (
     <div
@@ -185,15 +198,20 @@ function TermCard({ term, category, description }: { term: string; category: str
       style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}
     >
       <div className="flex items-center gap-2 mb-1">
-        <span className="font-bold text-sm" style={{ color: '#1c1c1e' }}>{term}</span>
+        <span className="font-bold text-sm" style={{ color: '#1c1c1e' }}>{t.term}</span>
         <span
-          className="text-[9px] font-bold rounded-full px-1.5 py-0.5"
+          className="text-[9px] font-bold rounded-full px-1.5 py-0.5 shrink-0"
           style={{ background: colors.bg, color: colors.text }}
         >
-          {category}
+          {t.category}
         </span>
       </div>
-      <p className="text-xs leading-relaxed" style={{ color: '#475569' }}>{description}</p>
+      <p className="text-xs leading-relaxed" style={{ color: '#475569' }}>{t.description}</p>
+      {t.caution && (
+        <p className="text-[11px] leading-relaxed mt-1.5" style={{ color: '#b45309' }}>
+          ⚠️ {t.caution}
+        </p>
+      )}
     </div>
   );
 }

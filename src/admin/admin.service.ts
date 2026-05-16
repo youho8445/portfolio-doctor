@@ -62,6 +62,37 @@ export class AdminService {
     await this.userRepo.remove(user);
   }
 
+  async getPageTrafficStats() {
+    const PAGE_EVENTS = ['page_view_landing', 'page_view_analyzer'];
+
+    const [allTimeRows, last7dRows] = await Promise.all([
+      this.conversionRepo.createQueryBuilder('e')
+        .select('e.event', 'event')
+        .addSelect('COUNT(*)', 'count')
+        .where('e.event IN (:...events)', { events: PAGE_EVENTS })
+        .groupBy('e.event')
+        .getRawMany<{ event: string; count: string }>(),
+      this.conversionRepo.createQueryBuilder('e')
+        .select('e.event', 'event')
+        .addSelect('COUNT(*)', 'count')
+        .where('e.event IN (:...events)', { events: PAGE_EVENTS })
+        .andWhere('e.createdAt >= :since', { since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) })
+        .groupBy('e.event')
+        .getRawMany<{ event: string; count: string }>(),
+    ]);
+
+    const toMap = (rows: { event: string; count: string }[]) =>
+      rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.event]: Number(r.count) }), {});
+
+    const all = toMap(allTimeRows);
+    const d7  = toMap(last7dRows);
+
+    return {
+      allTime: PAGE_EVENTS.map((e) => ({ event: e, count: all[e] ?? 0 })),
+      last7d:  PAGE_EVENTS.map((e) => ({ event: e, count: d7[e]  ?? 0 })),
+    };
+  }
+
   async getConversionStats() {
     const EVENTS = ['premium_modal_open', 'premium_cta_click', 'checkout_page_view', 'upgrade_attempt', 'payment_success'];
 

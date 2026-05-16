@@ -4,9 +4,21 @@ import { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import s from './landing.module.css';
+import { trackEvent } from '@/lib/api';
 
 export default function HomePage() {
   const pageRef = useRef<HTMLDivElement>(null);
+  const trackedRef = useRef(false);
+
+  useEffect(() => {
+    if (!trackedRef.current) {
+      trackedRef.current = true;
+      if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('pv_landing')) {
+        sessionStorage.setItem('pv_landing', '1');
+        void trackEvent('page_view_landing', null);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const el = pageRef.current;

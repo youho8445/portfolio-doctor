@@ -111,7 +111,15 @@ export class AdminController {
     return { message: '데이터 수집을 시작했습니다.' };
   }
 
-  // ── 전환 퍼널 ─────────────────────────────────────────────────────────────
+  // ── 페이지 트래픽 ──────────────────────────────────────────────────────────
+
+  @Get('analytics/page-traffic')
+  async getPageTrafficStats(@Req() req: { user: { email: string } }) {
+    this.requireAdmin(req.user.email);
+    return this.adminService.getPageTrafficStats();
+  }
+
+  // ── 전환 퍼널 (숨김 — 데이터 보존) ──────────────────────────────────────────
 
   @Get('analytics/conversion')
   async getConversionStats(@Req() req: { user: { email: string } }) {

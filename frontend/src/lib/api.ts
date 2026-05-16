@@ -268,6 +268,19 @@ export async function getAdminConversionStats(): Promise<ConversionStats> {
   return res.json();
 }
 
+export interface PageTrafficStats {
+  allTime: { event: string; count: number }[];
+  last7d:  { event: string; count: number }[];
+}
+
+export async function getAdminPageTrafficStats(): Promise<PageTrafficStats> {
+  const res = await fetch(`${API_BASE_URL}/admin/analytics/page-traffic`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch page traffic stats');
+  return res.json();
+}
+
 export async function deleteAdminUser(userId: number): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
     method: 'DELETE',

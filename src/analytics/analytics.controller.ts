@@ -8,6 +8,7 @@ const VALID_EVENTS = [
   'checkout_page_view',
   'upgrade_attempt',
   'payment_success',
+  'page_view_landing',
   'page_view_analyzer',
   'page_view_login',
   'page_view_register',

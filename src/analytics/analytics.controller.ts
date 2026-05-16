@@ -10,13 +10,14 @@ const VALID_EVENTS = [
   'payment_success',
   'page_view_landing',
   'page_view_analyzer',
+  'analysis_run',
   'page_view_login',
   'page_view_register',
 ] as const;
 
 class TrackEventDto {
   @IsIn(VALID_EVENTS)
-  event: string;
+  event!: string;
 
   @IsNumber()
   @IsOptional()

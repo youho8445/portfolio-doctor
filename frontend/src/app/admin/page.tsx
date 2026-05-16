@@ -406,15 +406,18 @@ export default function AdminPage() {
               <table className="w-full text-xs">
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <th className="text-left px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>이벤트</th>
+                    <th className="text-left px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>단계</th>
                     <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>전체</th>
                     <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>7일</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { event: 'page_view_landing',  label: '랜딩 페이지 접근' },
-                    { event: 'page_view_analyzer', label: '분석 페이지 접근' },
+                    { event: 'page_view_landing',  label: '① 랜딩 페이지 접근' },
+                    { event: 'page_view_analyzer', label: '② 분석 페이지 접근' },
+                    { event: 'analysis_run',        label: '③ 포트폴리오 분석 실행' },
+                    { event: 'checkout_page_view',  label: '④ 결제 페이지 진입' },
+                    { event: 'payment_success',     label: '⑤ 결제 완료' },
                   ].map(({ event, label }) => {
                     const allRow = pageTraffic.allTime.find((r) => r.event === event);
                     const d7Row  = pageTraffic.last7d.find((r) => r.event === event);

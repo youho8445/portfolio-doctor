@@ -63,7 +63,7 @@ export class AdminService {
   }
 
   async getPageTrafficStats() {
-    const PAGE_EVENTS = ['page_view_landing', 'page_view_analyzer'];
+    const PAGE_EVENTS = ['page_view_landing', 'page_view_analyzer', 'analysis_run', 'checkout_page_view', 'payment_success'];
 
     const [allTimeRows, last7dRows] = await Promise.all([
       this.conversionRepo.createQueryBuilder('e')

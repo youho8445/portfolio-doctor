@@ -661,6 +661,7 @@ export default function AnalyzerPage() {
         await addPortfolioItem(portfolioId, item.securityId, options);
       }
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
+      void trackEvent('analysis_run', user?.id);
       setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
       // refresh notifications and portfolio state after analysis (detection runs async server-side)
       setTimeout(() => {

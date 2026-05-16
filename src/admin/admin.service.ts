@@ -5,6 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { AppSetting } from '../entities/app-setting.entity';
 import { User } from '../entities/user.entity';
 import { ConversionEvent } from '../entities/conversion-event.entity';
+import { isAdminEmail } from './admin-email.helper';
 
 export type BillingMode = 'FREE' | 'SOFT_PAYWALL' | 'PAID';
 
@@ -62,6 +63,11 @@ export class AdminService {
     await this.userRepo.remove(user);
   }
 
+  private async getAdminUserIds(): Promise<number[]> {
+    const users = await this.userRepo.find({ select: ['id', 'email'] });
+    return users.filter((u) => isAdminEmail(u.email)).map((u) => u.id);
+  }
+
   async getPageTrafficStats() {
     const PAGE_EVENTS = ['page_view_landing', 'page_view_analyzer', 'analysis_run', 'checkout_page_view', 'payment_success'];
 
@@ -70,26 +76,32 @@ export class AdminService {
     kstNow.setUTCHours(0, 0, 0, 0);
     const todayStart = new Date(kstNow.getTime() - 9 * 60 * 60 * 1000);
 
+    const adminIds = await this.getAdminUserIds();
+    const excludeAdmin = (qb: ReturnType<typeof this.conversionRepo.createQueryBuilder>) =>
+      adminIds.length > 0
+        ? qb.andWhere('(e.userId IS NULL OR e.userId NOT IN (:...adminIds))', { adminIds })
+        : qb;
+
     const [allTimeRows, last7dRows, todayRows] = await Promise.all([
-      this.conversionRepo.createQueryBuilder('e')
+      excludeAdmin(this.conversionRepo.createQueryBuilder('e')
         .select('e.event', 'event')
         .addSelect('COUNT(*)', 'count')
         .where('e.event IN (:...events)', { events: PAGE_EVENTS })
-        .groupBy('e.event')
+        .groupBy('e.event'))
         .getRawMany<{ event: string; count: string }>(),
-      this.conversionRepo.createQueryBuilder('e')
+      excludeAdmin(this.conversionRepo.createQueryBuilder('e')
         .select('e.event', 'event')
         .addSelect('COUNT(*)', 'count')
         .where('e.event IN (:...events)', { events: PAGE_EVENTS })
         .andWhere('e.createdAt >= :since', { since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) })
-        .groupBy('e.event')
+        .groupBy('e.event'))
         .getRawMany<{ event: string; count: string }>(),
-      this.conversionRepo.createQueryBuilder('e')
+      excludeAdmin(this.conversionRepo.createQueryBuilder('e')
         .select('e.event', 'event')
         .addSelect('COUNT(*)', 'count')
         .where('e.event IN (:...events)', { events: PAGE_EVENTS })
         .andWhere('e.createdAt >= :since', { since: todayStart })
-        .groupBy('e.event')
+        .groupBy('e.event'))
         .getRawMany<{ event: string; count: string }>(),
     ]);
 
@@ -110,17 +122,23 @@ export class AdminService {
   async getConversionStats() {
     const EVENTS = ['premium_modal_open', 'premium_cta_click', 'checkout_page_view', 'upgrade_attempt', 'payment_success'];
 
+    const adminIds = await this.getAdminUserIds();
+    const excludeAdmin = (qb: ReturnType<typeof this.conversionRepo.createQueryBuilder>) =>
+      adminIds.length > 0
+        ? qb.andWhere('(e.userId IS NULL OR e.userId NOT IN (:...adminIds))', { adminIds })
+        : qb;
+
     const [allTimeRows, last7dRows] = await Promise.all([
-      this.conversionRepo.createQueryBuilder('e')
+      excludeAdmin(this.conversionRepo.createQueryBuilder('e')
         .select('e.event', 'event')
         .addSelect('COUNT(*)', 'count')
-        .groupBy('e.event')
+        .groupBy('e.event'))
         .getRawMany<{ event: string; count: string }>(),
-      this.conversionRepo.createQueryBuilder('e')
+      excludeAdmin(this.conversionRepo.createQueryBuilder('e')
         .select('e.event', 'event')
         .addSelect('COUNT(*)', 'count')
         .where('e.createdAt >= :since', { since: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) })
-        .groupBy('e.event')
+        .groupBy('e.event'))
         .getRawMany<{ event: string; count: string }>(),
     ]);
 

@@ -5,6 +5,7 @@ import { PortfolioItem } from '../entities/portfolio-item.entity';
 import { PriceDaily } from '../entities/price-daily.entity';
 import { Benchmark } from '../entities/benchmark.entity';
 import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
+import { Security } from '../entities/security.entity';
 import { AnalysisController } from './analysis.controller';
 import { AnalysisService } from './analysis.service';
 import { HistoryModule } from '../history/history.module';
@@ -20,6 +21,7 @@ import { MonitoringModule } from '../monitoring/monitoring.module';
       PriceDaily,
       Benchmark,
       BenchmarkPriceDaily,
+      Security,
     ]),
     HistoryModule,
     PaymentsModule,

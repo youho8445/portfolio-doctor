@@ -413,6 +413,20 @@ export async function saveUserProfile(profile: {
   }
 }
 
+export async function analyzePortfolioGuest(
+  items: { ticker: string; name: string; weight: number; amount?: number; avgCost?: number }[],
+  period: '1M' | '3M' | '1Y' = '1Y',
+  benchmarkCode = 'SP500',
+) {
+  const res = await fetch(`${API_BASE_URL}/analysis/guest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items, period, benchmarkCode }),
+  });
+  if (!res.ok) throw new Error('Guest analysis failed');
+  return res.json();
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -19,6 +19,7 @@ import type { QuoteMin } from '@/lib/riskSignal';
 import {
   addPortfolioItem,
   analyzePortfolio,
+  analyzePortfolioGuest,
   clearPortfolioItems,
   createPortfolio,
   changeMyPassword,
@@ -264,16 +265,35 @@ export default function AnalyzerPage() {
     try { setSavedPortfolios(await getPortfolios()); } catch { /* ignore */ }
   };
 
+  // Track when a guest logs in after seeing the signup gate (to offer portfolio save)
+  const prevIsLoggedInRef = useRef<boolean | null>(null);
+  const pendingGuestItemsRef = useRef<PortfolioInputItem[] | null>(null);
+
   useEffect(() => {
     if (authLoading) return;
     if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('pv_analyzer')) {
       sessionStorage.setItem('pv_analyzer', '1');
       void trackEvent('page_view_analyzer', user?.id);
     }
-    if (!isLoggedIn) { openModal(); return; }
+    // Exchange rate needed for both guest and logged-in users (USD display)
+    getExchangeRate().then((r) => setUsdKrw({ rate: r.rate, midRate: r.midRate })).catch(() => {});
+
+    const prev = prevIsLoggedInRef.current;
+    prevIsLoggedInRef.current = isLoggedIn;
+
+    // Guest-to-login transition: offer to save pending guest portfolio
+    if (prev === false && isLoggedIn && pendingGuestItemsRef.current) {
+      const pendingItems = [...pendingGuestItemsRef.current];
+      pendingGuestItemsRef.current = null;
+      setAnalysis(null);
+      if (window.confirm('지금 입력한 포트폴리오를 저장할까요?')) {
+        void saveGuestPortfolio(pendingItems);
+      }
+    }
+
+    if (!isLoggedIn) return; // guests stay on page without loading portfolios/notifications
     loadSavedPortfolios();
     getDataFreshness().then((d) => setLastPriceDate(d.lastPriceDate)).catch(() => {});
-    getExchangeRate().then((r) => setUsdKrw({ rate: r.rate, midRate: r.midRate })).catch(() => {});
     getStateEvents().then((evts) => setNotifications(evts)).catch(() => {});
 
     // Service Worker 등록 + 기존 구독 여부 확인
@@ -286,6 +306,7 @@ export default function AnalyzerPage() {
 
     setNewsLoading(true);
     fetch('/api/news').then((r) => r.json()).then((d) => setNews(d.items ?? [])).catch(() => {}).finally(() => setNewsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isLoggedIn]);
 
   // 티커 또는 검색어 기반 뉴스 갱신
@@ -625,6 +646,23 @@ export default function AnalyzerPage() {
   const updateAvgCost = (id: number, avgCost: number) => setItems((prev) => prev.map((i) => i.securityId === id ? { ...i, avgCost } : i));
   const removeItem = (id: number) => setItems((prev) => prev.filter((i) => i.securityId !== id));
 
+  const saveGuestPortfolio = async (guestItems: PortfolioInputItem[]) => {
+    try {
+      const name = portfolioName.trim() || 'My Portfolio';
+      const portfolioId = (await createPortfolio(name)).id;
+      for (const item of guestItems) {
+        const avgCost = Number(item.avgCost) > 0 ? Number(item.avgCost) : undefined;
+        const storedAmount = toKRW(item);
+        const options = inputMode === 'amount' ? { amount: storedAmount, avgCost } : { weight: Number(item.weight), avgCost };
+        await addPortfolioItem(portfolioId, item.securityId, options);
+      }
+      const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
+      void trackEvent('analysis_run', user?.id);
+      setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
+      await loadSavedPortfolios();
+    } catch { /* silent — user can re-analyze manually */ }
+  };
+
   const handleAnalyze = async () => {
     try {
       setError(null);
@@ -635,6 +673,34 @@ export default function AnalyzerPage() {
       } else {
         if (Math.round(totalWeight * 100) / 100 !== 100) { setError(`비중 합계가 100%여야 합니다. (현재: ${totalWeight.toFixed(1)}%)`); return; }
       }
+
+      setLoadingAnalyze(true);
+
+      if (!isLoggedIn) {
+        // Guest path: stateless analysis, no DB write
+        void trackEvent('guest_analysis_started', null);
+        const rate = effectiveRate();
+        const guestItems = items.map((item) => {
+          const weight = inputMode === 'amount' && totalAmount > 0
+            ? Math.round((toKRW(item) / (items.reduce((s, i) => s + (isUS(i.ticker) ? Number(i.amount || 0) * rate : Number(i.amount || 0)), 0) || 1)) * 1000) / 10
+            : Number(item.weight);
+          return {
+            ticker: item.ticker,
+            name: item.displayNameKo ?? item.name ?? item.ticker,
+            weight,
+            amount: inputMode === 'amount' ? toKRW(item) : undefined,
+            avgCost: Number(item.avgCost) > 0 ? Number(item.avgCost) : undefined,
+          };
+        });
+        const result = await analyzePortfolioGuest(guestItems);
+        void trackEvent('guest_analysis_completed', null);
+        void trackEvent('guest_signup_gate_viewed', null);
+        setAnalysis(result);
+        setActiveTab('result');
+        return;
+      }
+
+      // Logged-in path: existing flow
       // 중복 이름 체크
       const trimmedName = portfolioName.trim();
       const duplicate = savedPortfolios.find(
@@ -645,7 +711,6 @@ export default function AnalyzerPage() {
         return;
       }
 
-      setLoadingAnalyze(true);
       let portfolioId: number;
       if (currentPortfolioId) {
         await clearPortfolioItems(currentPortfolioId);
@@ -952,8 +1017,20 @@ export default function AnalyzerPage() {
         </button>
       </div>
 
-      {/* 하단 유저 정보 */}
+      {/* 하단: 게스트 로그인 CTA / 유저 정보 */}
       <div className="px-4 py-4" style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+        {!isLoggedIn && (
+          <div className="mb-3">
+            <p className="text-xs mb-2 leading-relaxed" style={{ color: '#94a3b8' }}>로그인하면 포트폴리오를 저장하고 변화 알림을 받을 수 있어요</p>
+            <button
+              onClick={openModal}
+              className="w-full rounded-xl py-2.5 text-sm font-bold transition-all"
+              style={{ background: accent.hex, color: 'white' }}
+            >
+              로그인 / 회원가입
+            </button>
+          </div>
+        )}
         {/* 트라이얼 뱃지 */}
         {user?.trialEndsAt && new Date(user.trialEndsAt) > new Date() && (() => {
           const daysLeft = Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / 86400000));
@@ -1146,9 +1223,15 @@ export default function AnalyzerPage() {
                   </div>
                 );
               })()}
-              <button onClick={() => { logout(); openModal(); }} style={{ color: '#94a3b8' }}>
-                <IconLogOut className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
-              </button>
+              {isLoggedIn ? (
+                <button onClick={() => { logout(); openModal(); }} style={{ color: '#94a3b8' }}>
+                  <IconLogOut className="w-4.5 h-4.5" style={{ width: 18, height: 18 }} />
+                </button>
+              ) : (
+                <button onClick={openModal} className="text-xs font-bold px-3 py-1.5 rounded-xl" style={{ background: accent.hex, color: 'white' }}>
+                  로그인
+                </button>
+              )}
             </div>
           </header>
 
@@ -1589,6 +1672,7 @@ export default function AnalyzerPage() {
 
             {/* ── 분석 대시보드 탭 ── */}
             {activeTab === 'result' && analysis && (() => {
+              const isGuest = analysis.isGuest ?? false;
               const risk = riskLabel(analysis.healthScore);
               const isPremium = analysis.isPremium ?? false;
               const allRebalActions = analysis.rebalanceResult?.actions ?? [];
@@ -1674,8 +1758,8 @@ export default function AnalyzerPage() {
                     );
                   })()}
 
-                  {/* ── 자동 감시 상태 ── */}
-                  <div className="rounded-2xl px-4 py-3.5" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
+                  {/* ── 자동 감시 상태 (로그인 유저만) ── */}
+                  {!isGuest && <div className="rounded-2xl px-4 py-3.5" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
                     <div className="flex items-center justify-between mb-2.5">
                       <span className="text-[11px] font-semibold" style={{ color: '#64748b' }}>자동 감시 중 · 중요한 변화가 생기면 알려드립니다.</span>
                       {portfolioState?.lastEventDetectedAt && (() => {
@@ -1702,7 +1786,7 @@ export default function AnalyzerPage() {
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </div>}
 
                   {/* ── 최근 변화 알림 ── */}
                   {portfolioEvents.length > 0 && (
@@ -1977,8 +2061,35 @@ export default function AnalyzerPage() {
                   {/* ── Row 3: 리밸런싱 + 포트폴리오 미리보기 ── */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
+                    {/* 게스트: 가입 유도 게이트 */}
+                    {isGuest && (
+                      <div id="rebalance-section" className="lg:col-span-2 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-4" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', minHeight: 220 }}>
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: accent.light }}>
+                          <IconLock className="w-6 h-6" style={{ color: accent.hex }} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-[#1c1c1e] mb-1">AI가 리밸런싱 액션을 찾았어요</div>
+                          <div className="text-xs leading-relaxed" style={{ color: '#64748b' }}>
+                            상세 조정 비율과 적용 후 점수 변화는<br />가입 후 확인할 수 있습니다.
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            pendingGuestItemsRef.current = items;
+                            void trackEvent('guest_signup_clicked', null);
+                            openModal();
+                          }}
+                          className="rounded-xl px-6 py-2.5 text-sm font-bold transition-all"
+                          style={{ background: accent.hex, color: 'white' }}
+                        >
+                          무료로 가입하고 계속 보기
+                        </button>
+                        <div className="text-[10px]" style={{ color: '#94a3b8' }}>포트폴리오 저장 · 변화 알림 · 상세 리밸런싱</div>
+                      </div>
+                    )}
+
                     {/* 리밸런싱 가이드 (2/3) */}
-                    {analysis.rebalanceResult && (
+                    {!isGuest && analysis.rebalanceResult && (
                       <div id="rebalance-section" className="lg:col-span-2 rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                         {/* 헤더 */}
                         <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: accent.light }}>
@@ -2236,8 +2347,8 @@ export default function AnalyzerPage() {
                       );
                     })()}
 
-                    {/* 포트폴리오 미리보기 (1/3) */}
-                    <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                    {/* 포트폴리오 미리보기 (1/3) - 로그인 유저만 */}
+                    {!isGuest && <div className="rounded-2xl p-5 flex flex-col gap-4" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>Portfolio Preview</div>
                         <div className="text-sm font-bold text-[#1c1c1e]">변경 후 비중</div>
@@ -2319,7 +2430,7 @@ export default function AnalyzerPage() {
                           </button>
                         )
                       )}
-                    </div>
+                    </div>}
                   </div>
 
                   {/* ── 다음 할 일 ── */}

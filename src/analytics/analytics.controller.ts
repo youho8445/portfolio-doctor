@@ -13,6 +13,10 @@ const VALID_EVENTS = [
   'analysis_run',
   'page_view_login',
   'page_view_register',
+  'guest_analysis_started',
+  'guest_analysis_completed',
+  'guest_signup_gate_viewed',
+  'guest_signup_clicked',
 ] as const;
 
 class TrackEventDto {

@@ -180,4 +180,5 @@ export type AnalysisResult = {
   hasStalePrices?: boolean;
   staleTickers?: string[];
   currencyWarnings?: string[];
+  isGuest?: boolean;
 };

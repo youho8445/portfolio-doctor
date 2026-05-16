@@ -6,9 +6,11 @@ import { PortfolioItem } from '../entities/portfolio-item.entity';
 import { PriceDaily } from '../entities/price-daily.entity';
 import { Benchmark } from '../entities/benchmark.entity';
 import { BenchmarkPriceDaily } from '../entities/benchmark-price-daily.entity';
+import { Security } from '../entities/security.entity';
 import { computeScore, ItemMeta } from './score.engine';
 import { computeInsights } from './insights.engine';
 import { computeRebalance } from './rebalance.engine';
+import { GuestAnalysisItemDto } from './dto/analyze-portfolio.dto';
 import { HistoryService } from '../history/history.service';
 import { PaymentsService } from '../payments/payments.service';
 import { AdminService } from '../admin/admin.service';
@@ -32,11 +34,102 @@ export class AnalysisService {
     private readonly benchmarkRepository: Repository<Benchmark>,
     @InjectRepository(BenchmarkPriceDaily)
     private readonly benchmarkPriceDailyRepository: Repository<BenchmarkPriceDaily>,
+    @InjectRepository(Security)
+    private readonly securityRepository: Repository<Security>,
     private readonly historyService: HistoryService,
     private readonly paymentsService: PaymentsService,
     private readonly adminService: AdminService,
     private readonly monitoringService: MonitoringService,
   ) {}
+
+  async analyzeGuest(guestItems: GuestAnalysisItemDto[]) {
+    // Look up sector + assetType for each ticker from DB; fall back gracefully if not found
+    const tickers = guestItems.map((i) => i.ticker);
+    const securities = tickers.length
+      ? await this.securityRepository
+          .createQueryBuilder('s')
+          .where('s.ticker IN (:...tickers)', { tickers })
+          .getMany()
+      : [];
+    const secMap = new Map(securities.map((s) => [s.ticker, s]));
+
+    const itemMetas: ItemMeta[] = guestItems.map((item) => {
+      const sec = secMap.get(item.ticker);
+      return {
+        ticker: item.ticker,
+        name: sec?.displayNameKo || sec?.name || item.name || item.ticker,
+        weight: item.weight,
+        sector: sec?.sector ?? 'Unknown',
+        assetType: sec?.assetType ?? 'STOCK',
+      };
+    });
+
+    const sortedWeights = itemMetas.map((i) => i.weight).sort((a, b) => b - a);
+    const top3Concentration = sortedWeights.slice(0, 3).reduce((s, v) => s + v, 0);
+
+    const sectorMap: Record<string, number> = {};
+    for (const item of itemMetas) {
+      const isCash = item.assetType === 'CASH' || item.ticker.toUpperCase() === 'CASH';
+      const sector = isCash ? 'Cash' : item.assetType === 'ETF' ? 'ETF' : item.sector;
+      sectorMap[sector] = (sectorMap[sector] ?? 0) + item.weight;
+    }
+    const sectorExposure = Object.entries(sectorMap)
+      .map(([sector, weight]) => ({ sector, weight }))
+      .sort((a, b) => b.weight - a.weight);
+
+    const scorableSectors = sectorExposure.filter((s) => s.sector !== 'Cash' && s.sector !== 'ETF');
+    const maxSectorWeight = scorableSectors[0]?.weight ?? 0;
+    const maxSectorName = scorableSectors[0]?.sector ?? '';
+
+    const { healthScore, scoreBreakdown, warnings } = computeScore({
+      items: itemMetas,
+      top3Concentration,
+      maxSectorWeight,
+      maxSectorName,
+      portfolioReturn: 0,
+      benchmarkReturn: 0,
+      hasStaleData: false,
+    });
+
+    const { diversificationScore, insights, rebalanceHints, portfolioStyle } = computeInsights({
+      items: itemMetas,
+      top3Concentration,
+      sectorExposure,
+      portfolioReturn: 0,
+      benchmarkReturn: 0,
+    });
+
+    return {
+      portfolioId: 0,
+      portfolioName: '게스트 분석',
+      period: '1Y' as const,
+      benchmarkCode: 'SP500',
+      healthScore,
+      diversificationScore,
+      scoreBreakdown,
+      portfolioReturn: 0,
+      benchmarkReturn: 0,
+      excessReturn: 0,
+      personalReturn: null,
+      personalReturns: [],
+      top3Concentration: Number(top3Concentration.toFixed(2)),
+      sectorExposure,
+      warnings: warnings.slice(0, 2),
+      insights: insights.slice(0, 2),
+      rebalanceHints,
+      portfolioStyle,
+      rebalanceResult: null,
+      history: { trend: [], alerts: [], change: null },
+      isPremium: false,
+      isTrial: false,
+      trialEndsAt: null,
+      diversificationPercentile: 0,
+      hasStalePrices: false,
+      staleTickers: [],
+      currencyWarnings: [],
+      isGuest: true,
+    };
+  }
 
   async analyzePortfolio(
     portfolioId: number,

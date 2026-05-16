@@ -24,6 +24,7 @@ export interface RebalanceInput {
 
 export interface RebalanceSuggestion {
   ticker: string;
+  name: string;
   weight: number;
   isNew: boolean;
 }
@@ -345,6 +346,7 @@ export function computeRebalance(input: RebalanceInput): RebalanceOutput {
     .sort((a, b) => b[1].weight - a[1].weight)
     .map(([ticker, data]) => ({
       ticker,
+      name: data.name,
       weight: r1(data.weight),
       isNew: data.isNew,
     }));

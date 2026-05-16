@@ -44,6 +44,7 @@ export type SavedPortfolioItem = {
 
 export type RebalanceSuggestion = {
   ticker: string;
+  name: string;
   weight: number;
   isNew: boolean;
 };

@@ -2140,7 +2140,7 @@ export default function AnalyzerPage() {
                         const currentKRW = existing ? toKRW(existing) : 0;
                         const targetKRW = Math.round((s.weight / 100) * newTotal);
                         const deltaKRW = targetKRW - currentKRW;
-                        const name = existing?.displayNameKo ?? existing?.name ?? tickerNameMap[s.ticker] ?? s.ticker;
+                        const name = existing?.displayNameKo ?? existing?.name ?? tickerNameMap[s.ticker] ?? s.name ?? s.ticker;
                         return { ticker: s.ticker, name, currentKRW, targetKRW, deltaKRW };
                       });
                       const fmtKRW = (n: number) => {
@@ -2274,7 +2274,7 @@ export default function AnalyzerPage() {
                             const currentW = current?.weight ?? 0;
                             const delta = s.weight - currentW;
                             const isNew = s.isNew;
-                            const displayName = current?.displayNameKo ?? current?.name ?? s.ticker;
+                            const displayName = current?.displayNameKo ?? current?.name ?? s.name ?? s.ticker;
                             return (
                               <div key={s.ticker}>
                                 <div className="flex items-center justify-between mb-1">

@@ -521,6 +521,7 @@ export interface ContentRadarItem {
   scoreBeginner: number;
   scoreSource: number;
   scorePenalty: number;
+  selectionReason: string | null;
   status: 'new' | 'used' | 'ignored';
   createdAt: string;
   updatedAt: string;

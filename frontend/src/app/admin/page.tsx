@@ -845,6 +845,11 @@ export default function AdminPage() {
                             <span className="text-xs px-2 py-0.5 rounded-md shrink-0" style={{ background: 'rgba(255,255,255,0.04)', color: '#6b7280' }}>
                               {item.category}
                             </span>
+                            {item.selectionReason && (
+                              <span className="text-xs px-2 py-0.5 rounded-md shrink-0" style={{ background: 'rgba(20,184,166,0.12)', color: '#2dd4bf', border: '1px solid rgba(20,184,166,0.2)' }}>
+                                {item.selectionReason}
+                              </span>
+                            )}
                             {isUsed && (
                               <span className="text-xs px-2 py-0.5 rounded-md ml-auto shrink-0" style={{ background: 'rgba(16,185,129,0.1)', color: '#6ee7b7' }}>
                                 ✓ 사용됨

@@ -91,6 +91,9 @@ export class DailyContentNews {
   @Column({ type: 'int', default: 0 })
   scorePenalty: number;
 
+  @Column({ type: 'varchar', length: 100, nullable: true, default: null })
+  selectionReason: string | null;
+
   @Column({ type: 'varchar', length: 10, default: 'new' })
   status: string;
 

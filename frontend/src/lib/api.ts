@@ -489,3 +489,61 @@ export async function analyzePortfolio(
   if (!res.ok) throw new Error('Failed to analyze portfolio');
   return res.json();
 }
+
+export interface ContentRadarItem {
+  id: number;
+  title: string;
+  source: string;
+  url: string;
+  publishedAt: string | null;
+  market: 'KR' | 'US' | 'GLOBAL';
+  category: string;
+  relatedTickers: string[] | null;
+  summary: string;
+  pobalanceAngle: string;
+  contentHook: string;
+  captionDraft: string;
+  glossaryTerms: string[] | null;
+  hashtags: string[] | null;
+  contentType: string;
+  contentScore: number;
+  status: 'new' | 'used' | 'ignored';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ContentRadarResponse {
+  items: ContentRadarItem[];
+  refreshedAt: string | null;
+  count: number;
+}
+
+export async function getContentRadarToday(): Promise<ContentRadarResponse> {
+  const res = await fetch(`${API_BASE_URL}/admin/content-radar/today`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch content radar');
+  return res.json();
+}
+
+export async function refreshContentRadar(): Promise<{ message: string; triggeredAt: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/content-radar/refresh`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to trigger refresh');
+  return res.json();
+}
+
+export async function updateContentRadarStatus(
+  id: number,
+  status: 'new' | 'used' | 'ignored',
+): Promise<ContentRadarItem> {
+  const res = await fetch(`${API_BASE_URL}/admin/content-radar/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error('Failed to update status');
+  return res.json();
+}

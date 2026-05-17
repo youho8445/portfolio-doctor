@@ -15,10 +15,15 @@ import {
   revokeAdminTrial,
   getAdminPageTrafficStats,
   getAdminFeedbackSummary,
+  getContentRadarToday,
+  refreshContentRadar,
+  updateContentRadarStatus,
   AdminUser,
   AdminApiError,
   PageTrafficStats,
   FeedbackSummary,
+  ContentRadarItem,
+  ContentRadarResponse,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -117,6 +122,11 @@ export default function AdminPage() {
   const [feedbackSummary, setFeedbackSummary] = useState<FeedbackSummary | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
+  // Content Radar
+  const [contentRadar, setContentRadar] = useState<ContentRadarResponse | null>(null);
+  const [contentRadarOpen, setContentRadarOpen] = useState(false);
+  const [contentRadarRefreshing, setContentRadarRefreshing] = useState(false);
+
   // Users
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [userSearch, setUserSearch] = useState('');
@@ -142,6 +152,7 @@ export default function AdminPage() {
     getAdminUsers().then(setUsers).catch(() => {});
     getAdminPageTrafficStats().then(setPageTraffic).catch(() => {});
     getAdminFeedbackSummary().then(setFeedbackSummary).catch(() => {});
+    getContentRadarToday().then(setContentRadar).catch(() => {});
   }, [isLoading, isLoggedIn, user]);
 
   const loadFetchStatus = async () => {
@@ -219,6 +230,33 @@ export default function AdminPage() {
       await deleteAdminUser(id);
       setUsers((prev) => prev?.filter((u) => u.id !== id) ?? null);
       setDeleteConfirm(null);
+    } catch { /* ignore */ }
+  };
+
+  const handleContentRadarRefresh = async () => {
+    if (contentRadarRefreshing) return;
+    setContentRadarRefreshing(true);
+    try {
+      await refreshContentRadar();
+      // Re-fetch after short delay to pick up newly saved items
+      await new Promise((r) => setTimeout(r, 3000));
+      const data = await getContentRadarToday();
+      setContentRadar(data);
+    } catch { /* ignore */ } finally {
+      setContentRadarRefreshing(false);
+    }
+  };
+
+  const handleContentRadarStatus = async (id: number, status: ContentRadarItem['status']) => {
+    try {
+      const updated = await updateContentRadarStatus(id, status);
+      setContentRadar((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map((item) => (item.id === updated.id ? updated : item)),
+        };
+      });
     } catch { /* ignore */ }
   };
 
@@ -705,6 +743,216 @@ export default function AdminPage() {
                     </div>
                   )}
 
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── Content Radar ── */}
+        <div className="rounded-2xl p-6 space-y-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between">
+            <button
+              className="flex-1 flex items-center justify-between text-left"
+              onClick={() => setContentRadarOpen((v) => !v)}
+            >
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Content Radar</h2>
+                <p className="text-sm text-white font-bold mt-0.5">
+                  오늘의 투자 콘텐츠 소재
+                  {contentRadar && contentRadar.count > 0 && (
+                    <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>
+                      {contentRadar.count}건
+                    </span>
+                  )}
+                </p>
+                {contentRadar?.refreshedAt && (
+                  <p className="text-[10px] mt-0.5" style={{ color: '#374151' }}>마지막 업데이트: {timeAgo(contentRadar.refreshedAt)}</p>
+                )}
+              </div>
+              <span className="text-xs ml-3 shrink-0" style={{ color: '#6b7280' }}>{contentRadarOpen ? '▲' : '▼'}</span>
+            </button>
+            {contentRadarOpen && (
+              <button
+                onClick={(e) => { e.stopPropagation(); void handleContentRadarRefresh(); }}
+                disabled={contentRadarRefreshing}
+                className="ml-3 shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
+                style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
+              >
+                {contentRadarRefreshing ? '수집 중…' : '새로고침'}
+              </button>
+            )}
+          </div>
+
+          {contentRadarOpen && (
+            <>
+              {contentRadar === null ? (
+                <div className="text-xs" style={{ color: '#4b5563' }}>불러오는 중...</div>
+              ) : contentRadar.count === 0 ? (
+                <div className="rounded-xl p-5 text-center space-y-2" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="text-2xl">📡</div>
+                  <div className="text-sm font-semibold text-white">오늘의 소재가 아직 없습니다</div>
+                  <div className="text-xs" style={{ color: '#6b7280' }}>매일 오전 6시(KST)에 자동 수집됩니다.</div>
+                  <button
+                    onClick={() => void handleContentRadarRefresh()}
+                    disabled={contentRadarRefreshing}
+                    className="mt-1 text-xs px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+                    style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
+                  >
+                    {contentRadarRefreshing ? '수집 중…' : '지금 수집하기'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {contentRadar.items
+                    .filter((item) => item.status !== 'ignored')
+                    .map((item) => {
+                      const scoreBg = item.contentScore >= 80 ? '#052e16' : item.contentScore >= 60 ? '#1c1700' : '#1c0505';
+                      const scoreColor = item.contentScore >= 80 ? '#4ade80' : item.contentScore >= 60 ? '#fbbf24' : '#f87171';
+                      const marketEmoji = item.market === 'KR' ? '🇰🇷' : item.market === 'US' ? '🇺🇸' : '🌐';
+                      const isUsed = item.status === 'used';
+                      return (
+                        <div
+                          key={item.id}
+                          className="rounded-xl p-4 space-y-3"
+                          style={{
+                            background: '#141418',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            opacity: isUsed ? 0.5 : 1,
+                            transition: 'opacity 0.2s',
+                          }}
+                        >
+                          {/* Header row */}
+                          <div className="flex items-start gap-2 flex-wrap">
+                            <span className="text-xs font-black px-2 py-0.5 rounded-md shrink-0" style={{ background: scoreBg, color: scoreColor, border: `1px solid ${scoreColor}33` }}>
+                              {item.contentScore}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-md shrink-0" style={{ background: 'rgba(255,255,255,0.06)', color: '#9ca3af' }}>
+                              {marketEmoji} {item.market}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-md shrink-0" style={{ background: 'rgba(124,58,237,0.1)', color: '#c4b5fd' }}>
+                              {item.contentType}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-md shrink-0" style={{ background: 'rgba(255,255,255,0.04)', color: '#6b7280' }}>
+                              {item.category}
+                            </span>
+                            {isUsed && (
+                              <span className="text-xs px-2 py-0.5 rounded-md ml-auto shrink-0" style={{ background: 'rgba(16,185,129,0.1)', color: '#6ee7b7' }}>
+                                ✓ 사용됨
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Title + source */}
+                          <div>
+                            <div className="text-sm font-semibold text-white leading-snug">{item.title}</div>
+                            <div className="text-xs mt-1" style={{ color: '#6b7280' }}>
+                              {item.source}
+                              {item.publishedAt && <span> · {timeAgo(item.publishedAt)}</span>}
+                            </div>
+                          </div>
+
+                          {/* Related tickers */}
+                          {item.relatedTickers && item.relatedTickers.length > 0 && (
+                            <div className="flex gap-1.5 flex-wrap">
+                              {item.relatedTickers.map((t) => (
+                                <span key={t} className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)' }}>
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Summary */}
+                          {item.summary && (
+                            <div>
+                              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>📝 Summary</div>
+                              <div className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>{item.summary}</div>
+                            </div>
+                          )}
+
+                          {/* PoBalance angle */}
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>🎯 PoBalance Angle</div>
+                            <div className="text-xs leading-relaxed" style={{ color: '#d1d5db' }}>{item.pobalanceAngle}</div>
+                          </div>
+
+                          {/* Hook */}
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>⚡ Hook</div>
+                            <div className="text-xs font-medium italic leading-relaxed" style={{ color: '#c4b5fd' }}>{item.contentHook}</div>
+                          </div>
+
+                          {/* Caption */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="text-[10px] uppercase tracking-widest" style={{ color: '#4b5563' }}>📱 Caption Draft</div>
+                              <button
+                                onClick={() => navigator.clipboard.writeText(item.captionDraft).catch(() => {})}
+                                className="text-[10px] px-2 py-0.5 rounded-md"
+                                style={{ background: 'rgba(255,255,255,0.05)', color: '#6b7280' }}
+                              >
+                                복사
+                              </button>
+                            </div>
+                            <pre className="text-xs leading-relaxed rounded-lg p-3 overflow-x-auto" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#e5e7eb', fontFamily: 'inherit', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                              {item.captionDraft}
+                            </pre>
+                          </div>
+
+                          {/* Glossary + hashtags */}
+                          <div className="space-y-1.5">
+                            {item.glossaryTerms && item.glossaryTerms.length > 0 && (
+                              <div className="text-xs" style={{ color: '#6b7280' }}>
+                                🏷️ {item.glossaryTerms.join(' · ')}
+                              </div>
+                            )}
+                            {item.hashtags && item.hashtags.length > 0 && (
+                              <div className="text-xs" style={{ color: '#8b5cf6' }}>
+                                {item.hashtags.join(' ')}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 pt-1">
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                              style={{ background: 'rgba(255,255,255,0.05)', color: '#9ca3af', border: '1px solid rgba(255,255,255,0.08)' }}
+                            >
+                              원문 보기 ↗
+                            </a>
+                            {isUsed ? (
+                              <button
+                                onClick={() => void handleContentRadarStatus(item.id, 'new')}
+                                className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                                style={{ background: 'rgba(255,255,255,0.04)', color: '#4b5563', border: '1px solid rgba(255,255,255,0.06)' }}
+                              >
+                                되돌리기
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => void handleContentRadarStatus(item.id, 'used')}
+                                className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                                style={{ background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.2)' }}
+                              >
+                                ✓ 사용 완료
+                              </button>
+                            )}
+                            <button
+                              onClick={() => void handleContentRadarStatus(item.id, 'ignored')}
+                              className="text-xs px-3 py-1.5 rounded-lg font-medium"
+                              style={{ background: 'rgba(239,68,68,0.08)', color: '#f87171', border: '1px solid rgba(239,68,68,0.15)' }}
+                            >
+                              ✕ 숨기기
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </>

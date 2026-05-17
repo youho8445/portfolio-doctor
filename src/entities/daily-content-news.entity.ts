@@ -11,6 +11,7 @@ export class DailyContentNews {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // ── Source data (RSS, no full body) ──────────────────────────────────
   @Column({ type: 'varchar', length: 300 })
   title: string;
 
@@ -32,29 +33,63 @@ export class DailyContentNews {
   @Column({ type: 'simple-json', nullable: true, default: null })
   relatedTickers: string[] | null;
 
+  // ── News content fields ───────────────────────────────────────────────
   @Column({ type: 'varchar', length: 500 })
-  summary: string;
+  shortNewsSummary: string;
 
   @Column({ type: 'varchar', length: 500 })
-  pobalanceAngle: string;
+  whyItMattersToPortfolio: string;
 
+  @Column({ type: 'varchar', length: 300, nullable: true, default: null })
+  beginnerCaution: string | null;
+
+  // ── Script fields ─────────────────────────────────────────────────────
   @Column({ type: 'varchar', length: 300 })
-  contentHook: string;
+  openingHook: string;
 
-  @Column({ type: 'varchar', length: 600 })
-  captionDraft: string;
+  @Column({ type: 'varchar', length: 500, nullable: true, default: null })
+  script15s: string | null;
+
+  @Column({ type: 'varchar', length: 1000, nullable: true, default: null })
+  script30s: string | null;
 
   @Column({ type: 'simple-json', nullable: true, default: null })
-  glossaryTerms: string[] | null;
+  subtitleLines: string[] | null;
+
+  // ── Caption + metadata ────────────────────────────────────────────────
+  @Column({ type: 'varchar', length: 800 })
+  captionDraft: string;
 
   @Column({ type: 'simple-json', nullable: true, default: null })
   hashtags: string[] | null;
 
+  @Column({ type: 'simple-json', nullable: true, default: null })
+  relatedGlossaryTerms: string[] | null;
+
+  @Column({ type: 'varchar', length: 200, nullable: true, default: null })
+  ctaText: string | null;
+
+  // ── Classification + scoring ──────────────────────────────────────────
   @Column({ type: 'varchar', length: 30 })
   contentType: string;
 
-  @Column({ type: 'int', default: 50 })
+  @Column({ type: 'int', default: 0 })
   contentScore: number;
+
+  @Column({ type: 'int', default: 0 })
+  scoreTrend: number;
+
+  @Column({ type: 'int', default: 0 })
+  scoreRelevance: number;
+
+  @Column({ type: 'int', default: 0 })
+  scoreBeginner: number;
+
+  @Column({ type: 'int', default: 0 })
+  scoreSource: number;
+
+  @Column({ type: 'int', default: 0 })
+  scorePenalty: number;
 
   @Column({ type: 'varchar', length: 10, default: 'new' })
   status: string;

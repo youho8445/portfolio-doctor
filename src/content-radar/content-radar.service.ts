@@ -3,13 +3,18 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { DailyContentNews } from '../entities/daily-content-news.entity';
 import { fetchAllFeeds } from './rss-fetcher';
-import { buildScoredItem } from './content-scorer';
+import { buildScoredItem, buildTickerSourceCounts } from './content-scorer';
 import {
-  generateAngle,
+  generateWhyItMatters,
+  generateOpeningHook,
   generateCaption,
-  generateGlossary,
+  generateGlossaryTerms,
   generateHashtags,
-  generateHook,
+  generateBeginnerCaution,
+  generateScript15s,
+  generateScript30s,
+  generateSubtitleLines,
+  generateCTA,
 } from './content-templates';
 
 const TOP_N = 5;
@@ -18,7 +23,7 @@ const TOP_N = 5;
 export class ContentRadarService {
   private readonly logger = new Logger(ContentRadarService.name);
   private lastRefreshTriggeredAt: Date | null = null;
-  private readonly REFRESH_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+  private readonly REFRESH_COOLDOWN_MS = 10 * 60 * 1000;
 
   constructor(
     @InjectRepository(DailyContentNews)
@@ -29,8 +34,7 @@ export class ContentRadarService {
 
   async getTodayItems(): Promise<{ items: DailyContentNews[]; refreshedAt: string | null; count: number }> {
     const items = await this.queryToday();
-    const refreshedAt =
-      items.length > 0 ? items[0].createdAt.toISOString() : null;
+    const refreshedAt = items.length > 0 ? items[0].createdAt.toISOString() : null;
     return { items, refreshedAt, count: items.length };
   }
 
@@ -49,7 +53,7 @@ export class ContentRadarService {
       };
     }
     this.lastRefreshTriggeredAt = now;
-    void this.refresh(); // non-blocking
+    void this.refresh();
     return { message: '수집을 시작했습니다.', triggeredAt: now.toISOString() };
   }
 
@@ -78,9 +82,12 @@ export class ContentRadarService {
       return;
     }
 
+    // Build cross-source ticker frequency for trendScore
+    const tickerSourceCounts = buildTickerSourceCounts(rawItems);
+
     // Score and rank
     const scored = rawItems
-      .map((r) => buildScoredItem(r))
+      .map((r) => buildScoredItem(r, tickerSourceCounts))
       .sort((a, b) => b.contentScore - a.contentScore);
 
     // Dedup by URL against today's existing rows
@@ -92,24 +99,36 @@ export class ContentRadarService {
       if (saved >= TOP_N) break;
       if (existingUrls.has(item.url)) continue;
 
-      const summary = (item.snippet || item.title).slice(0, 490);
-
       const row = this.repo.create({
-        title: item.title.slice(0, 290),
-        source: item.source.slice(0, 95),
-        url: item.url.slice(0, 495),
+        title: item.title.slice(0, 299),
+        source: item.source.slice(0, 99),
+        url: item.url.slice(0, 499),
         publishedAt: item.publishedAt,
         market: item.market,
         category: item.category,
         relatedTickers: item.relatedTickers.length > 0 ? item.relatedTickers : null,
-        summary,
-        pobalanceAngle: generateAngle(item).slice(0, 495),
-        contentHook: generateHook(item).slice(0, 295),
-        captionDraft: generateCaption(item).slice(0, 595),
-        glossaryTerms: generateGlossary(item),
+        // News content fields
+        shortNewsSummary: (item.snippet || item.title).slice(0, 499),
+        whyItMattersToPortfolio: generateWhyItMatters(item).slice(0, 499),
+        beginnerCaution: generateBeginnerCaution(item).slice(0, 299),
+        // Script fields
+        openingHook: generateOpeningHook(item).slice(0, 299),
+        script15s: generateScript15s(item).slice(0, 499),
+        script30s: generateScript30s(item).slice(0, 999),
+        subtitleLines: generateSubtitleLines(item),
+        // Caption + metadata
+        captionDraft: generateCaption(item).slice(0, 799),
         hashtags: generateHashtags(item),
+        relatedGlossaryTerms: generateGlossaryTerms(item),
+        ctaText: generateCTA(item).slice(0, 199),
+        // Classification + scoring
         contentType: item.contentType,
         contentScore: item.contentScore,
+        scoreTrend: item.scoreBreakdown.trend,
+        scoreRelevance: item.scoreBreakdown.relevance,
+        scoreBeginner: item.scoreBreakdown.beginner,
+        scoreSource: item.scoreBreakdown.source,
+        scorePenalty: item.scoreBreakdown.penalty,
         status: 'new',
       });
 
@@ -117,7 +136,9 @@ export class ContentRadarService {
         await this.repo.save(row);
         saved++;
         existingUrls.add(item.url);
-        this.logger.log(`Saved [${item.contentScore}] ${item.title.slice(0, 60)}`);
+        this.logger.log(
+          `Saved [${item.contentScore} T${item.scoreBreakdown.trend}+R${item.scoreBreakdown.relevance}+B${item.scoreBreakdown.beginner}+S${item.scoreBreakdown.source}-P${item.scoreBreakdown.penalty}] ${item.title.slice(0, 60)}`,
+        );
       } catch (err) {
         this.logger.warn(`Failed to save item: ${err instanceof Error ? err.message : err}`);
       }

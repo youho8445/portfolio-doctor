@@ -499,14 +499,28 @@ export interface ContentRadarItem {
   market: 'KR' | 'US' | 'GLOBAL';
   category: string;
   relatedTickers: string[] | null;
-  summary: string;
-  pobalanceAngle: string;
-  contentHook: string;
+  // News content fields
+  shortNewsSummary: string;
+  whyItMattersToPortfolio: string;
+  beginnerCaution: string | null;
+  // Script fields
+  openingHook: string;
+  script15s: string | null;
+  script30s: string | null;
+  subtitleLines: string[] | null;
+  // Caption + metadata
   captionDraft: string;
-  glossaryTerms: string[] | null;
   hashtags: string[] | null;
+  relatedGlossaryTerms: string[] | null;
+  ctaText: string | null;
+  // Classification + scoring
   contentType: string;
   contentScore: number;
+  scoreTrend: number;
+  scoreRelevance: number;
+  scoreBeginner: number;
+  scoreSource: number;
+  scorePenalty: number;
   status: 'new' | 'used' | 'ignored';
   createdAt: string;
   updatedAt: string;

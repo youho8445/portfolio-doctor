@@ -759,7 +759,7 @@ export default function AdminPage() {
               <div>
                 <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Content Radar</h2>
                 <p className="text-sm text-white font-bold mt-0.5">
-                  오늘의 투자 콘텐츠 소재
+                  포밸런스 브리핑 소재
                   {contentRadar && contentRadar.count > 0 && (
                     <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>
                       {contentRadar.count}건
@@ -811,6 +811,15 @@ export default function AdminPage() {
                       const scoreColor = item.contentScore >= 80 ? '#4ade80' : item.contentScore >= 60 ? '#fbbf24' : '#f87171';
                       const marketEmoji = item.market === 'KR' ? '🇰🇷' : item.market === 'US' ? '🇺🇸' : '🌐';
                       const isUsed = item.status === 'used';
+                      const copyBtn = (text: string, label: string) => (
+                        <button
+                          onClick={() => navigator.clipboard.writeText(text).catch(() => {})}
+                          className="text-[10px] px-2 py-0.5 rounded-md shrink-0"
+                          style={{ background: 'rgba(255,255,255,0.05)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.08)' }}
+                        >
+                          📋 {label}
+                        </button>
+                      );
                       return (
                         <div
                           key={item.id}
@@ -822,7 +831,7 @@ export default function AdminPage() {
                             transition: 'opacity 0.2s',
                           }}
                         >
-                          {/* Header row */}
+                          {/* Header row: score badge + badges */}
                           <div className="flex items-start gap-2 flex-wrap">
                             <span className="text-xs font-black px-2 py-0.5 rounded-md shrink-0" style={{ background: scoreBg, color: scoreColor, border: `1px solid ${scoreColor}33` }}>
                               {item.contentScore}
@@ -841,6 +850,21 @@ export default function AdminPage() {
                                 ✓ 사용됨
                               </span>
                             )}
+                          </div>
+
+                          {/* Score breakdown */}
+                          <div className="flex items-center gap-1 text-[10px] font-mono" style={{ color: '#4b5563' }}>
+                            <span style={{ color: '#818cf8' }}>T{item.scoreTrend ?? 0}</span>
+                            <span>+</span>
+                            <span style={{ color: '#34d399' }}>R{item.scoreRelevance ?? 0}</span>
+                            <span>+</span>
+                            <span style={{ color: '#fbbf24' }}>B{item.scoreBeginner ?? 0}</span>
+                            <span>+</span>
+                            <span style={{ color: '#60a5fa' }}>S{item.scoreSource ?? 0}</span>
+                            <span>-</span>
+                            <span style={{ color: '#f87171' }}>P{item.scorePenalty ?? 0}</span>
+                            <span>=</span>
+                            <span style={{ color: scoreColor, fontWeight: 700 }}>{item.contentScore}</span>
                           </div>
 
                           {/* Title + source */}
@@ -863,59 +887,110 @@ export default function AdminPage() {
                             </div>
                           )}
 
-                          {/* Summary */}
-                          {item.summary && (
+                          {/* News summary */}
+                          {item.shortNewsSummary && (
                             <div>
-                              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>📝 Summary</div>
-                              <div className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>{item.summary}</div>
+                              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>📝 News Summary</div>
+                              <div className="text-xs leading-relaxed" style={{ color: '#9ca3af' }}>{item.shortNewsSummary}</div>
                             </div>
                           )}
 
-                          {/* PoBalance angle */}
+                          {/* Portfolio impact */}
                           <div>
-                            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>🎯 PoBalance Angle</div>
-                            <div className="text-xs leading-relaxed" style={{ color: '#d1d5db' }}>{item.pobalanceAngle}</div>
+                            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>🎯 Portfolio Impact</div>
+                            <div className="text-xs leading-relaxed" style={{ color: '#d1d5db' }}>{item.whyItMattersToPortfolio}</div>
                           </div>
 
-                          {/* Hook */}
+                          {/* Beginner caution */}
+                          {item.beginnerCaution && (
+                            <div>
+                              <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>⚠️ Beginner Caution</div>
+                              <div className="text-xs leading-relaxed" style={{ color: '#fbbf24' }}>{item.beginnerCaution}</div>
+                            </div>
+                          )}
+
+                          {/* Opening hook */}
                           <div>
-                            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>⚡ Hook</div>
-                            <div className="text-xs font-medium italic leading-relaxed" style={{ color: '#c4b5fd' }}>{item.contentHook}</div>
+                            <div className="text-[10px] uppercase tracking-widest mb-1" style={{ color: '#4b5563' }}>⚡ Opening Hook</div>
+                            <div className="text-xs font-medium italic leading-relaxed" style={{ color: '#c4b5fd' }}>{item.openingHook}</div>
                           </div>
+
+                          {/* 15s script */}
+                          {item.script15s && (
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="text-[10px] uppercase tracking-widest" style={{ color: '#4b5563' }}>🎬 15s Script</div>
+                                {copyBtn(item.script15s, '복사')}
+                              </div>
+                              <pre className="text-xs leading-relaxed rounded-lg p-3" style={{ background: 'rgba(129,140,248,0.05)', border: '1px solid rgba(129,140,248,0.15)', color: '#e5e7eb', fontFamily: 'inherit', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                {item.script15s}
+                              </pre>
+                            </div>
+                          )}
+
+                          {/* 30s script */}
+                          {item.script30s && (
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="text-[10px] uppercase tracking-widest" style={{ color: '#4b5563' }}>🎬 30s Script</div>
+                                {copyBtn(item.script30s, '복사')}
+                              </div>
+                              <pre className="text-xs leading-relaxed rounded-lg p-3" style={{ background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.12)', color: '#e5e7eb', fontFamily: 'inherit', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                {item.script30s}
+                              </pre>
+                            </div>
+                          )}
+
+                          {/* Subtitle lines */}
+                          {item.subtitleLines && item.subtitleLines.length > 0 && (
+                            <div>
+                              <div className="text-[10px] uppercase tracking-widest mb-1.5" style={{ color: '#4b5563' }}>🖼 Subtitle Lines</div>
+                              <div className="space-y-1">
+                                {item.subtitleLines.map((line, i) => (
+                                  <div key={i} className="flex items-center gap-2">
+                                    <span className="text-[10px] w-4 text-right shrink-0" style={{ color: '#374151' }}>{i + 1}</span>
+                                    <span className="text-xs" style={{ color: '#d1d5db' }}>{line}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Caption */}
                           <div>
                             <div className="flex items-center justify-between mb-1">
-                              <div className="text-[10px] uppercase tracking-widest" style={{ color: '#4b5563' }}>📱 Caption Draft</div>
-                              <button
-                                onClick={() => navigator.clipboard.writeText(item.captionDraft).catch(() => {})}
-                                className="text-[10px] px-2 py-0.5 rounded-md"
-                                style={{ background: 'rgba(255,255,255,0.05)', color: '#6b7280' }}
-                              >
-                                복사
-                              </button>
+                              <div className="text-[10px] uppercase tracking-widest" style={{ color: '#4b5563' }}>📱 Caption</div>
+                              {copyBtn(item.captionDraft, '복사')}
                             </div>
-                            <pre className="text-xs leading-relaxed rounded-lg p-3 overflow-x-auto" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#e5e7eb', fontFamily: 'inherit', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            <pre className="text-xs leading-relaxed rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: '#e5e7eb', fontFamily: 'inherit', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                               {item.captionDraft}
                             </pre>
                           </div>
 
-                          {/* Glossary + hashtags */}
+                          {/* Hashtags */}
+                          {item.hashtags && item.hashtags.length > 0 && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs" style={{ color: '#8b5cf6' }}>{item.hashtags.join(' ')}</span>
+                              {copyBtn(item.hashtags.join(' '), '복사')}
+                            </div>
+                          )}
+
+                          {/* Glossary + CTA */}
                           <div className="space-y-1.5">
-                            {item.glossaryTerms && item.glossaryTerms.length > 0 && (
+                            {item.relatedGlossaryTerms && item.relatedGlossaryTerms.length > 0 && (
                               <div className="text-xs" style={{ color: '#6b7280' }}>
-                                🏷️ {item.glossaryTerms.join(' · ')}
+                                🏷️ {item.relatedGlossaryTerms.join(' · ')}
                               </div>
                             )}
-                            {item.hashtags && item.hashtags.length > 0 && (
-                              <div className="text-xs" style={{ color: '#8b5cf6' }}>
-                                {item.hashtags.join(' ')}
+                            {item.ctaText && (
+                              <div className="text-xs" style={{ color: '#a78bfa' }}>
+                                📣 {item.ctaText}
                               </div>
                             )}
                           </div>
 
                           {/* Action buttons */}
-                          <div className="flex gap-2 pt-1">
+                          <div className="flex gap-2 pt-1 flex-wrap">
                             <a
                               href={item.url}
                               target="_blank"

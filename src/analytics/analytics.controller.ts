@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
-import { IsIn, IsNumber, IsOptional } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AnalyticsService } from './analytics.service';
 
 const VALID_EVENTS = [
@@ -26,6 +26,11 @@ class TrackEventDto {
   @IsNumber()
   @IsOptional()
   userId?: number | null;
+
+  @IsString()
+  @MaxLength(50)
+  @IsOptional()
+  source?: string | null;
 }
 
 @Controller('analytics')
@@ -35,6 +40,6 @@ export class AnalyticsController {
   @Post('event')
   @HttpCode(204)
   async track(@Body() dto: TrackEventDto): Promise<void> {
-    await this.analyticsService.track(dto.event, dto.userId ?? null);
+    await this.analyticsService.track(dto.event, dto.userId ?? null, dto.source);
   }
 }

@@ -14,11 +14,11 @@ export class AnalyticsService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async track(event: string, userId: number | null): Promise<void> {
+  async track(event: string, userId: number | null, source?: string | null): Promise<void> {
     if (userId != null) {
       const user = await this.userRepo.findOne({ where: { id: userId }, select: ['email'] });
       if (user && isAdminEmail(user.email)) return;
     }
-    await this.repo.save(this.repo.create({ event, userId }));
+    await this.repo.save(this.repo.create({ event, userId, source: source ?? null }));
   }
 }

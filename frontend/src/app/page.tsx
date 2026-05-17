@@ -15,7 +15,8 @@ export default function HomePage() {
       trackedRef.current = true;
       if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem('pv_landing')) {
         sessionStorage.setItem('pv_landing', '1');
-        void trackEvent('page_view_landing', null);
+        const source = new URLSearchParams(window.location.search).get('utm_source');
+        void trackEvent('page_view_landing', null, source);
       }
     }
   }, []);

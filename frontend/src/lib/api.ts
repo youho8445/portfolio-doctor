@@ -1,11 +1,11 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-export async function trackEvent(event: string, userId?: number | null): Promise<void> {
+export async function trackEvent(event: string, userId?: number | null, source?: string | null): Promise<void> {
   try {
     await fetch(`${API_BASE_URL}/analytics/event`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event, userId: userId ?? null }),
+      body: JSON.stringify({ event, userId: userId ?? null, source: source ?? null }),
     });
   } catch {
     // fire-and-forget
@@ -272,6 +272,7 @@ export interface PageTrafficStats {
   allTime: { event: string; count: number }[];
   last7d:  { event: string; count: number }[];
   today:   { event: string; count: number }[];
+  landingSources: { source: string; count: number }[];
 }
 
 export async function getAdminPageTrafficStats(): Promise<PageTrafficStats> {

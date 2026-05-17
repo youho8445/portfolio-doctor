@@ -112,10 +112,23 @@ export class AdminService {
     const d7    = toMap(last7dRows);
     const today = toMap(todayRows);
 
+    // 랜딩 출처별 카운트 (source 컬럼 기준)
+    const sourceRows = await excludeAdmin(
+      this.conversionRepo.createQueryBuilder('e')
+        .select('COALESCE(e.source, \'direct\')', 'source')
+        .addSelect('COUNT(*)', 'count')
+        .where('e.event = :event', { event: 'page_view_landing' })
+        .groupBy('e.source'),
+    ).getRawMany<{ source: string; count: string }>();
+
+    const landingSources = sourceRows.map((r) => ({ source: r.source, count: Number(r.count) }))
+      .sort((a, b) => b.count - a.count);
+
     return {
       allTime: PAGE_EVENTS.map((e) => ({ event: e, count: all[e]   ?? 0 })),
       last7d:  PAGE_EVENTS.map((e) => ({ event: e, count: d7[e]    ?? 0 })),
       today:   PAGE_EVENTS.map((e) => ({ event: e, count: today[e] ?? 0 })),
+      landingSources,
     };
   }
 

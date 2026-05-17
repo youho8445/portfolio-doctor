@@ -11,6 +11,9 @@ export class ConversionEvent {
   @Column({ type: 'int', nullable: true, default: null })
   userId: number | null;
 
+  @Column({ type: 'varchar', length: 50, nullable: true, default: null })
+  source: string | null;
+
   @CreateDateColumn({ type: 'datetime' })
   createdAt: Date;
 }

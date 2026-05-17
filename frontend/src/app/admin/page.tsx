@@ -402,39 +402,55 @@ export default function AdminPage() {
           {pageTraffic === null ? (
             <div className="text-xs" style={{ color: '#4b5563' }}>불러오는 중...</div>
           ) : (
-            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <th className="text-left px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>단계</th>
-                    <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>전체</th>
-                    <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>7일</th>
-                    <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#a78bfa' }}>오늘</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { event: 'page_view_landing',  label: '① 랜딩 페이지 접근' },
-                    { event: 'page_view_analyzer', label: '② 분석 페이지 접근' },
-                    { event: 'analysis_run',        label: '③ 포트폴리오 분석 실행' },
-                    { event: 'checkout_page_view',  label: '④ 결제 페이지 진입' },
-                    { event: 'payment_success',     label: '⑤ 결제 완료' },
-                  ].map(({ event, label }) => {
-                    const allRow   = pageTraffic.allTime.find((r) => r.event === event);
-                    const d7Row    = pageTraffic.last7d.find((r) => r.event === event);
-                    const todayRow = pageTraffic.today.find((r) => r.event === event);
-                    return (
-                      <tr key={event} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                        <td className="px-4 py-2.5" style={{ color: '#9ca3af' }}>{label}</td>
-                        <td className="px-4 py-2.5 text-right font-semibold text-white">{(allRow?.count ?? 0).toLocaleString()}</td>
-                        <td className="px-4 py-2.5 text-right" style={{ color: '#6b7280' }}>{(d7Row?.count ?? 0).toLocaleString()}</td>
-                        <td className="px-4 py-2.5 text-right font-semibold" style={{ color: '#a78bfa' }}>{(todayRow?.count ?? 0).toLocaleString()}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+                      <th className="text-left px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>단계</th>
+                      <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>전체</th>
+                      <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#6b7280' }}>7일</th>
+                      <th className="text-right px-4 py-2.5 font-semibold" style={{ color: '#a78bfa' }}>오늘</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { event: 'page_view_landing',  label: '① 랜딩 페이지 접근' },
+                      { event: 'page_view_analyzer', label: '② 분석 페이지 접근' },
+                      { event: 'analysis_run',        label: '③ 포트폴리오 분석 실행' },
+                      { event: 'checkout_page_view',  label: '④ 결제 페이지 진입' },
+                      { event: 'payment_success',     label: '⑤ 결제 완료' },
+                    ].map(({ event, label }) => {
+                      const allRow   = pageTraffic.allTime.find((r) => r.event === event);
+                      const d7Row    = pageTraffic.last7d.find((r) => r.event === event);
+                      const todayRow = pageTraffic.today.find((r) => r.event === event);
+                      return (
+                        <tr key={event} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                          <td className="px-4 py-2.5" style={{ color: '#9ca3af' }}>{label}</td>
+                          <td className="px-4 py-2.5 text-right font-semibold text-white">{(allRow?.count ?? 0).toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-right" style={{ color: '#6b7280' }}>{(d7Row?.count ?? 0).toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-right font-semibold" style={{ color: '#a78bfa' }}>{(todayRow?.count ?? 0).toLocaleString()}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {pageTraffic.landingSources.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs font-semibold mb-2" style={{ color: '#6b7280' }}>랜딩 유입 출처</div>
+                  <div className="flex flex-wrap gap-2">
+                    {pageTraffic.landingSources.map(({ source, count }) => (
+                      <div key={source} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <span style={{ color: '#9ca3af' }}>{source}</span>
+                        <span className="font-semibold text-white">{count.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

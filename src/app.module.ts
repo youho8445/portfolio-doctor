@@ -16,6 +16,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { PushModule } from './push/push.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { MarketModule } from './market/market.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   controllers: [AppController],
@@ -50,6 +51,7 @@ import { MarketModule } from './market/market.module';
     PushModule,
     AnalyticsModule,
     MarketModule,
+    FeedbackModule,
   ],
 })
 export class AppModule {}

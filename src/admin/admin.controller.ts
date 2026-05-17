@@ -14,6 +14,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminService, BillingMode } from './admin.service';
 import { PriceFetchService } from './price-fetch.service';
+import { FeedbackService } from '../feedback/feedback.service';
 import { isAdminEmail } from './admin-email.helper';
 
 @Controller('admin')
@@ -22,6 +23,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly priceFetchService: PriceFetchService,
+    private readonly feedbackService: FeedbackService,
   ) {}
 
   private requireAdmin(email: string | null | undefined): void {
@@ -125,5 +127,13 @@ export class AdminController {
   async getConversionStats(@Req() req: { user: { email: string } }) {
     this.requireAdmin(req.user.email);
     return this.adminService.getConversionStats();
+  }
+
+  // ── 피드백 ────────────────────────────────────────────────────────────────
+
+  @Get('feedback/summary')
+  async getFeedbackSummary(@Req() req: { user: { email: string } }) {
+    this.requireAdmin(req.user.email);
+    return this.feedbackService.getSummary();
   }
 }

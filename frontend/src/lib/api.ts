@@ -428,6 +428,54 @@ export async function analyzePortfolioGuest(
   return res.json();
 }
 
+export interface FeedbackPayload {
+  sessionId?: string | null;
+  analysisId?: string | null;
+  page: 'analysis_result' | 'rebalance_gate' | 'notification_setup';
+  rating: 'helpful' | 'unclear' | 'not_helpful';
+  reasons?: string[] | null;
+  message?: string | null;
+  healthScore?: number | null;
+  isGuest?: boolean;
+}
+
+export async function submitFeedback(payload: FeedbackPayload): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(payload),
+    });
+  } catch {
+    // fire-and-forget — feedback failure must never break the main flow
+  }
+}
+
+export interface FeedbackSummary {
+  total: number;
+  byRating: { helpful: number; unclear: number; not_helpful: number };
+  percentages: { helpful: number; unclear: number; not_helpful: number };
+  topReasons: { reason: string; count: number }[];
+  recentMessages: {
+    id: number;
+    rating: string;
+    message: string;
+    healthScore: number | null;
+    isGuest: boolean;
+    createdAt: string;
+  }[];
+  guestVsLoggedIn: { guest: number; loggedIn: number };
+  avgHealthScore: number | null;
+}
+
+export async function getAdminFeedbackSummary(): Promise<FeedbackSummary> {
+  const res = await fetch(`${API_BASE_URL}/admin/feedback/summary`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to fetch feedback summary');
+  return res.json();
+}
+
 export async function analyzePortfolio(
   portfolioId: number,
   period: '1M' | '3M' | '1Y' = '1Y',

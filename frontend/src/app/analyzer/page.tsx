@@ -9,6 +9,7 @@ const BeginnerGuide = dynamic(() => import('@/components/BeginnerGuide'), { ssr:
 const PremiumCompareModal = dynamic(() => import('@/components/PremiumCompareModal'), { ssr: false });
 const GlossaryDrawer = dynamic(() => import('@/components/GlossaryDrawer'), { ssr: false });
 const MarketIndexCard = dynamic(() => import('@/components/MarketIndexCard'), { ssr: false });
+const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'), { ssr: false });
 import TermTooltip from '@/components/TermTooltip';
 import GlossaryTrigger from '@/components/GlossaryTrigger';
 import { GlossaryContext } from '@/contexts/GlossaryContext';
@@ -197,6 +198,7 @@ export default function AnalyzerPage() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [feedbackAnalysisId, setFeedbackAnalysisId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedPortfolios, setSavedPortfolios] = useState<Portfolio[]>([]);
   const [currentPortfolioId, setCurrentPortfolioId] = useState<number | null>(null);
@@ -658,7 +660,7 @@ export default function AnalyzerPage() {
       }
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
       void trackEvent('analysis_run', user?.id);
-      setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
+      setAnalysis(result); setFeedbackAnalysisId(Date.now().toString(36)); setCurrentPortfolioId(portfolioId); setActiveTab('result');
       await loadSavedPortfolios();
     } catch { /* silent — user can re-analyze manually */ }
   };
@@ -696,6 +698,7 @@ export default function AnalyzerPage() {
         void trackEvent('guest_analysis_completed', null);
         void trackEvent('guest_signup_gate_viewed', null);
         setAnalysis(result);
+        setFeedbackAnalysisId(Date.now().toString(36));
         setActiveTab('result');
         return;
       }
@@ -727,7 +730,7 @@ export default function AnalyzerPage() {
       }
       const result = await analyzePortfolio(portfolioId, '1Y', 'SP500');
       void trackEvent('analysis_run', user?.id);
-      setAnalysis(result); setCurrentPortfolioId(portfolioId); setActiveTab('result');
+      setAnalysis(result); setFeedbackAnalysisId(Date.now().toString(36)); setCurrentPortfolioId(portfolioId); setActiveTab('result');
       // refresh notifications and portfolio state after analysis (detection runs async server-side)
       setTimeout(() => {
         getStateEvents().then((evts) => setNotifications(evts)).catch(() => {});
@@ -2900,6 +2903,16 @@ export default function AnalyzerPage() {
             }
             if (newItems.length > 0) setItems(newItems);
           }}
+        />
+      )}
+
+      {/* ── 피드백 위젯 (분석 결과 탭일 때만) ── */}
+      {activeTab === 'result' && analysis && feedbackAnalysisId && (
+        <FeedbackWidget
+          analysisId={feedbackAnalysisId}
+          page="analysis_result"
+          healthScore={analysis.healthScore}
+          isGuest={!isLoggedIn}
         />
       )}
     </div>

@@ -14,9 +14,11 @@ import {
   grantAdminTrial,
   revokeAdminTrial,
   getAdminPageTrafficStats,
+  getAdminFeedbackSummary,
   AdminUser,
   AdminApiError,
   PageTrafficStats,
+  FeedbackSummary,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -111,6 +113,10 @@ export default function AdminPage() {
   // Page traffic stats
   const [pageTraffic, setPageTraffic] = useState<PageTrafficStats | null>(null);
 
+  // Feedback summary
+  const [feedbackSummary, setFeedbackSummary] = useState<FeedbackSummary | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
   // Users
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [userSearch, setUserSearch] = useState('');
@@ -135,6 +141,7 @@ export default function AdminPage() {
     loadFetchStatus();
     getAdminUsers().then(setUsers).catch(() => {});
     getAdminPageTrafficStats().then(setPageTraffic).catch(() => {});
+    getAdminFeedbackSummary().then(setFeedbackSummary).catch(() => {});
   }, [isLoading, isLoggedIn, user]);
 
   const loadFetchStatus = async () => {
@@ -592,6 +599,117 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {/* ── 피드백 ── */}
+        <div className="rounded-2xl p-6 space-y-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <button
+            className="w-full flex items-center justify-between"
+            onClick={() => setFeedbackOpen((v) => !v)}
+          >
+            <div className="text-left">
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Feedback</h2>
+              <p className="text-sm text-white font-bold mt-0.5">
+                유저 피드백
+                {feedbackSummary && (
+                  <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full" style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>
+                    {feedbackSummary.total}건
+                  </span>
+                )}
+              </p>
+            </div>
+            <span className="text-xs" style={{ color: '#6b7280' }}>{feedbackOpen ? '▲' : '▼'}</span>
+          </button>
+
+          {feedbackOpen && (
+            <>
+              {feedbackSummary === null ? (
+                <div className="text-xs" style={{ color: '#4b5563' }}>불러오는 중...</div>
+              ) : feedbackSummary.total === 0 ? (
+                <div className="text-xs" style={{ color: '#4b5563' }}>아직 피드백이 없습니다.</div>
+              ) : (
+                <div className="space-y-5">
+
+                  {/* 요약 행 */}
+                  <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: '#9ca3af' }}>
+                    <span>총 <strong className="text-white">{feedbackSummary.total}건</strong></span>
+                    <span style={{ color: '#374151' }}>|</span>
+                    <span>게스트 <strong className="text-white">{feedbackSummary.guestVsLoggedIn.guest}</strong></span>
+                    <span>로그인 <strong className="text-white">{feedbackSummary.guestVsLoggedIn.loggedIn}</strong></span>
+                    {feedbackSummary.avgHealthScore !== null && (
+                      <>
+                        <span style={{ color: '#374151' }}>|</span>
+                        <span>평균 건강점수 <strong className="text-white">{feedbackSummary.avgHealthScore}</strong></span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* 평점 바 */}
+                  <div className="space-y-2">
+                    {[
+                      { key: 'helpful' as const, label: '👍 도움 됐어요', color: '#10b981' },
+                      { key: 'unclear' as const, label: '🤔 애매해요', color: '#f59e0b' },
+                      { key: 'not_helpful' as const, label: '👎 도움 안 됐어요', color: '#ef4444' },
+                    ].map(({ key, label, color }) => {
+                      const count = feedbackSummary.byRating[key];
+                      const pct = feedbackSummary.percentages[key];
+                      return (
+                        <div key={key}>
+                          <div className="flex items-center justify-between text-xs mb-1">
+                            <span style={{ color: '#e5e7eb' }}>{label}</span>
+                            <span style={{ color: '#9ca3af' }}>{count}건 ({pct}%)</span>
+                          </div>
+                          <div className="w-full rounded-full h-1.5" style={{ background: '#2d2d3a' }}>
+                            <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* 주요 이유 */}
+                  {feedbackSummary.topReasons.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2" style={{ color: '#6b7280' }}>주요 이유 (상위 {Math.min(feedbackSummary.topReasons.length, 5)}개)</div>
+                      <div className="space-y-1">
+                        {feedbackSummary.topReasons.slice(0, 5).map(({ reason, count }) => (
+                          <div key={reason} className="flex items-center justify-between text-xs rounded-lg px-3 py-2" style={{ background: '#141418' }}>
+                            <span style={{ color: '#d1d5db' }}>{reason}</span>
+                            <span className="font-semibold" style={{ color: '#a78bfa' }}>{count}건</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 최근 자유 의견 */}
+                  {feedbackSummary.recentMessages.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold mb-2" style={{ color: '#6b7280' }}>최근 자유 의견</div>
+                      <div className="space-y-2">
+                        {feedbackSummary.recentMessages.slice(0, 5).map((m) => {
+                          const emoji = m.rating === 'helpful' ? '👍' : m.rating === 'unclear' ? '🤔' : '👎';
+                          return (
+                            <div key={m.id} className="rounded-xl px-4 py-3" style={{ background: '#141418', border: '1px solid rgba(255,255,255,0.05)' }}>
+                              <div className="text-xs mb-1.5" style={{ color: '#e5e7eb' }}>
+                                {emoji} &ldquo;{m.message}&rdquo;
+                              </div>
+                              <div className="flex gap-2 text-[10px]" style={{ color: '#4b5563' }}>
+                                {m.healthScore !== null && <span>건강점수 {m.healthScore}</span>}
+                                <span>{m.isGuest ? '게스트' : '로그인'}</span>
+                                <span>{timeAgo(m.createdAt)}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         <button
           onClick={() => router.push('/analyzer')}

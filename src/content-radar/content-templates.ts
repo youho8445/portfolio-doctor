@@ -1,5 +1,68 @@
 import { ScoredItem, Category, Market, ContentType } from './content-scorer';
 
+// ── Market event detection ─────────────────────────────────────────────────
+
+const EVENT_PATTERNS: Array<{ re: RegExp; label: (t: string) => string }> = [
+  {
+    re: /팔천피|코스피\s*8[,.]?000/,
+    label: (t) => `코스피 8,000${/돌파/.test(t) ? ' 돌파' : /급락|폭락/.test(t) ? ' 급락' : /하락/.test(t) ? ' 하락' : ''}`,
+  },
+  { re: /FOMC/i, label: () => 'FOMC' },
+  { re: /CPI|소비자물가/, label: () => 'CPI 발표' },
+  {
+    re: /나스닥|Nasdaq/i,
+    label: (t) => `나스닥${/돌파/.test(t) ? ' 돌파' : /급락|폭락/.test(t) ? ' 급락' : /하락/.test(t) ? ' 하락' : /상승|급등/.test(t) ? ' 상승' : ''}`,
+  },
+  {
+    re: /S&P\s*500|S&P500/i,
+    label: (t) => `S&P500${/돌파/.test(t) ? ' 돌파' : /급락|폭락/.test(t) ? ' 급락' : ''}`,
+  },
+  {
+    re: /코스피/i,
+    label: (t) => `코스피${/돌파/.test(t) ? ' 돌파' : /급락|폭락/.test(t) ? ' 급락' : /하락/.test(t) ? ' 하락' : /상승/.test(t) ? ' 상승' : ''}`,
+  },
+  {
+    re: /코스닥/i,
+    label: (t) => `코스닥${/돌파/.test(t) ? ' 돌파' : /급락|폭락/.test(t) ? ' 급락' : /하락/.test(t) ? ' 하락' : ''}`,
+  },
+  { re: /환율|원달러|달러강세|달러약세/, label: () => '환율 변동' },
+  { re: /금리|기준금리/, label: () => '금리 변화' },
+  { re: /물가|인플레/, label: () => '물가 변동' },
+  { re: /AI.{0,3}반도체|반도체.{0,3}AI/, label: () => 'AI·반도체 테마' },
+  { re: /실적|어닝|영업이익|순이익|매출/, label: () => '실적 발표' },
+];
+
+function detectMarketEvent(title: string, category: Category): string | null {
+  for (const { re, label } of EVENT_PATTERNS) {
+    if (re.test(title)) return label(title);
+  }
+  if (category === 'fx') return '환율 변동';
+  if (category === 'macro') return '거시경제 변화';
+  if (category === 'earnings') return '실적 발표';
+  return null;
+}
+
+function buildTickerStr(tickers: string[]): string {
+  const labels = tickers.slice(0, 2).map(getTickerLabel);
+  return labels.length >= 2 ? `${labels[0]}·${labels[1]}` : labels[0] ?? '';
+}
+
+export function generateNewsLead(item: ScoredItem): string {
+  const event = detectMarketEvent(item.title, item.category);
+  const tickerStr = buildTickerStr(item.relatedTickers);
+
+  if (event && tickerStr) {
+    return `${event} 이후, 시장의 관심이 ${tickerStr} 쪽으로 쏠리고 있습니다.`;
+  }
+  if (tickerStr) {
+    return `${tickerStr} 관련 뉴스가 시장의 관심을 받고 있습니다.`;
+  }
+  if (event) {
+    return `${event} 이슈가 오늘 시장의 핵심 변수로 떠올랐습니다.`;
+  }
+  return '오늘 시장에서 확인해볼 만한 뉴스가 나왔습니다.';
+}
+
 // ── Ticker label map ───────────────────────────────────────────────────────
 
 function getTickerLabel(ticker: string): string {
@@ -157,37 +220,17 @@ export function generateOpeningHook(item: ScoredItem): string {
 // ── 15s Reels script ──────────────────────────────────────────────────────
 
 export function generateScript15s(item: ScoredItem): string {
-  const ticker = item.relatedTickers[0] ? getTickerLabel(item.relatedTickers[0]) : '이 종목';
+  const lead = generateNewsLead(item);
+  const impact = generateWhyItMatters(item);
+  const caution = generateBeginnerCaution(item);
   const cta = generateCTA(item);
-  const topic =
-    item.category === 'macro' ? '거시경제'
-    : item.category === 'fx' ? '환율'
-    : item.category === 'tech' ? 'AI·반도체'
-    : '시장';
-  const emotion =
-    item.category === 'psychology' ? (item.contentScore % 2 === 0 ? 'FOMO' : '공포') : 'FOMO';
-
-  switch (item.category) {
-    case 'earnings':
-      return `${ticker} 실적이 발표됐습니다.\n\n실적보다 먼저 봐야 할 건 내 포트폴리오에서 이 종목의 비중입니다. 한 종목에 비중이 집중됐다면 분산을 고려할 시점입니다.\n\n${cta}`;
-    case 'macro':
-      return `오늘 중요한 ${topic} 뉴스가 나왔습니다.\n\n이런 매크로 변화는 주식·채권·달러 자산 모두에 영향을 줍니다. 내 포트폴리오 비중 균형, 지금 한 번 점검해보세요.\n\n${cta}`;
-    case 'fx':
-      return `환율이 움직이고 있습니다. 해외 주식이나 달러 자산이 있다면 오늘 이 뉴스가 직접 영향을 줄 수 있습니다.\n\n달러 노출 비중과 해외 자산 비중을 확인해보세요.\n\n${cta}`;
-    case 'tech':
-      return `AI·반도체 관련 소식입니다. ${ticker} 뉴스인데요.\n\n기술주·반도체 비중이 높은 포트폴리오는 이런 뉴스 하나에 크게 흔들릴 수 있습니다. 섹터 편중 여부를 먼저 확인하세요.\n\n${cta}`;
-    case 'psychology':
-      return `지금 시장에 ${emotion} 심리가 퍼지고 있습니다.\n\n이럴 때일수록 감정보다 원칙이 중요합니다. 내 목표 비중으로 돌아오는 것, 그게 리밸런싱의 핵심입니다.\n\n${cta}`;
-    case 'sector':
-      return `오늘 섹터 이슈가 발생했습니다.\n\n해당 섹터에 집중된 포트폴리오라면 비중 점검이 필요한 타이밍입니다. 분산 투자가 이런 순간에 빛을 발합니다.\n\n${cta}`;
-    default:
-      return `오늘 주목할 만한 ${topic} 뉴스입니다.\n\n수익률만 보지 말고 비중과 리스크 수준을 함께 확인하는 습관, 장기 투자자에게 가장 중요한 것입니다.\n\n${cta}`;
-  }
+  return `${lead}\n\n${impact}\n\n${caution}\n\n${cta}`;
 }
 
 // ── 30s Reels script ──────────────────────────────────────────────────────
 
 export function generateScript30s(item: ScoredItem): string {
+  const lead = generateNewsLead(item);
   const ticker = item.relatedTickers[0] ? getTickerLabel(item.relatedTickers[0]) : '이 종목';
   const cta = generateCTA(item);
   const caution = BEGINNER_CAUTION[item.category];
@@ -196,86 +239,53 @@ export function generateScript30s(item: ScoredItem): string {
 
   switch (item.category) {
     case 'earnings':
-      return `오늘 ${ticker} 실적이 발표됐습니다.\n\n실적이 좋으면 주가가 올라야 할 것 같죠? 꼭 그렇지 않습니다. 실적 발표는 시장의 기대치와의 비교입니다. 이미 많은 투자자들이 기대를 선반영했다면, 주가는 오히려 "사실 확인 후 매도" 흐름을 보일 수 있습니다.\n\n주의: ${caution}\n\n대신, 내 포트폴리오에서 ${ticker} 비중이 적정한지 확인해보세요. 집중도가 높다면 분산을 고려할 타이밍입니다.\n\n${cta}`;
+      return `${lead}\n\n실적이 좋으면 주가가 올라야 할 것 같죠? 꼭 그렇지 않습니다. 실적 발표는 시장의 기대치와의 비교입니다. 이미 많은 투자자들이 기대를 선반영했다면, 주가는 오히려 "사실 확인 후 매도" 흐름을 보일 수 있습니다.\n\n주의: ${caution}\n\n내 포트폴리오에서 ${ticker} 비중이 적정한지 확인해보세요. 집중도가 높다면 분산을 고려할 타이밍입니다.\n\n${cta}`;
     case 'macro':
-      return `오늘 중요한 거시경제 뉴스가 나왔습니다.\n\n이런 매크로 지표들이 왜 중요할까요? 주식, 채권, 달러 자산 등 모든 자산군에 직접적인 영향을 주기 때문입니다.\n\n주의: ${caution}\n\n지금 내 포트폴리오가 이 변화에 얼마나 노출됐는지 확인해보세요. 주식 비중, 채권 비중, 달러 자산 비중, 균형이 잘 맞나요?\n\n${cta}`;
+      return `${lead}\n\n이런 매크로 지표들이 왜 중요할까요? 주식, 채권, 달러 자산 등 모든 자산군에 직접적인 영향을 주기 때문입니다.\n\n주의: ${caution}\n\n지금 내 포트폴리오가 이 변화에 얼마나 노출됐는지 확인해보세요. 주식 비중, 채권 비중, 달러 자산 비중, 균형이 잘 맞나요?\n\n${cta}`;
     case 'fx':
-      return `오늘 환율이 움직이고 있습니다.\n\n해외 주식이나 달러 자산을 보유하고 계신가요? 환율 변화는 보이지 않는 포트폴리오 리스크입니다. 환율이 오르면 해외 자산의 원화 환산 가치도 달라집니다.\n\n주의: ${caution}\n\n해외 비중이 있다면 오늘 한 번 달러 노출 수준을 점검해보세요.\n\n${cta}`;
+      return `${lead}\n\n해외 주식이나 달러 자산을 보유하고 계신가요? 환율 변화는 보이지 않는 포트폴리오 리스크입니다. 환율이 오르면 해외 자산의 원화 환산 가치도 달라집니다.\n\n주의: ${caution}\n\n해외 비중이 있다면 오늘 한 번 달러 노출 수준을 점검해보세요.\n\n${cta}`;
     case 'tech':
-      return `오늘 AI·반도체 관련 소식입니다. ${ticker} 뉴스인데요.\n\n기술주, 반도체 비중이 포트폴리오에서 얼마나 되시나요? 이런 뉴스가 나올 때마다 가장 크게 흔들리는 건 섹터 편중 포트폴리오입니다. 한 섹터에 너무 많은 비중이 쏠려 있으면 해당 섹터 이슈에 지나치게 민감해집니다.\n\n주의: ${caution}\n\n섹터 편중 여부를 먼저 확인하세요.\n\n${cta}`;
+      return `${lead}\n\nAI·반도체 비중이 포트폴리오에서 얼마나 되시나요? 이런 뉴스가 나올 때마다 가장 크게 흔들리는 건 섹터 편중 포트폴리오입니다. 한 섹터에 너무 많은 비중이 쏠려 있으면 해당 섹터 이슈에 지나치게 민감해집니다.\n\n주의: ${caution}\n\n섹터 편중 여부를 먼저 확인하세요.\n\n${cta}`;
     case 'psychology':
-      return `지금 시장에 ${emotion} 심리가 퍼지고 있습니다.\n\n이럴 때 대부분의 투자자들이 어떻게 행동할까요? 감정으로 움직입니다. ${emotion}에 휩쓸려 추격 매수하거나, 공포에 패닉셀을 하거나. 이 두 가지 모두 장기 수익률을 갉아먹는 행동입니다.\n\n흔들릴 때일수록 내 목표 비중으로 돌아오세요. 비중이 너무 쏠렸다면 일부 조정, 비중이 낮다면 조금씩 채우기. 그게 리밸런싱입니다.\n\n${cta}`;
+      return `${lead}\n\n이럴 때 대부분의 투자자들이 어떻게 행동할까요? ${emotion}에 휩쓸려 추격 매수하거나, 공포에 패닉셀을 하거나. 이 두 가지 모두 장기 수익률을 갉아먹는 행동입니다.\n\n흔들릴 때일수록 내 목표 비중으로 돌아오세요. 비중이 너무 쏠렸다면 일부 조정, 비중이 낮다면 조금씩 채우기. 그게 리밸런싱입니다.\n\n${cta}`;
     case 'sector':
-      return `오늘 특정 섹터에서 중요한 이슈가 발생했습니다.\n\n섹터 이슈가 터졌을 때 가장 먼저 확인해야 할 건 내 포트폴리오에서 해당 섹터 비중입니다. 비중이 낮다면 시장 평균 수준의 영향을 받습니다. 비중이 높다면 리스크가 집중된 상태입니다.\n\n주의: ${caution}\n\n${cta}`;
+      return `${lead}\n\n섹터 이슈가 터졌을 때 가장 먼저 확인해야 할 건 내 포트폴리오에서 해당 섹터 비중입니다. 비중이 낮다면 시장 평균 수준의 영향을 받습니다. 비중이 높다면 리스크가 집중된 상태입니다.\n\n주의: ${caution}\n\n${cta}`;
     default:
-      return `오늘 주목할 만한 시장 뉴스가 있습니다.\n\n이런 뉴스를 볼 때 대부분의 투자자들은 "주가에 어떤 영향이 있을까?"를 먼저 생각합니다. 하지만 장기 투자자가 먼저 봐야 할 건 "이 뉴스가 내 포트폴리오 비중과 리스크 수준에 어떤 의미인가?"입니다.\n\n수익률보다 비중, 종목보다 구조를 보는 습관이 장기 투자 성공의 핵심입니다.\n\n${cta}`;
+      return `${lead}\n\n이런 뉴스를 볼 때 대부분의 투자자들은 "주가에 어떤 영향이 있을까?"를 먼저 생각합니다. 하지만 장기 투자자가 먼저 봐야 할 건 "이 뉴스가 내 포트폴리오 비중과 리스크 수준에 어떤 의미인가?"입니다.\n\n수익률보다 비중, 종목보다 구조를 보는 습관이 장기 투자 성공의 핵심입니다.\n\n${cta}`;
   }
 }
 
-// ── Subtitle lines (4–6 lines for reel visuals) ───────────────────────────
+// ── Subtitle lines (5 lines for reel visuals) ─────────────────────────────
+
+const SUBTITLE_TAILS: Record<Category, string[]> = {
+  earnings: ['실적보다 먼저 볼 것', '내 포트폴리오 비중', 'PoBalance에서 집중도 점검'],
+  macro: ['내 자산에 어떤 영향?', '주식·채권 비중 균형 점검', 'PoBalance에서 확인'],
+  fx: ['환율 = 보이지 않는 리스크', '달러 노출 비중 점검 타이밍', 'PoBalance에서 확인'],
+  tech: ['섹터 편중 체크 타이밍', '비중이 쏠렸다면 리스크', 'PoBalance에서 섹터 점검'],
+  psychology: ['감정 기반 매매의 함정', '목표 비중으로 돌아오세요', 'PoBalance에서 점검'],
+  sector: ['비중이 높다면 리스크 집중', '감정 말고 비중으로 판단', 'PoBalance에서 확인'],
+  other: ['뉴스보다 먼저 볼 것', '내 포트폴리오 비중', 'PoBalance에서 점검'],
+};
+
+const SUBTITLE_LINE2_FALLBACK: Record<Category, string> = {
+  earnings: '실적 발표 주목',
+  macro: '거시경제 변수 등장',
+  fx: '환율 변동 확인',
+  tech: 'AI·반도체 섹터 주목',
+  psychology: 'FOMO vs 패닉셀',
+  sector: '섹터 이슈 발생',
+  other: '시장 변화 감지',
+};
 
 export function generateSubtitleLines(item: ScoredItem): string[] {
-  const ticker = item.relatedTickers[0] ? getTickerLabel(item.relatedTickers[0]) : null;
+  const event = detectMarketEvent(item.title, item.category);
+  const tickerStr = buildTickerStr(item.relatedTickers);
 
-  switch (item.category) {
-    case 'earnings':
-      return [
-        ticker ? `${ticker} 실적 발표` : '실적 발표',
-        '시장 기대치 대비 결과는?',
-        '실적이 좋아도 주가가 흔들리는 이유',
-        '내 포트폴리오 비중 먼저 확인',
-        'PoBalance에서 집중도 점검',
-      ];
-    case 'macro':
-      return [
-        '오늘의 매크로 뉴스',
-        '금리·물가·환율 변화',
-        '내 자산에 어떤 영향?',
-        '주식·채권 비중 균형 점검',
-        'PoBalance에서 확인',
-      ];
-    case 'fx':
-      return [
-        '환율이 움직이고 있습니다',
-        '해외 자산 있으신가요?',
-        '환율 = 보이지 않는 리스크',
-        '달러 노출 비중 점검 타이밍',
-        'PoBalance에서 확인',
-      ];
-    case 'tech':
-      return [
-        ticker ? `${ticker} 소식` : 'AI·반도체 소식',
-        '기술주 섹터 주목',
-        '섹터 편중 체크 타이밍',
-        '비중이 쏠렸다면 리스크',
-        'PoBalance에서 섹터 점검',
-      ];
-    case 'psychology':
-      return [
-        '지금 시장 심리는?',
-        'FOMO vs 패닉셀',
-        '감정 기반 매매의 함정',
-        '목표 비중으로 돌아오세요',
-        '리밸런싱이 답입니다',
-        'PoBalance에서 점검',
-      ];
-    case 'sector':
-      return [
-        '오늘 섹터 이슈 발생',
-        '섹터 집중 포트폴리오 주목',
-        '비중이 높다면 리스크 집중',
-        '감정 말고 비중으로 판단',
-        'PoBalance에서 확인',
-      ];
-    default:
-      return [
-        '오늘의 시장 뉴스',
-        item.title.slice(0, 20) + (item.title.length > 20 ? '…' : ''),
-        '내 포트폴리오와 무슨 관계?',
-        '비중과 리스크를 함께 보세요',
-        'PoBalance에서 점검',
-      ];
-  }
+  const line1 = event ?? (tickerStr ? `${tickerStr} 소식` : item.title.slice(0, 18) + (item.title.length > 18 ? '…' : ''));
+  const line2 = tickerStr ? `${tickerStr} 관심 집중` : SUBTITLE_LINE2_FALLBACK[item.category];
+  const tail = SUBTITLE_TAILS[item.category] ?? SUBTITLE_TAILS.other;
+
+  return [line1, line2, ...tail];
 }
 
 // ── Caption ────────────────────────────────────────────────────────────────

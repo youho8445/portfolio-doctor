@@ -225,10 +225,15 @@ export class ContentRadarService {
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   private async queryToday(): Promise<DailyContentNews[]> {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
+    // Use KST (UTC+9) day boundaries so items saved at KST 06:00 (UTC prev-day 21:00)
+    // don't disappear when UTC rolls past midnight at KST 09:00.
+    const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+    const nowKst = new Date(Date.now() + KST_OFFSET_MS);
+    const y = nowKst.getUTCFullYear();
+    const m = nowKst.getUTCMonth();
+    const d = nowKst.getUTCDate();
+    const start = new Date(Date.UTC(y, m, d, 0, 0, 0, 0) - KST_OFFSET_MS);
+    const end = new Date(Date.UTC(y, m, d, 23, 59, 59, 999) - KST_OFFSET_MS);
     return this.repo.find({
       where: { createdAt: Between(start, end) },
       order: { contentScore: 'DESC' },

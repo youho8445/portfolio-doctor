@@ -15,17 +15,9 @@ interface FeedConfig {
   market: 'KR' | 'US' | 'GLOBAL';
 }
 
+// Korean-language sources only — English feeds (Yahoo Finance, Reuters, Investing.com)
+// were removed because English articles require translation and are hard to use as content.
 export const RSS_FEEDS: FeedConfig[] = [
-  {
-    url: 'https://finance.yahoo.com/news/rssindex',
-    source: 'Yahoo Finance',
-    market: 'US',
-  },
-  {
-    url: 'https://feeds.reuters.com/reuters/businessNews',
-    source: 'Reuters',
-    market: 'GLOBAL',
-  },
   {
     url: 'https://www.yonhapnews.co.kr/rss/economy.xml',
     source: '연합뉴스',
@@ -37,9 +29,9 @@ export const RSS_FEEDS: FeedConfig[] = [
     market: 'KR',
   },
   {
-    url: 'https://www.investing.com/rss/news.rss',
-    source: 'Investing.com',
-    market: 'GLOBAL',
+    url: 'https://www.mk.co.kr/rss/30100041/',
+    source: '매일경제',
+    market: 'KR',
   },
 ];
 

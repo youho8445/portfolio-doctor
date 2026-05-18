@@ -874,7 +874,15 @@ export default function AdminPage() {
 
                           {/* Title + source */}
                           <div>
-                            <div className="text-sm font-semibold text-white leading-snug">{item.title}</div>
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-semibold leading-snug hover:underline"
+                              style={{ color: '#e5e7eb' }}
+                            >
+                              {item.title} ↗
+                            </a>
                             <div className="text-xs mt-1" style={{ color: '#6b7280' }}>
                               {item.source}
                               {item.publishedAt && <span> · {timeAgo(item.publishedAt)}</span>}

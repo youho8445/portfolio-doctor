@@ -563,6 +563,15 @@ export async function refreshContentRadar(): Promise<{ message: string; triggere
   return res.json();
 }
 
+export async function forceRefreshContentRadar(): Promise<{ message: string; triggeredAt: string }> {
+  const res = await fetch(`${API_BASE_URL}/admin/content-radar/force-refresh`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to trigger force refresh');
+  return res.json();
+}
+
 export async function updateContentRadarStatus(
   id: number,
   status: 'new' | 'used' | 'ignored',

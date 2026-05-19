@@ -38,6 +38,17 @@ export class ContentRadarService {
     return { items, refreshedAt, count: items.length };
   }
 
+  async triggerForceRefresh(): Promise<{ message: string; triggeredAt: string }> {
+    const existing = await this.queryToday();
+    if (existing.length > 0) {
+      await this.repo.remove(existing);
+      this.logger.log(`Force refresh: removed ${existing.length} today's items`);
+    }
+    this.lastRefreshTriggeredAt = null;
+    void this.refresh();
+    return { message: `오늘 항목 ${existing.length}개 삭제 후 재수집을 시작했습니다.`, triggeredAt: new Date().toISOString() };
+  }
+
   async triggerRefresh(): Promise<{ message: string; triggeredAt: string }> {
     const now = new Date();
     if (

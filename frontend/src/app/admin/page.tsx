@@ -17,6 +17,7 @@ import {
   getAdminFeedbackSummary,
   getContentRadarToday,
   refreshContentRadar,
+  forceRefreshContentRadar,
   updateContentRadarStatus,
   AdminUser,
   AdminApiError,
@@ -126,6 +127,7 @@ export default function AdminPage() {
   const [contentRadar, setContentRadar] = useState<ContentRadarResponse | null>(null);
   const [contentRadarOpen, setContentRadarOpen] = useState(false);
   const [contentRadarRefreshing, setContentRadarRefreshing] = useState(false);
+  const [contentRadarForceRefreshing, setContentRadarForceRefreshing] = useState(false);
 
   // Users
   const [users, setUsers] = useState<AdminUser[] | null>(null);
@@ -244,6 +246,20 @@ export default function AdminPage() {
       setContentRadar(data);
     } catch { /* ignore */ } finally {
       setContentRadarRefreshing(false);
+    }
+  };
+
+  const handleContentRadarForceRefresh = async () => {
+    if (contentRadarForceRefreshing) return;
+    setContentRadarForceRefreshing(true);
+    try {
+      await forceRefreshContentRadar();
+      // Wait longer since existing items are deleted and regenerated
+      await new Promise((r) => setTimeout(r, 5000));
+      const data = await getContentRadarToday();
+      setContentRadar(data);
+    } catch { /* ignore */ } finally {
+      setContentRadarForceRefreshing(false);
     }
   };
 
@@ -773,14 +789,24 @@ export default function AdminPage() {
               <span className="text-xs ml-3 shrink-0" style={{ color: '#6b7280' }}>{contentRadarOpen ? '▲' : '▼'}</span>
             </button>
             {contentRadarOpen && (
-              <button
-                onClick={(e) => { e.stopPropagation(); void handleContentRadarRefresh(); }}
-                disabled={contentRadarRefreshing}
-                className="ml-3 shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
-                style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
-              >
-                {contentRadarRefreshing ? '수집 중…' : '새로고침'}
-              </button>
+              <div className="flex gap-2 ml-3 shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); void handleContentRadarRefresh(); }}
+                  disabled={contentRadarRefreshing}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
+                  style={{ background: 'rgba(124,58,237,0.15)', color: '#a78bfa', border: '1px solid rgba(124,58,237,0.3)' }}
+                >
+                  {contentRadarRefreshing ? '수집 중…' : '새로고침'}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); void handleContentRadarForceRefresh(); }}
+                  disabled={contentRadarForceRefreshing}
+                  className="text-xs px-3 py-1.5 rounded-lg font-medium disabled:opacity-50"
+                  style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
+                >
+                  {contentRadarForceRefreshing ? '재생성 중…' : '스크립트 재생성'}
+                </button>
+              </div>
             )}
           </div>
 

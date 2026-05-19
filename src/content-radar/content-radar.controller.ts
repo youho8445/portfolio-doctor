@@ -35,6 +35,12 @@ export class ContentRadarController {
     return this.contentRadarService.triggerRefresh();
   }
 
+  @Post('force-refresh')
+  async forceRefresh(@Req() req: { user: { email: string } }) {
+    this.requireAdmin(req.user.email);
+    return this.contentRadarService.triggerForceRefresh();
+  }
+
   @Patch(':id/status')
   async updateStatus(
     @Req() req: { user: { email: string } },

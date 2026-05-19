@@ -65,6 +65,11 @@ export class FeedbackService {
     private readonly repo: Repository<Feedback>,
   ) {}
 
+  async hasUserSubmitted(userId: number): Promise<boolean> {
+    const row = await this.repo.findOne({ where: { userId } });
+    return row !== null;
+  }
+
   async submit(dto: SubmitFeedbackDto): Promise<void> {
     await this.repo.save(
       this.repo.create({

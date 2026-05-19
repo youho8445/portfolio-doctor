@@ -451,6 +451,19 @@ export async function submitFeedback(payload: FeedbackPayload): Promise<void> {
   }
 }
 
+export async function checkFeedbackSubmitted(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/feedback/check`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { submitted: boolean };
+    return data.submitted;
+  } catch {
+    return false;
+  }
+}
+
 export interface FeedbackSummary {
   total: number;
   byRating: { helpful: number; unclear: number; not_helpful: number };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { submitFeedback } from '@/lib/api';
+import { checkFeedbackSubmitted, submitFeedback } from '@/lib/api';
 
 type Rating = 'helpful' | 'unclear' | 'not_helpful';
 type Step = 'rating' | 'followup' | 'thankyou';
@@ -50,16 +50,33 @@ export default function FeedbackWidget({ analysisId, page, healthScore, isGuest,
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Already submitted for this analysis
+    // Already submitted for this analysis in this session
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(dedupKey(analysisId))) return;
-    // Submitted within the last 24h (global cooldown)
-    if (typeof localStorage !== 'undefined') {
-      const last = localStorage.getItem('feedback_last_submitted');
-      if (last && Date.now() - Number(last) < 24 * 60 * 60 * 1000) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    if (!isGuest) {
+      // Logged-in: check DB — once submitted, never show again
+      void checkFeedbackSubmitted().then((submitted) => {
+        if (!cancelled && !submitted) {
+          timer = setTimeout(() => setVisible(true), 1500);
+        }
+      });
+    } else {
+      // Guest: 24h global cooldown
+      if (typeof localStorage !== 'undefined') {
+        const last = localStorage.getItem('feedback_last_submitted');
+        if (last && Date.now() - Number(last) < 24 * 60 * 60 * 1000) return;
+      }
+      timer = setTimeout(() => setVisible(true), 1500);
     }
-    const t = setTimeout(() => setVisible(true), 1500);
-    return () => clearTimeout(t);
-  }, [analysisId]);
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [analysisId, isGuest]);
 
   useEffect(() => {
     if (step === 'thankyou') {
@@ -112,7 +129,10 @@ export default function FeedbackWidget({ analysisId, page, healthScore, isGuest,
     });
 
     if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(dedupKey(analysisId), '1');
-    if (typeof localStorage !== 'undefined') localStorage.setItem('feedback_last_submitted', String(Date.now()));
+    // Guest only: set 24h cooldown; logged-in users rely on server-side check
+    if (isGuest && typeof localStorage !== 'undefined') {
+      localStorage.setItem('feedback_last_submitted', String(Date.now()));
+    }
 
     setStep('thankyou');
     setSubmitting(false);

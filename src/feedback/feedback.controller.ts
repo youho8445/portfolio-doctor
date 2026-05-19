@@ -13,6 +13,7 @@ import {
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Post,
   Req,
@@ -64,6 +65,16 @@ class SubmitFeedbackDto {
 @Controller('feedback')
 export class FeedbackController {
   constructor(private readonly feedbackService: FeedbackService) {}
+
+  @Get('check')
+  @UseGuards(OptionalJwtAuthGuard)
+  async checkSubmitted(
+    @Req() req: { user?: { id?: number } },
+  ): Promise<{ submitted: boolean }> {
+    const userId = req.user?.id ?? null;
+    if (!userId) return { submitted: false };
+    return { submitted: await this.feedbackService.hasUserSubmitted(userId) };
+  }
 
   @Post()
   @HttpCode(204)

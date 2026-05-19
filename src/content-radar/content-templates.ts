@@ -47,20 +47,202 @@ function buildTickerStr(tickers: string[]): string {
   return labels.length >= 2 ? `${labels[0]}·${labels[1]}` : labels[0] ?? '';
 }
 
+// ── Event signal extraction ────────────────────────────────────────────────
+
+export interface EventSignals {
+  eventType: string | null;
+  mainConflict: string | null;
+  macroImpact: string | null;
+  relatedSector: string | null;
+  investorConcern: string | null;
+  emotionalAngle: 'FOMO' | '공포' | '불안' | '기대' | null;
+}
+
+const COMPANY_NAMES = [
+  '삼성전자', 'SK하이닉스', '현대차', '기아', 'NAVER', '네이버', '카카오',
+  'LG에너지솔루션', '한화에어로스페이스', 'HD현대일렉트릭', '두산에너빌리티',
+  '엔비디아', '테슬라', '애플', '마이크로소프트', '구글', '메타', '아마존', 'AMD', '브로드컴',
+];
+
+export function extractEventSignals(title: string, snippet: string = ''): EventSignals {
+  const full = `${title} ${snippet}`;
+
+  let emotionalAngle: EventSignals['emotionalAngle'] = null;
+  if (/돌파|신고가|최고가|급등|폭등/.test(title)) emotionalAngle = 'FOMO';
+  else if (/급락|폭락|최악|위기/.test(title)) emotionalAngle = '공포';
+  else if (/파업|경고|우려|쇼크/.test(title)) emotionalAngle = '불안';
+  else if (/회복|반등|서프라이즈|호조/.test(title)) emotionalAngle = '기대';
+
+  let eventType: string | null = null;
+  if (/파업|총파업/.test(title)) eventType = '파업';
+  else if (/FOMC/i.test(title)) eventType = 'fomc';
+  else if (/CPI|소비자물가지수/.test(title)) eventType = 'cpi';
+  else if (/금리\s*(인상|올리|올려|높여)/.test(full)) eventType = '금리인상';
+  else if (/금리\s*(인하|내리|낮춰|동결|유지)/.test(full)) eventType = '금리인하';
+  else if (/금리|기준금리/.test(title)) eventType = '금리';
+  else if (/실적|어닝|영업이익|순이익/.test(title)) eventType = '실적';
+  else if (/상장|IPO/.test(title)) eventType = 'ipo';
+  else if (/합병|인수|M&A/.test(title)) eventType = 'ma';
+  else if (/돌파/.test(title)) eventType = '돌파';
+  else if (/급락|폭락/.test(title)) eventType = '급락';
+  else if (/급등|폭등/.test(title)) eventType = '급등';
+  else if (/환율|원달러/.test(title)) eventType = '환율';
+
+  const company = COMPANY_NAMES.find((c) => title.includes(c));
+  let mainConflict: string | null = null;
+
+  if (eventType === '파업') {
+    mainConflict = company ? `${company} 총파업` : '대기업 총파업';
+  } else if (eventType === '실적') {
+    const isGood = /서프라이즈|호조|신기록|최대|역대|어닝비트/.test(title);
+    const isBad = /부진|실망|쇼크|어닝미스|감소|적자/.test(title);
+    mainConflict = company
+      ? `${company} 실적 ${isGood ? '서프라이즈' : isBad ? '부진' : '발표'}`
+      : '실적 발표';
+  } else if (eventType === '돌파') {
+    if (/팔천피|코스피\s*8[,.]?000/.test(title)) mainConflict = '코스피 8,000 돌파';
+    else if (/나스닥|Nasdaq/i.test(title)) mainConflict = '나스닥 신고점 돌파';
+    else if (/S&P\s*500|S&P500/i.test(title)) mainConflict = 'S&P500 신고점 돌파';
+    else if (company) mainConflict = `${company} 신고가`;
+  } else if (eventType === '급락') {
+    if (/코스피/.test(title)) mainConflict = '코스피 급락';
+    else if (/나스닥|Nasdaq/i.test(title)) mainConflict = '나스닥 급락';
+    else if (company) mainConflict = `${company} 급락`;
+  } else if (eventType === '급등') {
+    if (company) mainConflict = `${company} 급등`;
+    else if (/나스닥|Nasdaq/i.test(title)) mainConflict = '나스닥 급등';
+  } else if (eventType === 'fomc') {
+    if (/동결/.test(full)) mainConflict = 'FOMC 금리 동결 결정';
+    else if (/인상/.test(full)) mainConflict = 'FOMC 금리 인상 결정';
+    else if (/인하/.test(full)) mainConflict = 'FOMC 금리 인하 결정';
+    else mainConflict = 'FOMC 결과 발표';
+  } else if (eventType === 'cpi') {
+    const numMatch = title.match(/([\d.]+)\s*%/);
+    mainConflict = numMatch ? `CPI ${numMatch[1]}% 발표` : 'CPI 물가 지표 발표';
+  } else if (eventType === '금리인상') {
+    mainConflict = '기준금리 인상 결정';
+  } else if (eventType === '금리인하') {
+    mainConflict = /동결/.test(full) ? '기준금리 동결 결정' : '기준금리 인하 결정';
+  } else if (eventType === '환율') {
+    if (/강세|상승|급등/.test(title)) mainConflict = '달러 강세 — 원달러 환율 급등';
+    else if (/약세|하락|급락/.test(title)) mainConflict = '달러 약세 — 원달러 환율 하락';
+    else mainConflict = '원달러 환율 급변동';
+  } else if (eventType === 'ma' && company) {
+    mainConflict = `${company} ${/인수/.test(title) ? '인수' : '합병'} 발표`;
+  } else if (company) {
+    if (/급락|폭락/.test(title)) mainConflict = `${company} 급락`;
+    else if (/급등|폭등/.test(title)) mainConflict = `${company} 급등`;
+  }
+
+  let relatedSector: string | null = null;
+  if (/AI.{0,5}반도체|반도체.{0,5}AI/.test(full)) relatedSector = 'AI·반도체';
+  else if (/반도체|SK하이닉스|삼성전자|엔비디아|TSMC/.test(full)) relatedSector = '반도체';
+  else if (/2차전지|배터리|LG에너지솔루션|삼성SDI|양극재/.test(full)) relatedSector = '2차전지';
+  else if (/자동차|현대차|기아|EV|전기차/.test(full)) relatedSector = '자동차·전기차';
+  else if (/바이오|제약|신약|임상/.test(full)) relatedSector = '바이오·제약';
+  else if (/방산|한화|조선|HD현대|두산/.test(full)) relatedSector = '방산·조선';
+  else if (/은행|금융|보험|증권/.test(full)) relatedSector = '금융';
+  else if (/AI|클라우드|빅테크/.test(full)) relatedSector = 'AI·빅테크';
+
+  let macroImpact: string | null = null;
+  if (/한국은행/.test(full)) {
+    const numMatch = full.match(/([\-\d.]+)\s*%p?\s*(하락|상승|둔화|감소)/);
+    macroImpact = numMatch
+      ? `한국은행, 성장률 ${numMatch[1]}%p ${numMatch[2]} 경고`
+      : '한국은행이 경고를 꺼냈습니다';
+  } else if (/성장률|GDP/.test(full)) {
+    const numMatch = full.match(/([\-\d.]+)\s*%p?\s*(하락|상승|둔화|감소)/);
+    macroImpact = numMatch
+      ? `경제성장률 ${numMatch[1]}%p ${numMatch[2]} 전망`
+      : '경제성장률 하락 우려';
+  } else if (eventType === 'fomc') {
+    if (/동결/.test(full)) macroImpact = '미 연준 금리 동결 — 시장 기대 충족 여부가 관건';
+    else if (/인상/.test(full)) macroImpact = '미 연준 금리 인상 — 달러 강세·신흥국 자금 이탈 압력';
+    else if (/인하/.test(full)) macroImpact = '미 연준 금리 인하 — 위험자산 선호 심리 강화';
+    else macroImpact = '미 연준 통화정책 결정 — 전 세계 자금 흐름 변화';
+  } else if (eventType === 'cpi') {
+    macroImpact = '물가 압력 지속 → 연준 추가 금리 인상 기대 변화';
+  } else if (eventType === '금리인상') {
+    macroImpact = '기준금리 인상 — 대출 비용 상승·성장주 밸류에이션 압박';
+  } else if (eventType === '금리인하') {
+    macroImpact = /동결/.test(full)
+      ? '금리 동결 — 유동성 확대 기대 제한'
+      : '기준금리 인하 — 유동성 확대·성장주 반등 기대';
+  } else if (eventType === '파업' && (relatedSector === '반도체' || relatedSector === 'AI·반도체')) {
+    macroImpact = '반도체 수출 차질 → 한국 경제 전반에 파급 가능성';
+  } else if (eventType === '환율') {
+    if (/강세|상승/.test(title)) macroImpact = '달러 강세 — 수입 물가 압박·해외 자산 원화가치 상승';
+    else macroImpact = '달러 약세 — 수출 기업 수혜·해외 자산 원화가치 하락';
+  }
+
+  let investorConcern: string | null = null;
+  if (eventType === '파업') {
+    investorConcern = relatedSector
+      ? `${relatedSector} 생산 차질 — 수출 의존 포트폴리오 직접 영향`
+      : '생산 차질 및 수익성 악화 우려';
+  } else if (eventType === '실적') {
+    const isGood = /서프라이즈|호조|신기록|최대|역대/.test(title);
+    investorConcern = isGood
+      ? '좋은 실적에도 "사실 확인 후 매도" 흐름 주의 — 기대 선반영 가능성'
+      : '실적 부진 → 집중 보유 포트폴리오 손실 확대 가능';
+  } else if (eventType === '돌파' || emotionalAngle === 'FOMO') {
+    investorConcern = '고점 추격 매수 리스크 — 숨고르기 구간 변동성 확대 가능';
+  } else if (eventType === '급락') {
+    investorConcern = '섹터 집중 포트폴리오 손실 폭 확대 — 패닉셀 충동 주의';
+  } else if (eventType === '금리인상' || eventType === 'fomc') {
+    investorConcern = '금리 민감 성장주·리츠 비중이 높은 포트폴리오 점검 필요';
+  } else if (eventType === 'cpi') {
+    investorConcern = '물가 지속 → 추가 금리 인상 시 성장주·채권 동반 압박';
+  } else if (eventType === '환율') {
+    investorConcern = '달러 노출 비중에 따라 포트폴리오 실질 수익률이 달라집니다';
+  } else if (relatedSector) {
+    investorConcern = `${relatedSector} 섹터 편중 포트폴리오 변동성 주의`;
+  }
+
+  return { eventType, mainConflict, macroImpact, relatedSector, investorConcern, emotionalAngle };
+}
+
+function buildEventHook(signals: EventSignals): string {
+  if (signals.eventType === '파업') return '단순 노사 갈등이 아닙니다.';
+  if (signals.eventType === '실적') return '실적 숫자만 볼 게 아닙니다.';
+  if (signals.eventType === 'fomc') return '미 연준 결정, 전 세계 자금 흐름이 바뀝니다.';
+  if (signals.eventType === 'cpi') return '물가 지표 하나가 시장 흐름을 바꿉니다.';
+  if (signals.eventType === '금리인상') return '금리 인상, 성장주에 직격탄입니다.';
+  if (signals.eventType === '금리인하') return '금리 인하, 위험자산에 뭔가 달라집니다.';
+  if (signals.eventType === '금리') return '금리 변화, 내 포트폴리오와 연결해서 봐야 합니다.';
+  if (signals.eventType === '환율') return '환율은 보이지 않는 포트폴리오 리스크입니다.';
+  if (signals.emotionalAngle === 'FOMO') return '지금 FOMO, 가장 조심해야 할 타이밍입니다.';
+  if (signals.emotionalAngle === '공포') return '패닉 전에, 내 포트폴리오 구조를 먼저 봐야 합니다.';
+  if (signals.eventType === '돌파') return '돌파 랠리, 그 이면을 봐야 합니다.';
+  if (signals.eventType === '급락') return '급락 이후, 투자자들의 판단이 갈립니다.';
+  return '단순 뉴스가 아닌, 포트폴리오 점검 신호입니다.';
+}
+
 export function generateNewsLead(item: ScoredItem): string {
-  const event = detectMarketEvent(item.title, item.category);
+  const signals = extractEventSignals(item.title, item.snippet);
   const tickerStr = buildTickerStr(item.relatedTickers);
 
+  if (signals.mainConflict && signals.macroImpact) {
+    return `${signals.mainConflict},\n단순 회사 문제가 아닙니다.`;
+  }
+  if (signals.mainConflict && tickerStr) {
+    return `${signals.mainConflict} 이후,\n시장의 관심이 ${tickerStr}에 쏠리고 있습니다.`;
+  }
+  if (signals.mainConflict) {
+    return `${signals.mainConflict}.\n${buildEventHook(signals)}`;
+  }
+
+  const event = detectMarketEvent(item.title, item.category);
   if (event && tickerStr) {
-    return `${event} 이후, 시장의 관심이 ${tickerStr} 쪽으로 쏠리고 있습니다.`;
+    return `${event} 이후,\n시장의 관심이 ${tickerStr}에 쏠리고 있습니다.`;
   }
   if (tickerStr) {
-    return `${tickerStr} 관련 뉴스가 시장의 관심을 받고 있습니다.`;
+    return `${tickerStr},\n오늘 시장에서 주목해야 할 이유가 있습니다.`;
   }
   if (event) {
-    return `${event} 이슈가 오늘 시장의 핵심 변수로 떠올랐습니다.`;
+    return `${event} 이슈가\n오늘 시장의 핵심 변수로 떠올랐습니다.`;
   }
-  return '오늘 시장에서 확인해볼 만한 뉴스가 나왔습니다.';
+  return '오늘 시장에서 확인해볼 만한\n뉴스가 나왔습니다.';
 }
 
 // ── Ticker label map ───────────────────────────────────────────────────────
@@ -220,38 +402,75 @@ export function generateOpeningHook(item: ScoredItem): string {
 // ── 15s Reels script ──────────────────────────────────────────────────────
 
 export function generateScript15s(item: ScoredItem): string {
+  const signals = extractEventSignals(item.title, item.snippet);
+  const cta = generateCTA(item);
+
+  if (signals.mainConflict) {
+    const parts: string[] = [];
+    parts.push(`${signals.mainConflict}.\n${buildEventHook(signals)}`);
+
+    if (signals.macroImpact) {
+      parts.push(signals.macroImpact);
+    } else if (signals.relatedSector) {
+      parts.push(`${signals.relatedSector} 섹터 집중 포트폴리오가 가장 큰 영향을 받습니다.`);
+    } else {
+      parts.push(generateWhyItMatters(item));
+    }
+
+    if (signals.investorConcern) {
+      parts.push(signals.investorConcern);
+    } else if (signals.relatedSector) {
+      parts.push(`${signals.relatedSector} 비중이 높다면 리스크 노출 수준을 점검하세요.`);
+    } else {
+      parts.push(generateBeginnerCaution(item));
+    }
+
+    parts.push(cta);
+    return parts.join('\n\n');
+  }
+
   const lead = generateNewsLead(item);
   const impact = generateWhyItMatters(item);
   const caution = generateBeginnerCaution(item);
-  const cta = generateCTA(item);
-  return `${lead}\n\n${impact}\n\n${caution}\n\n${cta}`;
+  return [lead, impact, caution, cta].join('\n\n');
 }
 
 // ── 30s Reels script ──────────────────────────────────────────────────────
 
 export function generateScript30s(item: ScoredItem): string {
-  const lead = generateNewsLead(item);
+  const signals = extractEventSignals(item.title, item.snippet);
   const ticker = item.relatedTickers[0] ? getTickerLabel(item.relatedTickers[0]) : '이 종목';
   const cta = generateCTA(item);
   const caution = BEGINNER_CAUTION[item.category];
-  const emotion =
-    item.category === 'psychology' ? (item.contentScore % 2 === 0 ? 'FOMO' : '공포') : 'FOMO';
+
+  let opener: string;
+  if (signals.mainConflict && signals.macroImpact) {
+    opener = `${signals.mainConflict}.\n${buildEventHook(signals)}\n\n${signals.macroImpact}.`;
+  } else if (signals.mainConflict) {
+    opener = `${signals.mainConflict}.\n${buildEventHook(signals)}`;
+  } else {
+    opener = generateNewsLead(item);
+  }
 
   switch (item.category) {
     case 'earnings':
-      return `${lead}\n\n실적이 좋으면 주가가 올라야 할 것 같죠? 꼭 그렇지 않습니다. 실적 발표는 시장의 기대치와의 비교입니다. 이미 많은 투자자들이 기대를 선반영했다면, 주가는 오히려 "사실 확인 후 매도" 흐름을 보일 수 있습니다.\n\n주의: ${caution}\n\n내 포트폴리오에서 ${ticker} 비중이 적정한지 확인해보세요. 집중도가 높다면 분산을 고려할 타이밍입니다.\n\n${cta}`;
+      return `${opener}\n\n실적이 좋으면 주가가 올라야 할 것 같죠?\n꼭 그렇지 않습니다.\n\n실적 발표는 시장의 기대치와의 비교입니다.\n이미 많은 투자자들이 기대를 선반영했다면,\n주가는 오히려 "사실 확인 후 매도" 흐름을 보일 수 있습니다.\n\n주의: ${caution}\n\n${ticker} 비중이 높다면 집중도를 먼저 점검하세요.\n\n${cta}`;
     case 'macro':
-      return `${lead}\n\n이런 매크로 지표들이 왜 중요할까요? 주식, 채권, 달러 자산 등 모든 자산군에 직접적인 영향을 주기 때문입니다.\n\n주의: ${caution}\n\n지금 내 포트폴리오가 이 변화에 얼마나 노출됐는지 확인해보세요. 주식 비중, 채권 비중, 달러 자산 비중, 균형이 잘 맞나요?\n\n${cta}`;
+      return `${opener}\n\n주식, 채권, 달러 자산까지\n모든 자산군에 직접적인 영향을 줍니다.\n\n주의: ${caution}\n\n지금 내 포트폴리오, 이 변화에 얼마나 노출돼 있나요?\n주식·채권·달러 자산 비중, 균형이 맞나요?\n\n${cta}`;
     case 'fx':
-      return `${lead}\n\n해외 주식이나 달러 자산을 보유하고 계신가요? 환율 변화는 보이지 않는 포트폴리오 리스크입니다. 환율이 오르면 해외 자산의 원화 환산 가치도 달라집니다.\n\n주의: ${caution}\n\n해외 비중이 있다면 오늘 한 번 달러 노출 수준을 점검해보세요.\n\n${cta}`;
-    case 'tech':
-      return `${lead}\n\nAI·반도체 비중이 포트폴리오에서 얼마나 되시나요? 이런 뉴스가 나올 때마다 가장 크게 흔들리는 건 섹터 편중 포트폴리오입니다. 한 섹터에 너무 많은 비중이 쏠려 있으면 해당 섹터 이슈에 지나치게 민감해집니다.\n\n주의: ${caution}\n\n섹터 편중 여부를 먼저 확인하세요.\n\n${cta}`;
-    case 'psychology':
-      return `${lead}\n\n이럴 때 대부분의 투자자들이 어떻게 행동할까요? ${emotion}에 휩쓸려 추격 매수하거나, 공포에 패닉셀을 하거나. 이 두 가지 모두 장기 수익률을 갉아먹는 행동입니다.\n\n흔들릴 때일수록 내 목표 비중으로 돌아오세요. 비중이 너무 쏠렸다면 일부 조정, 비중이 낮다면 조금씩 채우기. 그게 리밸런싱입니다.\n\n${cta}`;
+      return `${opener}\n\n해외 주식이나 달러 자산을 보유하고 계신가요?\n환율 변화는 보이지 않는 포트폴리오 리스크입니다.\n환율이 오르면 해외 자산의 원화 환산 가치도 달라집니다.\n\n주의: ${caution}\n\n해외 비중이 있다면 오늘 한 번 달러 노출 수준을 점검해보세요.\n\n${cta}`;
+    case 'tech': {
+      const sectorName = signals.relatedSector ?? 'AI·반도체';
+      return `${opener}\n\n${sectorName} 비중이 포트폴리오에서 얼마나 되시나요?\n이런 뉴스가 나올 때마다 가장 크게 흔들리는 건\n섹터 편중 포트폴리오입니다.\n\n한 섹터에 너무 많은 비중이 쏠려 있으면\n해당 섹터 이슈에 지나치게 민감해집니다.\n\n주의: ${caution}\n\n섹터 편중 여부를 먼저 확인하세요.\n\n${cta}`;
+    }
+    case 'psychology': {
+      const emotionWord = signals.emotionalAngle === '공포' ? '공포에 패닉셀' : 'FOMO에 추격 매수';
+      return `${opener}\n\n이럴 때 대부분의 투자자들이 어떻게 행동할까요?\n${emotionWord}하거나, 그 반대로 얼어붙거나.\n이 두 가지 모두 장기 수익률을 갉아먹는 행동입니다.\n\n흔들릴 때일수록 내 목표 비중으로 돌아오세요.\n비중이 쏠렸다면 일부 조정, 비중이 낮다면 조금씩 채우기.\n그게 리밸런싱입니다.\n\n${cta}`;
+    }
     case 'sector':
-      return `${lead}\n\n섹터 이슈가 터졌을 때 가장 먼저 확인해야 할 건 내 포트폴리오에서 해당 섹터 비중입니다. 비중이 낮다면 시장 평균 수준의 영향을 받습니다. 비중이 높다면 리스크가 집중된 상태입니다.\n\n주의: ${caution}\n\n${cta}`;
+      return `${opener}\n\n섹터 이슈가 터졌을 때 가장 먼저 확인해야 할 건\n내 포트폴리오에서 해당 섹터 비중입니다.\n\n비중이 낮다면 시장 평균 수준의 영향,\n비중이 높다면 리스크가 집중된 상태입니다.\n\n주의: ${caution}\n\n${cta}`;
     default:
-      return `${lead}\n\n이런 뉴스를 볼 때 대부분의 투자자들은 "주가에 어떤 영향이 있을까?"를 먼저 생각합니다. 하지만 장기 투자자가 먼저 봐야 할 건 "이 뉴스가 내 포트폴리오 비중과 리스크 수준에 어떤 의미인가?"입니다.\n\n수익률보다 비중, 종목보다 구조를 보는 습관이 장기 투자 성공의 핵심입니다.\n\n${cta}`;
+      return `${opener}\n\n이런 뉴스를 볼 때 대부분의 투자자들은\n"주가에 어떤 영향이 있을까?"를 먼저 생각합니다.\n\n하지만 장기 투자자가 먼저 봐야 할 건\n"이 뉴스가 내 포트폴리오 비중과\n리스크 수준에 어떤 의미인가?"입니다.\n\n수익률보다 비중, 종목보다 구조를 보는 습관.\n그게 장기 투자 성공의 핵심입니다.\n\n${cta}`;
   }
 }
 
@@ -278,12 +497,30 @@ const SUBTITLE_LINE2_FALLBACK: Record<Category, string> = {
 };
 
 export function generateSubtitleLines(item: ScoredItem): string[] {
-  const event = detectMarketEvent(item.title, item.category);
+  const signals = extractEventSignals(item.title, item.snippet);
   const tickerStr = buildTickerStr(item.relatedTickers);
-
-  const line1 = event ?? (tickerStr ? `${tickerStr} 소식` : item.title.slice(0, 18) + (item.title.length > 18 ? '…' : ''));
-  const line2 = tickerStr ? `${tickerStr} 관심 집중` : SUBTITLE_LINE2_FALLBACK[item.category];
   const tail = SUBTITLE_TAILS[item.category] ?? SUBTITLE_TAILS.other;
+
+  let line1: string;
+  if (signals.mainConflict) {
+    line1 = signals.mainConflict;
+  } else {
+    const event = detectMarketEvent(item.title, item.category);
+    line1 = event ?? (tickerStr ? `${tickerStr} 소식` : item.title.slice(0, 20) + (item.title.length > 20 ? '…' : ''));
+  }
+
+  let line2: string;
+  if (signals.macroImpact) {
+    const short = signals.macroImpact.replace(/\s*—.*$/, '').trim();
+    line2 = short.length > 18 ? short.slice(0, 18) + '…' : short;
+  } else if (signals.investorConcern) {
+    const short = signals.investorConcern.replace(/\s*—.*$/, '').trim();
+    line2 = short.length > 18 ? short.slice(0, 18) + '…' : short;
+  } else if (tickerStr) {
+    line2 = `${tickerStr} 집중 주목`;
+  } else {
+    line2 = SUBTITLE_LINE2_FALLBACK[item.category];
+  }
 
   return [line1, line2, ...tail];
 }

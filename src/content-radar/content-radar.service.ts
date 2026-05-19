@@ -167,6 +167,23 @@ export class ContentRadarService {
 
   // ── Diversity selection ────────────────────────────────────────────────────
 
+  // Groups articles by narrative theme so the same story isn't picked 4 times.
+  // "주식 하락" × 4 all share 'bearish' cluster → only the highest-scored one passes.
+  private getThemeCluster(item: ScoredItem): string {
+    const text = `${item.title} ${item.snippet ?? ''}`;
+    if (/파업|총파업/.test(text)) return 'strike';
+    if (/FOMC/i.test(text)) return 'fomc';
+    if (/CPI|소비자물가/.test(text)) return 'cpi';
+    if (/금리\s*(인상|올리|높여)/.test(text)) return 'rate_hike';
+    if (/금리\s*(인하|내리|낮춰|동결)/.test(text)) return 'rate_cut';
+    if (/급락|폭락|하락세|매도/.test(text)) return 'bearish';
+    if (/급등|폭등|상승세|신고가|돌파/.test(text)) return 'bullish';
+    if (/환율|달러|원달러/.test(text)) return 'fx';
+    if (/실적|어닝|영업이익/.test(text)) return 'earnings';
+    if (/IPO|상장/.test(text)) return 'ipo';
+    return item.category;
+  }
+
   private selectTopDiverse(
     candidates: ScoredItem[],
     n: number,
@@ -174,11 +191,13 @@ export class ContentRadarService {
   ): Array<{ item: ScoredItem; reason: string }> {
     const MAX_PER_CATEGORY = 2;
     const MAX_PER_MARKET = 3;
+    const MAX_PER_THEME = 1;
 
     const selected: Array<{ item: ScoredItem; reason: string }> = [];
     const usedTickers = new Set<string>();
     const categoryCounts = new Map<string, number>();
     const marketCounts = new Map<string, number>();
+    const themeCounts = new Map<string, number>();
 
     // Pre-seed counts from items already saved today
     for (const ex of existingItems) {
@@ -187,26 +206,30 @@ export class ContentRadarService {
       marketCounts.set(ex.market, (marketCounts.get(ex.market) ?? 0) + 1);
     }
 
-    const tryAdd = (item: ScoredItem, relaxMarket: boolean): boolean => {
+    const tryAdd = (item: ScoredItem, relaxed: boolean): boolean => {
       const tickers = item.relatedTickers ?? [];
       if (tickers.length > 0 && tickers.some((t) => usedTickers.has(t))) return false;
       if ((categoryCounts.get(item.category) ?? 0) >= MAX_PER_CATEGORY) return false;
-      if (!relaxMarket && (marketCounts.get(item.market) ?? 0) >= MAX_PER_MARKET) return false;
+      if (!relaxed && (marketCounts.get(item.market) ?? 0) >= MAX_PER_MARKET) return false;
+
+      const theme = this.getThemeCluster(item);
+      if (!relaxed && (themeCounts.get(theme) ?? 0) >= MAX_PER_THEME) return false;
 
       selected.push({ item, reason: this.computeSelectionReason(item) });
       tickers.forEach((t) => usedTickers.add(t));
       categoryCounts.set(item.category, (categoryCounts.get(item.category) ?? 0) + 1);
       marketCounts.set(item.market, (marketCounts.get(item.market) ?? 0) + 1);
+      themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
       return true;
     };
 
-    // Phase 1: strict diversity (ticker cap + category cap + market cap)
+    // Phase 1: strict diversity (ticker + category + market + theme caps)
     for (const item of candidates) {
       if (selected.length >= n) break;
       tryAdd(item, false);
     }
 
-    // Phase 2: relax market cap if still underfilled
+    // Phase 2: relax all caps if still underfilled (better some content than none)
     if (selected.length < n) {
       const selectedUrls = new Set(selected.map((s) => s.item.url));
       for (const item of candidates) {

@@ -253,27 +253,26 @@ function buildInvestorRisk(
   eventType: string | null, relatedSector: string | null,
   emotionalTone: EventSignals['emotionalTone'], company: string | null,
 ): string | null {
+  // Sector-specific: bearish/anxious only — factual loss concentration warning
   if (relatedSector === 'AI·반도체' || relatedSector === '반도체') {
     if (emotionalTone === 'bearish') return '반도체 비중이 높다면 지금 손실 폭이 시장 평균보다 클 수 있습니다.';
-    if (emotionalTone === 'bullish') return '반도체 집중 포트폴리오는 고점 추격 전 비중을 먼저 확인하세요.';
-    return '반도체 섹터 비중이 높다면 지금 변동성을 점검하세요.';
+    if (emotionalTone === 'anxious') return '반도체 섹터 변동성이 커지고 있는 구간입니다.';
+    return null;
   }
-  if (relatedSector === '2차전지')
-    return `2차전지 비중이 높다면 ${emotionalTone === 'bearish' ? '지금 손실 폭이 집중될 수 있습니다' : '섹터 쏠림 여부를 확인하세요'}.`;
-  if (relatedSector === '자동차·전기차') return '자동차·전기차 섹터 비중이 높다면 환율 영향도 함께 점검하세요.';
-  if (relatedSector === 'AI·빅테크') return 'AI·빅테크 집중 포트폴리오는 금리 민감도가 높습니다.';
-  if (eventType === '파업')
-    return company ? `${company} 비중이 크다면 단기 실적 영향이 직접 옵니다.` : '해당 기업 비중이 크다면 포트폴리오 충격이 집중됩니다.';
-  if (eventType === '실적')
-    return company ? `${company} 단일 종목 집중 포트폴리오라면 변동 폭이 커집니다.` : '한 종목에 쏠린 포트폴리오는 실적 때 가장 많이 흔들립니다.';
-  if (eventType === 'fomc' || eventType === '금리인상')
-    return '성장주, 리츠, 고배당주 비중이 높다면 금리 민감도를 먼저 점검하세요.';
+  if (relatedSector === '2차전지' && emotionalTone === 'bearish')
+    return '2차전지 비중이 높다면 지금 손실이 집중될 수 있습니다.';
+  if (relatedSector === 'AI·빅테크') return 'AI·빅테크 집중 포트폴리오는 금리 변화에 민감합니다.';
+  // Company-specific: direct, factual impact
+  if (eventType === '파업' && company)
+    return `${company} 비중이 크다면 생산 차질이 실적에 직접 반영됩니다.`;
+  if (eventType === '실적' && company)
+    return `${company} 단일 종목 비중이 크다면 실적 충격이 직접 옵니다.`;
+  // CPI chain reaction — finance insight, not portfolio advice
   if (eventType === 'cpi')
     return '물가 지속 상승 → 금리 인상 기대 → 성장주·채권 동반 하락 경로가 열립니다.';
+  // FX — factual cross-asset observation
   if (eventType === '환율')
     return '달러 자산이나 해외 ETF 비중이 있다면 원화 환산 수익률이 달라집니다.';
-  if (emotionalTone === 'bearish') return '섹터가 집중된 포트폴리오일수록 하락 폭이 더 큽니다.';
-  if (emotionalTone === 'bullish') return '지금 추격 매수보다 내 비중 확인이 먼저입니다.';
   return null;
 }
 
@@ -496,7 +495,7 @@ export function generateOpeningHook(item: ScoredItem): string {
 
 export function generateScript15s(item: ScoredItem): string {
   const signals = extractEventSignals(item.title, item.snippet);
-  const cta = generateCTA(item);
+  const useCTA = item.category === 'psychology' || item.contentType === '포트폴리오 점검형' || item.category === 'sector';
 
   if (signals.mainEvent) {
     const parts: string[] = [signals.mainEvent];
@@ -506,15 +505,15 @@ export function generateScript15s(item: ScoredItem): string {
     else if (signals.relatedSector) parts.push(`${signals.relatedSector} 섹터 전체가 영향을 받는 이슈입니다.`);
 
     if (signals.investorRisk) parts.push(signals.investorRisk);
-    else if (signals.relatedSector) parts.push(`${signals.relatedSector} 비중이 높다면 지금이 점검 타이밍입니다.`);
 
-    parts.push(cta);
+    if (useCTA) parts.push(generateCTA(item));
     return parts.join('\n\n');
   }
 
   const lead = generateNewsLead(item);
   const impact = generateWhyItMatters(item);
-  return [lead, impact, cta].join('\n\n');
+  if (useCTA) return [lead, impact, generateCTA(item)].join('\n\n');
+  return [lead, impact].join('\n\n');
 }
 
 // ── 30s Reels script ──────────────────────────────────────────────────────
@@ -522,7 +521,7 @@ export function generateScript15s(item: ScoredItem): string {
 export function generateScript30s(item: ScoredItem): string {
   const signals = extractEventSignals(item.title, item.snippet);
   const ticker = item.relatedTickers[0] ? getTickerLabel(item.relatedTickers[0]) : '이 종목';
-  const cta = generateCTA(item);
+  const useCTA = item.category === 'psychology' || item.contentType === '포트폴리오 점검형' || item.category === 'sector';
 
   if (signals.mainEvent) {
     const parts: string[] = [signals.mainEvent];
@@ -531,29 +530,50 @@ export function generateScript30s(item: ScoredItem): string {
 
     switch (item.category) {
       case 'earnings':
-        parts.push(`실적이 좋아도 "기대 선반영" 이후 주가는 빠질 수 있습니다.\n${ticker} 비중이 높다면 집중도를 먼저 점검하세요.`);
+        if (signals.emotionalTone === 'bullish') {
+          parts.push(`하지만 실적 서프라이즈도\n기대가 이미 선반영됐다면 주가는 오히려 빠질 수 있습니다.`);
+        } else if (signals.emotionalTone === 'bearish') {
+          parts.push(`실적 쇼크 이후 방향은\n다음 분기 가이던스가 결정합니다.`);
+        } else {
+          parts.push(`실적은 숫자보다 '컨센서스 대비 차이'가 핵심입니다.\n예상 대비 얼마나 웃돌거나 밑돌았는지가 주가를 움직입니다.`);
+        }
         break;
       case 'macro':
-        parts.push('주식, 채권, 달러 자산 모두에 영향이 미칩니다.\n한 자산군에 쏠려 있다면 지금이 점검 타이밍입니다.');
+        parts.push('이런 지표는 주식만이 아니라\n채권·달러·금 모두를 동시에 흔듭니다.');
         break;
       case 'fx':
-        parts.push('해외 ETF나 달러 자산을 보유 중이라면\n환율 변동이 원화 수익률을 조용히 갉아먹습니다.');
+        if (/강세|달러강세|달러\s*오름/.test(`${item.title} ${item.snippet ?? ''}`)) {
+          parts.push('달러 강세는 외국인 자금 이탈 → 코스피 수급 압박으로\n이어지는 경우가 많습니다.');
+        } else {
+          parts.push('달러 약세는 신흥국 증시에 외국인 자금이 유입되는\n신호가 될 수 있습니다.');
+        }
         break;
       case 'psychology': {
-        if (signals.emotionalTone === 'bullish') parts.push('FOMO로 추격 매수하기 직전,\n가장 조심해야 할 타이밍일 수 있습니다.');
-        else if (signals.emotionalTone === 'bearish') parts.push('패닉셀 전에\n내 포트폴리오 구조를 먼저 확인하세요.');
-        else parts.push('시장 심리에 끌려다니면\n장기 수익률을 갉아먹습니다.');
+        if (signals.emotionalTone === 'bullish') {
+          parts.push('모두가 확신할 때가 가장 위험한 순간입니다.\nFOMO로 추격 매수하면 고점에서 물릴 가능성이 높습니다.');
+        } else if (signals.emotionalTone === 'bearish') {
+          parts.push('패닉셀은 바닥 직전에 가장 많이 나옵니다.\n공포가 절정일 때 오히려 기회가 생기기도 합니다.');
+        } else {
+          parts.push('시장 심리는 단기 가격을 가장 많이 왜곡합니다.\n극단적인 낙관이나 비관은 반전의 선행 지표입니다.');
+        }
         break;
       }
       case 'sector':
-        parts.push(`섹터 이슈가 터졌을 때 비중이 높다면\n손실 폭이 시장 평균보다 훨씬 커집니다.`);
+        if (signals.relatedSector) {
+          parts.push(`${signals.relatedSector} 섹터에서 어떤 종목이 먼저 반응하는지 보면\n다음 수급 흐름을 읽는 데 도움이 됩니다.`);
+        } else {
+          parts.push('섹터 이슈가 터졌을 때 가장 먼저 볼 것은\n어디서 수급이 이탈하고 어디로 돌아서는지입니다.');
+        }
         break;
       default:
-        parts.push('이 뉴스가 내 포트폴리오에 어떤 의미인지\n먼저 확인해보세요.');
+        if (signals.relatedSector) {
+          parts.push(`${signals.relatedSector} 섹터 전반의 수급 흐름을 함께 봐야 합니다.`);
+        }
+        break;
     }
 
     if (signals.investorRisk) parts.push(signals.investorRisk);
-    parts.push(cta);
+    if (useCTA) parts.push(generateCTA(item));
     return parts.join('\n\n');
   }
 
@@ -562,24 +582,30 @@ export function generateScript30s(item: ScoredItem): string {
   const caution = BEGINNER_CAUTION[item.category];
   switch (item.category) {
     case 'earnings':
-      return `${opener}\n\n실적이 좋아도 기대가 선반영됐다면\n주가는 오히려 "사실 확인 후 매도" 흐름을 보일 수 있습니다.\n\n${ticker} 비중이 높다면 집중도를 먼저 점검하세요.\n\n${cta}`;
+      return (
+        `${opener}\n\n실적이 좋아도 기대가 선반영됐다면\n주가는 오히려 "사실 확인 후 매도" 흐름을 보일 수 있습니다.\n\n${ticker}의 다음 분기 가이던스가 방향을 결정합니다.` +
+        (useCTA ? `\n\n${generateCTA(item)}` : '')
+      );
     case 'macro':
-      return `${opener}\n\n주식, 채권, 달러 자산까지\n모든 자산군에 직접적인 영향을 줍니다.\n\n${caution}\n\n${cta}`;
+      return (
+        `${opener}\n\n주식, 채권, 달러 자산까지\n모든 자산군에 직접적인 영향을 줍니다.\n\n${caution}` +
+        (useCTA ? `\n\n${generateCTA(item)}` : '')
+      );
     default:
-      return `${opener}\n\n${caution}\n\n${cta}`;
+      return `${opener}\n\n${caution}` + (useCTA ? `\n\n${generateCTA(item)}` : '');
   }
 }
 
 // ── Subtitle lines (5 lines for reel visuals) ─────────────────────────────
 
 const SUBTITLE_TAILS: Record<Category, string[]> = {
-  earnings: ['실적보다 먼저 볼 것', '내 포트폴리오 비중', 'PoBalance에서 집중도 점검'],
-  macro: ['내 자산에 어떤 영향?', '주식·채권 비중 균형 점검', 'PoBalance에서 확인'],
-  fx: ['환율 = 보이지 않는 리스크', '달러 노출 비중 점검 타이밍', 'PoBalance에서 확인'],
-  tech: ['섹터 편중 체크 타이밍', '비중이 쏠렸다면 리스크', 'PoBalance에서 섹터 점검'],
-  psychology: ['감정 기반 매매의 함정', '목표 비중으로 돌아오세요', 'PoBalance에서 점검'],
-  sector: ['비중이 높다면 리스크 집중', '감정 말고 비중으로 판단', 'PoBalance에서 확인'],
-  other: ['뉴스보다 먼저 볼 것', '내 포트폴리오 비중', 'PoBalance에서 점검'],
+  earnings: ['실적 서프라이즈 or 쇼크', '컨센서스 대비 얼마나?', '가이던스가 방향을 정한다'],
+  macro: ['지표가 시장을 흔든다', '자금 흐름 방향 주목', '채권·달러·주식 동시 영향'],
+  fx: ['환율 = 수급의 신호', '외국인 자금 흐름 주목', '달러 강세의 연쇄 효과'],
+  tech: ['AI 모멘텀 vs 펀더멘털', '반도체 수급 사이클 확인', '테마인가 실적인가'],
+  psychology: ['감정 기반 매매의 함정', 'FOMO vs 패닉셀', 'PoBalance에서 비중 점검'],
+  sector: ['섹터 수급 이탈 감지', '어떤 종목이 먼저 반응?', 'PoBalance에서 비중 확인'],
+  other: ['시장 변화 감지', '수급 흐름 주목', '투자자 심리 분석'],
 };
 
 const SUBTITLE_LINE2_FALLBACK: Record<Category, string> = {
@@ -624,19 +650,19 @@ export function generateSubtitleLines(item: ScoredItem): string[] {
 
 export function generateCaption(item: ScoredItem): string {
   const ticker = item.relatedTickers[0] ? getTickerLabel(item.relatedTickers[0]) : '이 소식';
-  const cta = generateCTA(item);
+  const useCTA = item.category === 'psychology' || item.contentType === '포트폴리오 점검형' || item.category === 'sector';
   const lines: string[] = [];
 
   if (item.category === 'earnings') {
-    lines.push(`${ticker} 실적 발표 ✅`);
+    lines.push(`${ticker} 실적 발표가 있었습니다.`);
     lines.push('');
-    lines.push('하지만 실적보다 먼저 봐야 할 건');
-    lines.push("내 포트폴리오의 '비중'입니다.");
+    lines.push('투자자들이 실제로 주목하는 건');
+    lines.push("숫자보다 '컨센서스 대비 차이'입니다.");
     lines.push('');
-    lines.push('한 종목이 전체 수익을 결정하는 구조라면');
-    lines.push('그건 집중 리스크입니다.');
+    lines.push('예상보다 얼마나 웃돌거나 밑돌았는지,');
+    lines.push('그리고 다음 분기 가이던스가 어떤지.');
     lines.push('');
-    lines.push('지금 내 포트폴리오, 괜찮으신가요?');
+    lines.push('이 두 가지가 실적 발표 이후 주가 방향을 결정합니다.');
   } else if (item.category === 'psychology') {
     lines.push('시장이 흔들릴 때 대부분의 사람들은');
     lines.push('감정으로 움직입니다.');
@@ -647,34 +673,42 @@ export function generateCaption(item: ScoredItem): string {
     lines.push('흔들릴 때일수록 목표 비중으로 돌아오세요.');
     lines.push('그게 리밸런싱의 핵심입니다.');
   } else if (item.category === 'macro') {
-    lines.push('금리·환율·CPI');
-    lines.push('이 숫자들이 왜 중요한지 아시나요?');
+    lines.push('금리·물가·환율 같은 거시지표가 나올 때');
+    lines.push('시장이 가장 먼저 반응합니다.');
     lines.push('');
-    lines.push('내 포트폴리오가 이 변수에 얼마나 노출됐는지');
-    lines.push('한 번도 확인 안 해보셨다면');
-    lines.push('오늘이 딱 좋은 타이밍입니다.');
+    lines.push('이 숫자들이 중요한 건');
+    lines.push('주식만이 아니라 채권·달러·원자재까지');
+    lines.push('모든 자산 가격에 동시에 영향을 미치기 때문입니다.');
+    lines.push('');
+    lines.push('오늘 발표된 수치가 시장 기대와 얼마나 다른지,');
+    lines.push('그 차이가 방향을 결정합니다.');
   } else if (item.category === 'fx') {
-    lines.push('달러가 움직이면 해외 주식도 움직입니다.');
+    lines.push('달러가 움직이면 코스피도 움직입니다.');
     lines.push('');
-    lines.push('환율은 보이지 않는 포트폴리오 리스크입니다.');
-    lines.push('해외 비중이 있다면 오늘 한 번 확인해보세요.');
+    lines.push('외국인 투자자들은 달러 강세 국면에서');
+    lines.push('신흥국 자산을 팔고 달러 자산으로 이동합니다.');
+    lines.push('');
+    lines.push('환율 뉴스가 단순한 환전 이야기가 아닌 이유입니다.');
   } else if (item.category === 'tech') {
     lines.push(`${ticker} 관련 소식이 나왔습니다.`);
     lines.push('');
-    lines.push('AI·반도체 비중이 높은 포트폴리오는');
-    lines.push('이런 뉴스 하나에 크게 흔들릴 수 있습니다.');
+    lines.push('AI·반도체 섹터에서 중요한 건');
+    lines.push("지금의 상승이 '실적 개선'인지 '테마 기대감'인지입니다.");
     lines.push('');
-    lines.push('섹터 편중, 지금 내 포트폴리오는 어떤가요?');
+    lines.push('테마주는 모멘텀이 꺾이면 되돌림이 빠릅니다.');
+    lines.push('펀더멘털 변화를 확인하는 게 중요합니다.');
   } else {
-    lines.push(`${ticker}에 대한 소식이 있습니다.`);
+    lines.push(`${ticker}에 대한 소식입니다.`);
     lines.push('');
-    lines.push('수익률만 보지 말고');
-    lines.push("'비중'과 '리스크'를 함께 보는 습관,");
-    lines.push('장기 투자자에게 가장 중요한 것입니다.');
+    lines.push('수익률 숫자만 보지 말고');
+    lines.push('시장 전체 흐름 안에서 이 뉴스가');
+    lines.push('어떤 의미를 갖는지 파악하는 게 중요합니다.');
   }
 
-  lines.push('');
-  lines.push(`👉 ${cta}`);
+  if (useCTA) {
+    lines.push('');
+    lines.push(`👉 ${generateCTA(item)}`);
+  }
   return lines.join('\n');
 }
 

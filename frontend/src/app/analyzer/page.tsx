@@ -1382,7 +1382,7 @@ export default function AnalyzerPage() {
           </div>
 
           {/* ── 콘텐츠 ── */}
-          <div className="flex-1 px-4 lg:px-10 py-4 lg:py-6 flex gap-6 items-start">
+          <div className="flex-1 px-4 lg:px-10 py-4 lg:py-6 flex flex-col lg:flex-row gap-6 lg:items-start">
 
             {/* ── 메인 콘텐츠 (탭) ── */}
             <div className="flex-1 min-w-0">
@@ -2713,7 +2713,7 @@ export default function AnalyzerPage() {
             </div>{/* end flex-1 min-w-0 */}
 
             {/* ── 뉴스 사이드 컬럼 (항상 표시) ── */}
-            <div className="hidden lg:block shrink-0 sticky top-14" style={{ width: 300 }}>
+            <div className="w-full lg:w-[300px] lg:shrink-0 lg:sticky lg:top-14">
               <MarketIndexCard className="mb-3" />
               <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                 <div className="px-4 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)' }}>

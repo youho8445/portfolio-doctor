@@ -24,8 +24,13 @@ export const RSS_FEEDS: FeedConfig[] = [
     market: 'KR',
   },
   {
-    url: 'https://www.hankyung.com/feed/finance',
-    source: '한국경제',
+    url: 'https://www.sedaily.com/rss/finance',
+    source: '서울경제',
+    market: 'KR',
+  },
+  {
+    url: 'https://www.asiae.co.kr/rss/economy.htm',
+    source: '아시아경제',
     market: 'KR',
   },
   {

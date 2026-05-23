@@ -23,6 +23,11 @@ export const viewport = {
 export const metadata = {
   title: 'PoBalance',
   description: '내 포트폴리오의 흐름을 AI로 관리하세요',
+  verification: {
+    other: {
+      'naver-site-verification': 'c309258e194170adbae1979d0c9e4741377ea9f6',
+    },
+  },
 };
 
 export default function RootLayout({

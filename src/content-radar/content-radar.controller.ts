@@ -13,11 +13,15 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { isAdminEmail } from '../admin/admin-email.helper';
 import { ContentRadarService } from './content-radar.service';
+import { PromoScriptService, PromoScriptRequest } from './promo-script.service';
 
 @Controller('admin/content-radar')
 @UseGuards(JwtAuthGuard)
 export class ContentRadarController {
-  constructor(private readonly contentRadarService: ContentRadarService) {}
+  constructor(
+    private readonly contentRadarService: ContentRadarService,
+    private readonly promoScriptService: PromoScriptService,
+  ) {}
 
   private requireAdmin(email: string | null | undefined): void {
     if (!isAdminEmail(email)) throw new ForbiddenException('Admin only');
@@ -39,6 +43,19 @@ export class ContentRadarController {
   async forceRefresh(@Req() req: { user: { email: string } }) {
     this.requireAdmin(req.user.email);
     return this.contentRadarService.triggerForceRefresh();
+  }
+
+  @Post('promo-scripts')
+  async generatePromoScript(
+    @Req() req: { user: { email: string } },
+    @Body() body: PromoScriptRequest,
+  ) {
+    this.requireAdmin(req.user.email);
+    const VALID_TYPES = new Set(['hook', 'before-after', 'feature', 'education', 'empathy']);
+    const VALID_FEATURES = new Set(['rebalancing', 'risk-analysis', 'content-radar', 'portfolio']);
+    if (!VALID_TYPES.has(body.type)) throw new ForbiddenException('Invalid type');
+    if (!VALID_FEATURES.has(body.featureFocus)) throw new ForbiddenException('Invalid featureFocus');
+    return this.promoScriptService.generatePromoScript(body);
   }
 
   @Patch(':id/status')

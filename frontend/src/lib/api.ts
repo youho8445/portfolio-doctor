@@ -584,3 +584,30 @@ export async function updateContentRadarStatus(
   if (!res.ok) throw new Error('Failed to update status');
   return res.json();
 }
+
+export type PromoType = 'hook' | 'before-after' | 'feature' | 'education' | 'empathy';
+export type FeatureFocus = 'rebalancing' | 'risk-analysis' | 'content-radar' | 'portfolio';
+
+export interface PromoScriptResult {
+  type: PromoType;
+  featureFocus: FeatureFocus;
+  script15s: string;
+  script30s: string;
+  subtitleLines: string[];
+  caption: string;
+  hashtags: string[];
+}
+
+export async function generatePromoScript(
+  type: PromoType,
+  featureFocus: FeatureFocus,
+  scenario?: string,
+): Promise<PromoScriptResult> {
+  const res = await fetch(`${API_BASE_URL}/admin/content-radar/promo-scripts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ type, featureFocus, scenario: scenario || undefined }),
+  });
+  if (!res.ok) throw new Error('Failed to generate promo script');
+  return res.json();
+}

@@ -19,12 +19,16 @@ import {
   refreshContentRadar,
   forceRefreshContentRadar,
   updateContentRadarStatus,
+  generatePromoScript,
   AdminUser,
   AdminApiError,
   PageTrafficStats,
   FeedbackSummary,
   ContentRadarItem,
   ContentRadarResponse,
+  PromoType,
+  FeatureFocus,
+  PromoScriptResult,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -128,6 +132,16 @@ export default function AdminPage() {
   const [contentRadarOpen, setContentRadarOpen] = useState(false);
   const [contentRadarRefreshing, setContentRadarRefreshing] = useState(false);
   const [contentRadarForceRefreshing, setContentRadarForceRefreshing] = useState(false);
+
+  // Promo Reels
+  const [promoOpen, setPromoOpen] = useState(false);
+  const [promoType, setPromoType] = useState<PromoType>('hook');
+  const [promoFeature, setPromoFeature] = useState<FeatureFocus>('rebalancing');
+  const [promoScenario, setPromoScenario] = useState('');
+  const [promoGenerating, setPromoGenerating] = useState(false);
+  const [promoResult, setPromoResult] = useState<PromoScriptResult | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoCopied, setPromoCopied] = useState<string | null>(null);
 
   // Users
   const [users, setUsers] = useState<AdminUser[] | null>(null);
@@ -274,6 +288,27 @@ export default function AdminPage() {
         };
       });
     } catch { /* ignore */ }
+  };
+
+  const handlePromoGenerate = async () => {
+    if (promoGenerating) return;
+    setPromoGenerating(true);
+    setPromoError(null);
+    setPromoResult(null);
+    try {
+      const result = await generatePromoScript(promoType, promoFeature, promoScenario || undefined);
+      setPromoResult(result);
+    } catch {
+      setPromoError('스크립트 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setPromoGenerating(false);
+    }
+  };
+
+  const handlePromoCopy = (key: string, text: string) => {
+    void navigator.clipboard.writeText(text);
+    setPromoCopied(key);
+    setTimeout(() => setPromoCopied(null), 1500);
   };
 
   if (isLoading || (isLoggedIn && user === null)) {
@@ -1070,6 +1105,199 @@ export default function AdminPage() {
                 </div>
               )}
             </>
+          )}
+        </div>
+
+        {/* ── 홍보 릴스 스크립트 생성 ── */}
+        <div className="rounded-2xl p-6 space-y-4" style={{ background: '#1c1c26', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <button
+            className="w-full flex items-center justify-between text-left"
+            onClick={() => setPromoOpen((v) => !v)}
+          >
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#6b7280' }}>Promo Reels</h2>
+              <p className="text-sm text-white font-bold mt-0.5">홍보 릴스 스크립트 생성</p>
+              <p className="text-[10px] mt-0.5" style={{ color: '#374151' }}>Claude AI로 포밸런스 홍보용 릴스 스크립트 자동 생성</p>
+            </div>
+            <span className="text-xs ml-3 shrink-0" style={{ color: '#6b7280' }}>{promoOpen ? '▲' : '▼'}</span>
+          </button>
+
+          {promoOpen && (
+            <div className="space-y-5 pt-2">
+              {/* 콘텐츠 유형 선택 */}
+              <div>
+                <p className="text-xs font-medium mb-2" style={{ color: '#9ca3af' }}>콘텐츠 유형</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'hook', label: '🎣 후킹형', desc: '위험 상황 → 해결책' },
+                    { value: 'before-after', label: '🔄 비포애프터', desc: '사용 전후 대비' },
+                    { value: 'feature', label: '⚡ 기능소개', desc: '기능 실용성 강조' },
+                    { value: 'education', label: '📚 교육형', desc: '개념 설명 + 자연스러운 연결' },
+                    { value: 'empathy', label: '💬 공감형', desc: '고민 공감 + 소개' },
+                  ] as { value: PromoType; label: string; desc: string }[]).map((t) => (
+                    <button
+                      key={t.value}
+                      onClick={() => setPromoType(t.value)}
+                      className="px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
+                      style={promoType === t.value
+                        ? { background: 'rgba(124,58,237,0.25)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.5)' }
+                        : { background: 'rgba(255,255,255,0.04)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.06)' }
+                      }
+                    >
+                      <div>{t.label}</div>
+                      <div className="mt-0.5 text-[10px] opacity-70">{t.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 기능 포커스 선택 */}
+              <div>
+                <p className="text-xs font-medium mb-2" style={{ color: '#9ca3af' }}>강조할 기능</p>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'rebalancing', label: '리밸런싱' },
+                    { value: 'risk-analysis', label: '리스크 분석' },
+                    { value: 'content-radar', label: '콘텐츠 레이더' },
+                    { value: 'portfolio', label: '포트폴리오 관리' },
+                  ] as { value: FeatureFocus; label: string }[]).map((f) => (
+                    <button
+                      key={f.value}
+                      onClick={() => setPromoFeature(f.value)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                      style={promoFeature === f.value
+                        ? { background: 'rgba(16,185,129,0.2)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.4)' }
+                        : { background: 'rgba(255,255,255,0.04)', color: '#6b7280', border: '1px solid rgba(255,255,255,0.06)' }
+                      }
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 추가 맥락 (선택) */}
+              <div>
+                <p className="text-xs font-medium mb-2" style={{ color: '#9ca3af' }}>추가 맥락 <span className="font-normal opacity-60">(선택사항 — 예: &ldquo;삼성전자 60% 보유자&rdquo;, &ldquo;2030 직장인&rdquo;)</span></p>
+                <textarea
+                  value={promoScenario}
+                  onChange={(e) => setPromoScenario(e.target.value)}
+                  placeholder="특정 시나리오나 타겟 상황을 입력하면 더 맞춤화된 스크립트가 생성됩니다"
+                  rows={2}
+                  className="w-full text-xs rounded-xl px-3 py-2 resize-none outline-none"
+                  style={{ background: 'rgba(255,255,255,0.04)', color: '#e5e7eb', border: '1px solid rgba(255,255,255,0.08)', caretColor: '#a78bfa' }}
+                />
+              </div>
+
+              {/* 생성 버튼 */}
+              <button
+                onClick={() => void handlePromoGenerate()}
+                disabled={promoGenerating}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                style={{ background: promoGenerating ? 'rgba(124,58,237,0.2)' : 'rgba(124,58,237,0.3)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.4)' }}
+              >
+                {promoGenerating ? '✨ Claude AI 생성 중…' : '✨ 스크립트 생성'}
+              </button>
+
+              {/* 에러 */}
+              {promoError && (
+                <p className="text-xs px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  {promoError}
+                </p>
+              )}
+
+              {/* 결과 */}
+              {promoResult && (
+                <div className="space-y-4 pt-2">
+                  {/* 15초 스크립트 */}
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: '#a78bfa' }}>⏱ 15초 스크립트</span>
+                      <button
+                        onClick={() => handlePromoCopy('15s', promoResult.script15s)}
+                        className="text-[10px] px-2 py-1 rounded-md transition-colors"
+                        style={{ background: 'rgba(124,58,237,0.15)', color: promoCopied === '15s' ? '#6ee7b7' : '#a78bfa' }}
+                      >
+                        {promoCopied === '15s' ? '✓ 복사됨' : '복사'}
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed whitespace-pre-line" style={{ color: '#e5e7eb' }}>{promoResult.script15s}</p>
+                  </div>
+
+                  {/* 30초 스크립트 */}
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: '#60a5fa' }}>⏱ 30초 스크립트</span>
+                      <button
+                        onClick={() => handlePromoCopy('30s', promoResult.script30s)}
+                        className="text-[10px] px-2 py-1 rounded-md transition-colors"
+                        style={{ background: 'rgba(59,130,246,0.15)', color: promoCopied === '30s' ? '#6ee7b7' : '#60a5fa' }}
+                      >
+                        {promoCopied === '30s' ? '✓ 복사됨' : '복사'}
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed whitespace-pre-line" style={{ color: '#e5e7eb' }}>{promoResult.script30s}</p>
+                  </div>
+
+                  {/* 자막 라인 */}
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: '#fbbf24' }}>🎬 자막 라인 (5줄)</span>
+                      <button
+                        onClick={() => handlePromoCopy('sub', promoResult.subtitleLines.join('\n'))}
+                        className="text-[10px] px-2 py-1 rounded-md transition-colors"
+                        style={{ background: 'rgba(251,191,36,0.15)', color: promoCopied === 'sub' ? '#6ee7b7' : '#fbbf24' }}
+                      >
+                        {promoCopied === 'sub' ? '✓ 복사됨' : '복사'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {promoResult.subtitleLines.map((line, i) => (
+                        <span key={i} className="text-xs px-2 py-1 rounded-lg" style={{ background: 'rgba(251,191,36,0.1)', color: '#fde68a' }}>
+                          {i + 1}. {line}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 캡션 */}
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: '#34d399' }}>📝 인스타그램 캡션</span>
+                      <button
+                        onClick={() => handlePromoCopy('caption', promoResult.caption)}
+                        className="text-[10px] px-2 py-1 rounded-md transition-colors"
+                        style={{ background: 'rgba(52,211,153,0.15)', color: promoCopied === 'caption' ? '#6ee7b7' : '#34d399' }}
+                      >
+                        {promoCopied === 'caption' ? '✓ 복사됨' : '복사'}
+                      </button>
+                    </div>
+                    <p className="text-xs leading-relaxed whitespace-pre-line" style={{ color: '#e5e7eb' }}>{promoResult.caption}</p>
+                  </div>
+
+                  {/* 해시태그 */}
+                  <div className="rounded-xl p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold" style={{ color: '#f472b6' }}># 해시태그</span>
+                      <button
+                        onClick={() => handlePromoCopy('hash', promoResult.hashtags.map((h) => `#${h}`).join(' '))}
+                        className="text-[10px] px-2 py-1 rounded-md transition-colors"
+                        style={{ background: 'rgba(244,114,182,0.15)', color: promoCopied === 'hash' ? '#6ee7b7' : '#f472b6' }}
+                      >
+                        {promoCopied === 'hash' ? '✓ 복사됨' : '복사'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {promoResult.hashtags.map((tag, i) => (
+                        <span key={i} className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(244,114,182,0.1)', color: '#f9a8d4' }}>
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

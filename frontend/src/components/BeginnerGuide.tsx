@@ -608,8 +608,8 @@ export default function BeginnerGuide({ onClose, onStart, accentHex = '#7c3aed',
                           <div key={sg.ticker} className="rounded-xl p-3" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                             <div className="flex items-start justify-between mb-1.5">
                               <div>
-                                <span className="font-black text-sm" style={{ color: '#1c1c1e' }}>{sg.ticker}</span>
-                                <span className="ml-1.5 text-xs font-medium" style={{ color: '#475569' }}>{sg.name}</span>
+                                <span className="font-black text-sm" style={{ color: '#1c1c1e' }}>{sg.name}</span>
+                                <span className="ml-1.5 text-xs font-medium" style={{ color: '#94a3b8' }}>{sg.ticker}</span>
                               </div>
                               <span className="text-xs font-bold rounded-full px-2 py-0.5" style={{ background: accentLight, color: accentHex }}>{sg.weight}%</span>
                             </div>
@@ -649,8 +649,8 @@ export default function BeginnerGuide({ onClose, onStart, accentHex = '#7c3aed',
                         {result.unaffordable.map((sg) => (
                           <div key={sg.ticker} className="rounded-xl px-3 py-2.5 flex items-center justify-between" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
                             <div>
-                              <span className="text-xs font-bold" style={{ color: '#64748b' }}>{sg.ticker}</span>
-                              <span className="ml-1.5 text-[11px]" style={{ color: '#94a3b8' }}>{sg.name}</span>
+                              <span className="text-xs font-bold" style={{ color: '#1c1c1e' }}>{sg.name}</span>
+                              <span className="ml-1.5 text-[11px]" style={{ color: '#94a3b8' }}>{sg.ticker}</span>
                             </div>
                             <div className="text-[10px] font-medium text-right" style={{ color: '#94a3b8', maxWidth: '50%' }}>{sg.reason}</div>
                           </div>

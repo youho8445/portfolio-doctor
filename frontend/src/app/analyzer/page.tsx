@@ -1426,8 +1426,8 @@ export default function AnalyzerPage() {
                           {beginnerResult.suggestions.map((sg) => (
                             <div key={sg.ticker} className="flex items-center justify-between rounded-xl px-3 py-2" style={{ background: 'rgba(255,255,255,0.7)' }}>
                               <div>
-                                <span className="font-black text-xs" style={{ color: '#1c1c1e' }}>{sg.ticker}</span>
-                                <span className="ml-1.5 text-[11px]" style={{ color: '#64748b' }}>{sg.name}</span>
+                                <span className="font-black text-xs" style={{ color: '#1c1c1e' }}>{sg.name}</span>
+                                <span className="ml-1.5 text-[11px]" style={{ color: '#64748b' }}>{sg.ticker}</span>
                               </div>
                               <div className="text-right">
                                 <div className="text-xs font-bold" style={{ color: s.color }}>{fmtAmt(sg.amountKRW)}</div>
@@ -1449,8 +1449,8 @@ export default function AnalyzerPage() {
                           {beginnerResult.unaffordable.map((sg) => (
                             <div key={sg.ticker} className="flex items-center justify-between rounded-xl px-3 py-2 opacity-60" style={{ background: 'rgba(239,68,68,0.07)', border: '1px dashed #ef444440' }}>
                               <div>
-                                <span className="font-black text-xs" style={{ color: '#1c1c1e' }}>{sg.ticker}</span>
-                                <span className="ml-1.5 text-[11px]" style={{ color: '#64748b' }}>{sg.name}</span>
+                                <span className="font-black text-xs" style={{ color: '#1c1c1e' }}>{sg.name}</span>
+                                <span className="ml-1.5 text-[11px]" style={{ color: '#64748b' }}>{sg.ticker}</span>
                               </div>
                               <div className="text-[10px]" style={{ color: '#ef4444' }}>
                                 {sg.priceKRW ? fmtAmt(sg.priceKRW) : sg.priceUSD ? `$${sg.priceUSD.toFixed(0)}` : ''}/주
@@ -2037,7 +2037,7 @@ export default function AnalyzerPage() {
                               }}
                             >
                               <div className="flex items-start justify-between gap-1">
-                                <span className="text-xs font-black" style={{ color: '#1c1c1e' }}>{item.ticker}</span>
+                                <span className="text-xs font-black" style={{ color: '#1c1c1e' }}>{item.displayNameKo ?? item.name ?? item.ticker}</span>
                                 {rebalAction && (
                                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{
                                     background: rebalAction.type === 'reduce' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
@@ -2047,7 +2047,7 @@ export default function AnalyzerPage() {
                                   </span>
                                 )}
                               </div>
-                              <span className="text-[10px] leading-tight truncate" style={{ color: '#6b7280' }}>{item.displayNameKo ?? item.name ?? ''}</span>
+                              <span className="text-[10px] leading-tight truncate" style={{ color: '#6b7280' }}>{item.ticker}</span>
                               <div className="flex items-center justify-between mt-0.5">
                                 <span className="text-[10px] font-bold tabular-nums" style={{ color: accent.hex }}>{Number(item.weight).toFixed(1)}%</span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 10, height: 10, color: '#cbd5e1' }}>

@@ -18,6 +18,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { MarketModule } from './market/market.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { ContentRadarModule } from './content-radar/content-radar.module';
+import { OcrModule } from './ocr/ocr.module';
 
 @Module({
   controllers: [AppController],
@@ -54,6 +55,7 @@ import { ContentRadarModule } from './content-radar/content-radar.module';
     MarketModule,
     FeedbackModule,
     ContentRadarModule,
+    OcrModule,
   ],
 })
 export class AppModule {}

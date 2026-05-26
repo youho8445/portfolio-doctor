@@ -10,6 +10,7 @@ const PremiumCompareModal = dynamic(() => import('@/components/PremiumCompareMod
 const GlossaryDrawer = dynamic(() => import('@/components/GlossaryDrawer'), { ssr: false });
 const MarketIndexCard = dynamic(() => import('@/components/MarketIndexCard'), { ssr: false });
 const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'), { ssr: false });
+const ScreenshotImportModal = dynamic(() => import('@/components/ScreenshotImportModal'), { ssr: false });
 import TermTooltip from '@/components/TermTooltip';
 import GlossaryTrigger from '@/components/GlossaryTrigger';
 import { GlossaryContext } from '@/contexts/GlossaryContext';
@@ -221,6 +222,8 @@ export default function AnalyzerPage() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [beginnerGuideOpen, setBeginnerGuideOpen] = useState(false);
+  const [screenshotModalOpen, setScreenshotModalOpen] = useState(false);
+  const [ocrAnalysisReady, setOcrAnalysisReady] = useState(false);
   const [beginnerResult, setBeginnerResult] = useState<BeginnerResult | null>(null);
   const [tickerQuotes, setTickerQuotes] = useState<Record<string, QuoteMin>>({});
   const [adjustType, setAdjustType] = useState<'add' | 'withdraw'>('add');
@@ -759,6 +762,20 @@ export default function AnalyzerPage() {
     } catch { setError('분석에 실패했습니다. 잠시 후 다시 시도해주세요. 문제가 계속되면 문의해주세요.'); }
     finally { setLoadingAnalyze(false); }
   };
+
+  const handleOcrConfirm = (ocrItems: PortfolioInputItem[]) => {
+    setItems(ocrItems);
+    setInputMode('weight');
+    setScreenshotModalOpen(false);
+    setOcrAnalysisReady(true);
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!ocrAnalysisReady) return;
+    setOcrAnalysisReady(false);
+    void handleAnalyze();
+  }, [ocrAnalysisReady]);
 
   const handleLoadPortfolio = async (portfolio: Portfolio) => {
     try {
@@ -1483,6 +1500,24 @@ export default function AnalyzerPage() {
                     onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                   />
                 </div>
+
+                {/* 증권앱 캡처 불러오기 */}
+                <button
+                  onClick={() => setScreenshotModalOpen(true)}
+                  className="w-full rounded-2xl p-4 flex items-center gap-4 transition-all hover:opacity-90"
+                  style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1' }}
+                >
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: `${accent.hex}18` }}>
+                    📷
+                  </div>
+                  <div className="text-left flex-1">
+                    <div className="text-sm font-bold" style={{ color: '#1c1c1e' }}>증권앱 캡처로 불러오기</div>
+                    <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>토스증권 스크린샷으로 자동 입력</div>
+                  </div>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </button>
 
                 {/* 종목 검색 */}
                 <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -2903,6 +2938,17 @@ export default function AnalyzerPage() {
             }
             if (newItems.length > 0) setItems(newItems);
           }}
+        />
+      )}
+
+      {/* 증권앱 캡처 불러오기 모달 */}
+      {screenshotModalOpen && (
+        <ScreenshotImportModal
+          isLoggedIn={isLoggedIn}
+          exchangeRate={usdKrw?.rate ?? 1400}
+          accentHex={accent.hex}
+          onClose={() => setScreenshotModalOpen(false)}
+          onConfirm={handleOcrConfirm}
         />
       )}
 

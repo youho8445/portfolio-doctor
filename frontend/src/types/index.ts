@@ -152,6 +152,28 @@ export type PortfolioSummary = {
   topSector: { sector: string; weight: number } | null;
 };
 
+export type ParsedHolding = {
+  stockName: string;
+  ticker: string | null;
+  market: 'KR' | 'US' | null;
+  quantity: number | null;
+  evaluationAmountKRW: number | null;
+  profitLossKRW: number | null;
+  returnPct: number | null;
+  inferredCostBasisKRW: number | null;
+  inferredAvgCostKRW: number | null;
+  currency: 'KRW' | 'USD';
+  confidence: 'high' | 'medium' | 'low';
+  userEdited: boolean;
+};
+
+export type OCRParseResult = {
+  holdings: ParsedHolding[];
+  screenshotSource: 'toss' | 'unknown';
+  parsedAt: string;
+  rawWarnings: string[];
+};
+
 export type AnalysisResult = {
   portfolioId: number;
   portfolioName: string;

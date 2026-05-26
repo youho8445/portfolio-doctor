@@ -224,7 +224,7 @@ export default function TickerModal({ ticker, displayName, accentHex, accentLigh
         <div className="sticky top-0 z-10 px-5 pt-5 pb-4 flex items-start justify-between" style={{ background: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-black text-lg" style={{ color: '#1c1c1e' }}>{ticker}</span>
+              <span className="font-black text-lg" style={{ color: '#1c1c1e' }}>{displayName ?? ticker}</span>
               {rebalanceAction && rebalanceAction.ticker !== '_sector_div' && (
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{
                   background: rebalanceAction.type === 'reduce' ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
@@ -234,7 +234,7 @@ export default function TickerModal({ ticker, displayName, accentHex, accentLigh
                 </span>
               )}
             </div>
-            <div className="text-xs" style={{ color: '#6b7280' }}>{displayName ?? ticker}</div>
+            <div className="text-xs" style={{ color: '#6b7280' }}>{ticker}</div>
           </div>
           <div className="flex items-center gap-3">
             {quote && (

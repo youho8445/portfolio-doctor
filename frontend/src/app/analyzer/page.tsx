@@ -1501,23 +1501,7 @@ export default function AnalyzerPage() {
                   />
                 </div>
 
-                {/* 증권앱 캡처 불러오기 */}
-                <button
-                  onClick={() => setScreenshotModalOpen(true)}
-                  className="w-full rounded-2xl p-4 flex items-center gap-4 transition-all hover:opacity-90"
-                  style={{ background: '#f8fafc', border: '1.5px dashed #cbd5e1' }}
-                >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ background: `${accent.hex}18` }}>
-                    📷
-                  </div>
-                  <div className="text-left flex-1">
-                    <div className="text-sm font-bold" style={{ color: '#1c1c1e' }}>증권앱 캡처로 불러오기</div>
-                    <div className="text-xs mt-0.5" style={{ color: '#94a3b8' }}>토스증권 스크린샷으로 자동 입력</div>
-                  </div>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 shrink-0">
-                    <polyline points="9 18 15 12 9 6"/>
-                  </svg>
-                </button>
+                {/* 증권앱 캡처 불러오기 — ANTHROPIC_API_KEY 설정 후 활성화 */}
 
                 {/* 종목 검색 */}
                 <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
@@ -2941,7 +2925,7 @@ export default function AnalyzerPage() {
         />
       )}
 
-      {/* 증권앱 캡처 불러오기 모달 */}
+      {/* 증권앱 캡처 불러오기 모달 — ANTHROPIC_API_KEY 설정 후 활성화
       {screenshotModalOpen && (
         <ScreenshotImportModal
           isLoggedIn={isLoggedIn}
@@ -2950,7 +2934,7 @@ export default function AnalyzerPage() {
           onClose={() => setScreenshotModalOpen(false)}
           onConfirm={handleOcrConfirm}
         />
-      )}
+      )} */}
 
       {/* ── 피드백 위젯 (분석 결과 탭일 때만) ── */}
       {activeTab === 'result' && analysis && feedbackAnalysisId && (

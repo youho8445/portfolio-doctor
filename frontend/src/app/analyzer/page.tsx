@@ -16,6 +16,8 @@ import GlossaryTrigger from '@/components/GlossaryTrigger';
 import { GlossaryContext } from '@/contexts/GlossaryContext';
 import type { BeginnerResult } from '@/components/BeginnerGuide';
 import { PortraLogo } from '@/components/brand/PortraLogo';
+import { useTranslation } from '@/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { buildRiskTags, buildRiskExplanation } from '@/lib/riskSignal';
 import type { QuoteMin } from '@/lib/riskSignal';
 import {
@@ -190,6 +192,7 @@ const SECTOR_COLORS = [
 export default function AnalyzerPage() {
   const router = useRouter();
   const { user, logout, isLoggedIn, isLoading: authLoading, openModal } = useAuth();
+  const tr = useTranslation();
   const [portfolioName, setPortfolioName] = useState('My Portfolio');
   const [inputMode, setInputMode] = useState<InputMode>('amount');
   const [search, setSearch] = useState('');
@@ -1249,7 +1252,7 @@ export default function AnalyzerPage() {
                 </button>
               ) : (
                 <button onClick={openModal} className="text-xs font-bold px-3 py-1.5 rounded-xl" style={{ background: accent.hex, color: 'white' }}>
-                  로그인
+                  {tr('analyzer.loginButton')}
                 </button>
               )}
             </div>
@@ -1263,7 +1266,7 @@ export default function AnalyzerPage() {
                   <button onClick={goHome} className="cursor-pointer"><PortraLogo size={72} showIcon={false} /></button>
                 </h1>
                 <p className="hidden lg:block text-sm mt-1.5" style={{ color: '#94a3b8' }}>
-                  내 포트폴리오의 흐름을 AI로 관리하세요
+                  {tr('analyzer.tagline')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -1271,22 +1274,23 @@ export default function AnalyzerPage() {
                     className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
                     style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}
                   >
-                    <span>🌱</span> 주식이 처음이신가요? 투자 성향 테스트
+                    <span>🌱</span> {tr('analyzer.beginnerGuideButton')}
                   </button>
                   <button
                     onClick={() => setGlossaryOpen(true)}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
                     style={{ background: '#ede9fe', color: '#7c3aed', border: '1px solid #ddd6fe' }}
                   >
-                    <span>📘</span> 투자 용어 사전
+                    <span>📘</span> {tr('analyzer.glossaryButton')}
                   </button>
                   <button
                     onClick={() => setMarketModalOpen(true)}
                     className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1.5 transition-all hover:opacity-80"
                     style={{ background: '#f0fdf4', color: '#059669', border: '1px solid #bbf7d0' }}
                   >
-                    <span>📊</span> 시장 보기
+                    <span>📊</span> {tr('analyzer.marketViewButton')}
                   </button>
+                  <LanguageSwitcher />
                 </div>
               </div>
 
@@ -1381,17 +1385,17 @@ export default function AnalyzerPage() {
             {/* 탭 (분석 결과가 있을 때) */}
             {analysis && (
               <div className="flex gap-1 mt-5 p-1 rounded-xl w-fit" style={{ background: '#e8ecf4' }}>
-                {[{ key: 'input', label: '포트폴리오 편집' }, { key: 'result', label: '분석 대시보드' }].map((t) => (
+                {[{ key: 'input', label: tr('analyzer.tabInput') }, { key: 'result', label: tr('analyzer.tabResult') }].map((tab) => (
                   <button
-                    key={t.key}
-                    onClick={() => setActiveTab(t.key as 'input' | 'result')}
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as 'input' | 'result')}
                     className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
                     style={{
-                      background: activeTab === t.key ? accent.hex : 'transparent',
-                      color: activeTab === t.key ? 'white' : '#6b7280',
+                      background: activeTab === tab.key ? accent.hex : 'transparent',
+                      color: activeTab === tab.key ? 'white' : '#6b7280',
                     }}
                   >
-                    {t.label}
+                    {tab.label}
                   </button>
                 ))}
               </div>
@@ -1490,7 +1494,7 @@ export default function AnalyzerPage() {
 
                 {/* 포트폴리오 이름 */}
                 <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#94a3b8' }}>포트폴리오 이름</label>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: '#94a3b8' }}>{tr('analyzer.portfolioNameLabel')}</label>
                   <input
                     value={portfolioName}
                     onChange={(e) => setPortfolioName(e.target.value)}
@@ -1505,7 +1509,7 @@ export default function AnalyzerPage() {
 
                 {/* 종목 검색 */}
                 <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                  <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#94a3b8' }}>종목 검색</label>
+                  <label className="block text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#94a3b8' }}>{tr('analyzer.stockSearchLabel')}</label>
                   <div className="flex gap-2">
                     <input
                       value={search}
@@ -1533,21 +1537,21 @@ export default function AnalyzerPage() {
                       className="rounded-xl px-5 py-3 text-sm font-bold text-[#1c1c1e] disabled:opacity-50 transition-all"
                       style={{ background: accent.hex, color: 'white' }}
                     >
-                      {loadingSearch ? '...' : '검색'}
+                      {loadingSearch ? '...' : tr('analyzer.searchButton')}
                     </button>
                   </div>
 
                   {searchDone && searchResults.length === 0 && !loadingSearch && (
                     <div className="mt-3 rounded-xl px-4 py-4 text-center" style={{ border: '1px solid #e8ecf4', background: '#f8fafc' }}>
-                      <p className="text-sm font-semibold text-[#1c1c1e] mb-0.5">검색 결과가 없어요</p>
-                      <p className="text-xs" style={{ color: '#94a3b8' }}>DB와 Yahoo Finance 모두에서 찾지 못했어요<br/>영문 티커(예: PL · BYND)나 영문 회사명으로 검색해보세요</p>
+                      <p className="text-sm font-semibold text-[#1c1c1e] mb-0.5">{tr('analyzer.searchNoResults')}</p>
+                      <p className="text-xs" style={{ color: '#94a3b8' }}>{tr('analyzer.searchNoResultsDesc1')}<br/>{tr('analyzer.searchNoResultsDesc2')}</p>
                     </div>
                   )}
 
                   {searchResults.length > 0 && (
                     <div className="mt-3 rounded-xl overflow-hidden" style={{ border: '1px solid #e8ecf4' }}>
                       <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: '1px solid rgba(0,0,0,0.07)', background: '#f8fafc' }}>
-                        <span className="text-xs" style={{ color: '#94a3b8' }}>검색결과 {searchResults.length}개</span>
+                        <span className="text-xs" style={{ color: '#94a3b8' }}>{tr('common.search')} {searchResults.length}</span>
                         <button onClick={() => { setSearchResults([]); setSearch(''); }} className="text-xs px-2 py-0.5 rounded-lg transition-all" style={{ color: '#64748b', background: '#f1f5f9' }}>취소</button>
                       </div>
                       {searchResults.map((s) => (
@@ -1575,7 +1579,7 @@ export default function AnalyzerPage() {
                   <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                     <div className="flex items-center justify-between mb-4">
                       <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#94a3b8' }}>
-                        보유 종목 ({items.length})
+                        {tr('analyzer.holdingsLabel')} ({items.length})
                       </label>
                       <div className="flex items-center gap-3">
                         <span className="text-sm font-semibold" style={{ color: inputMode === 'amount' ? (totalAmount > 0 ? '#10b981' : '#4b5563') : (Math.round(totalWeight) === 100 ? '#10b981' : '#f59e0b') }}>
@@ -1587,7 +1591,7 @@ export default function AnalyzerPage() {
                               className="px-3 py-1.5 font-semibold transition-all"
                               style={{ background: inputMode === m ? accent.hex : 'transparent', color: inputMode === m ? 'white' : '#6b7280' }}
                             >
-                              {m === 'amount' ? '금액' : '비중'}
+                              {m === 'amount' ? tr('analyzer.modeAmount') : tr('analyzer.modeWeight')}
                             </button>
                           ))}
                         </div>
@@ -1655,7 +1659,7 @@ export default function AnalyzerPage() {
                               onChange={(e) => { const raw = isUS(item.ticker) ? e.target.value.replace(/[^0-9.]/g, '') : e.target.value.replace(/[^0-9]/g, ''); updateAvgCost(item.securityId, raw ? Number(raw) : 0); }}
                               className="w-24 rounded-lg px-2 py-1.5 text-right text-sm outline-none tabular-nums"
                               style={{ background: '#ffffff', border: '1px solid #e8ecf4', color: '#94a3b8' }}
-                              placeholder={isUS(item.ticker) ? '평단가' : '평단가'}
+                              placeholder={tr('analyzer.avgCostPlaceholder')}
                               onFocus={(e) => (e.target.style.borderColor = accent.hex)}
                               onBlur={(e) => (e.target.style.borderColor = '#e8ecf4')}
                             />
@@ -1672,8 +1676,8 @@ export default function AnalyzerPage() {
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: accent.light }}>
                       <IconPieChart className="w-7 h-7" style={{ color: accent.hex }} />
                     </div>
-                    <p className="text-sm font-semibold text-[#1c1c1e] mb-1">종목을 추가해보세요</p>
-                    <p className="text-xs" style={{ color: '#94a3b8' }}>위에서 검색해서 포트폴리오를 구성하세요</p>
+                    <p className="text-sm font-semibold text-[#1c1c1e] mb-1">{tr('analyzer.addStocksPrompt')}</p>
+                    <p className="text-xs" style={{ color: '#94a3b8' }}>{tr('analyzer.addStocksDesc')}</p>
                   </div>
                 )}
 
@@ -1687,7 +1691,7 @@ export default function AnalyzerPage() {
                   className="w-full rounded-2xl py-4 text-base font-black disabled:opacity-40 transition-all flex items-center justify-center gap-2"
                   style={{ background: accent.hex, color: 'white' }}
                 >
-                  {loadingAnalyze ? '분석 중...' : (<>포트폴리오 분석하기 <IconArrowRight className="w-4 h-4" /></>)}
+                  {loadingAnalyze ? tr('analyzer.analyzingButton') : (<>{tr('analyzer.analyzeButton')} <IconArrowRight className="w-4 h-4" /></>)}
                 </button>
               </div>
             )}
@@ -1718,7 +1722,7 @@ export default function AnalyzerPage() {
                       <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 16, height: 16, flexShrink: 0, marginTop: 1 }}>
                         <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd"/>
                       </svg>
-                      <span>일부 가격 데이터가 최신이 아닐 수 있어요. 수익률 비교는 이번 분석에서 제외됩니다.</span>
+                      <span>{tr('analyzer.stalePriceWarning')}</span>
                     </div>
                   )}
 
@@ -1773,7 +1777,7 @@ export default function AnalyzerPage() {
                               }, 100);
                             }}
                           >
-                            리밸런싱 확인하기 →
+                            {tr('analyzer.checkHereLabel')}
                           </button>
                         )}
                       </div>
@@ -1783,16 +1787,16 @@ export default function AnalyzerPage() {
                   {/* ── 자동 감시 상태 (로그인 유저만) ── */}
                   {!isGuest && <div className="rounded-2xl px-4 py-3.5" style={{ background: '#f8fafc', border: '1px solid #e8ecf4' }}>
                     <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-[11px] font-semibold" style={{ color: '#64748b' }}>자동 감시 중 · 중요한 변화가 생기면 알려드립니다.</span>
+                      <span className="text-[11px] font-semibold" style={{ color: '#64748b' }}>{tr('analyzer.autoMonitoring')}</span>
                       {portfolioState?.lastEventDetectedAt && (() => {
                         const diffDays = Math.floor((Date.now() - new Date(portfolioState.lastEventDetectedAt!).getTime()) / 86400000);
                         const label = diffDays === 0 ? '오늘' : diffDays === 1 ? '어제' : `${diffDays}일 전`;
-                        return <span className="text-[10px]" style={{ color: '#94a3b8' }}>마지막 변화 감지: {label}</span>;
+                        return <span className="text-[10px]" style={{ color: '#94a3b8' }}>{tr('analyzer.lastChange')}: {label}</span>;
                       })()}
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-medium shrink-0" style={{ color: '#94a3b8', width: 44 }}>한국장</span>
+                        <span className="text-[10px] font-medium shrink-0" style={{ color: '#94a3b8', width: 44 }}>{tr('analyzer.krMarket')}</span>
                         <div className="flex gap-1.5">
                           {['09:30', '12:00', '15:20'].map((t) => (
                             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ background: '#ede9fe', color: '#7c3aed' }}>{t}</span>
@@ -1800,7 +1804,7 @@ export default function AnalyzerPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-medium shrink-0" style={{ color: '#94a3b8', width: 44 }}>미국장</span>
+                        <span className="text-[10px] font-medium shrink-0" style={{ color: '#94a3b8', width: 44 }}>{tr('analyzer.usMarket')}</span>
                         <div className="flex gap-1.5">
                           {['23:30', '02:00', '05:30'].map((t) => (
                             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ background: '#f0fdf4', color: '#16a34a' }}>{t}</span>
@@ -1813,7 +1817,7 @@ export default function AnalyzerPage() {
                   {/* ── 최근 변화 알림 ── */}
                   {portfolioEvents.length > 0 && (
                     <div className="rounded-2xl p-5" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                      <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#94a3b8' }}>최근 변화</div>
+                      <div className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#94a3b8' }}>{tr('analyzer.recentChangesLabel')}</div>
                       <div className="space-y-2.5">
                         {portfolioEvents.map((evt) => {
                           const iconMap: Record<string, string> = {
@@ -1881,7 +1885,7 @@ export default function AnalyzerPage() {
                       {/* 스타일 + 분산도 */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
-                          <div className="text-[10px] uppercase tracking-widest mb-1 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>투자 스타일 <GlossaryTrigger term="집중투자" /></div>
+                          <div className="text-[10px] uppercase tracking-widest mb-1 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>{tr('analyzer.investStyleLabel')} <GlossaryTrigger term="집중투자" /></div>
                           <div className="text-sm font-bold text-[#1c1c1e]">{analysis.portfolioStyle}</div>
                         </div>
                         <div className="rounded-xl p-3" style={{ background: '#f8fafc' }}>
@@ -1901,7 +1905,7 @@ export default function AnalyzerPage() {
                       <div className="flex items-center justify-between mb-5">
                         <div>
                           <div className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: '#94a3b8' }}>Asset Allocation</div>
-                          <div className="text-sm font-bold text-[#1c1c1e] flex items-center gap-1.5">섹터별 분산 현황 <GlossaryTrigger term="섹터" /></div>
+                          <div className="text-sm font-bold text-[#1c1c1e] flex items-center gap-1.5">{tr('analyzer.sectorAllocationLabel')} <GlossaryTrigger term="섹터" /></div>
                         </div>
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)' }}>
                           <IconPieChart className="w-4.5 h-4.5" style={{ width: 18, height: 18, color: '#10b981' }} />
@@ -1949,12 +1953,12 @@ export default function AnalyzerPage() {
                             {status.emoji}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: status.color }}>지금 뭘 해야 하나요?</div>
+                            <div className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: status.color }}>{tr('analyzer.whatToDoLabel')}</div>
                             <div className="text-sm font-semibold text-[#1c1c1e] leading-snug">{primaryAction}</div>
                           </div>
                           {failedRules.length > 0 && (
                             <div className="shrink-0 text-right">
-                              <div className="text-[10px]" style={{ color: '#94a3b8' }}>개선 포인트</div>
+                              <div className="text-[10px]" style={{ color: '#94a3b8' }}>{tr('analyzer.improvementPointsLabel')}</div>
                               <div className="text-xl font-black" style={{ color: status.color }}>{failedRules.length}개</div>
                             </div>
                           )}
@@ -1962,7 +1966,7 @@ export default function AnalyzerPage() {
                         <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#f8fafc', borderTop: `1px solid ${status.border}` }}>
                           <span className="text-xs leading-relaxed" style={{ color: '#64748b' }}>{timing.reason}</span>
                           <div className="shrink-0 ml-3 text-right">
-                            <div className="text-[10px]" style={{ color: '#9ca3af' }}>다음 점검</div>
+                            <div className="text-[10px]" style={{ color: '#9ca3af' }}>{tr('analyzer.nextCheckLabel')}</div>
                             <div className="text-xs font-black" style={{ color: timing.color }}>{timing.range}</div>
                           </div>
                         </div>
@@ -1985,7 +1989,7 @@ export default function AnalyzerPage() {
                       <div className="rounded-2xl p-5" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)' }}>
                         <div className="flex items-center gap-2 mb-4">
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shrink-0" style={{ background: 'rgba(16,185,129,0.2)', color: '#10b981' }}>✓</div>
-                          <span className="text-sm font-bold text-[#1c1c1e]">리밸런싱이 완료됐어요!</span>
+                          <span className="text-sm font-bold text-[#1c1c1e]">{tr('analyzer.rebalancingDoneLabel')}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-3 mb-4">
                           {[
@@ -2037,7 +2041,7 @@ export default function AnalyzerPage() {
                     <div className="rounded-2xl overflow-hidden" style={{ background: '#ffffff', border: '1px solid #e8ecf4', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
                       <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                         <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#94a3b8' }}>Holdings</div>
-                        <div className="text-sm font-bold text-[#1c1c1e]">내 종목 차트 & 재무지표</div>
+                        <div className="text-sm font-bold text-[#1c1c1e]">{tr('analyzer.holdingsChartLabel')}</div>
                       </div>
                       <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
                         {items.map((item) => {
@@ -2062,7 +2066,7 @@ export default function AnalyzerPage() {
                                     background: rebalAction.type === 'reduce' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
                                     color: rebalAction.type === 'reduce' ? '#ef4444' : '#10b981',
                                   }}>
-                                    {rebalAction.type === 'reduce' ? '↓ 축소' : '↑ 확대'}
+                                    {rebalAction.type === 'reduce' ? tr('analyzer.reduceLabel') : tr('analyzer.addLabel')}
                                   </span>
                                 )}
                               </div>
@@ -2090,9 +2094,9 @@ export default function AnalyzerPage() {
                           <IconLock className="w-6 h-6" style={{ color: accent.hex }} />
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-[#1c1c1e] mb-1">AI가 리밸런싱 액션을 찾았어요</div>
+                          <div className="text-sm font-bold text-[#1c1c1e] mb-1">{tr('analyzer.guestRebalTitle')}</div>
                           <div className="text-xs leading-relaxed" style={{ color: '#64748b' }}>
-                            상세 조정 비율과 적용 후 점수 변화는<br />가입 후 확인할 수 있습니다.
+                            {tr('analyzer.guestRebalDescLine1')}<br />{tr('analyzer.guestRebalDescLine2')}
                           </div>
                         </div>
                         <button
@@ -2104,9 +2108,9 @@ export default function AnalyzerPage() {
                           className="rounded-xl px-6 py-2.5 text-sm font-bold transition-all"
                           style={{ background: accent.hex, color: 'white' }}
                         >
-                          무료로 가입하고 계속 보기
+                          {tr('analyzer.guestSignupButton')}
                         </button>
-                        <div className="text-[10px]" style={{ color: '#94a3b8' }}>포트폴리오 저장 · 변화 알림 · 상세 리밸런싱</div>
+                        <div className="text-[10px]" style={{ color: '#94a3b8' }}>{tr('analyzer.guestFeatures')}</div>
                       </div>
                     )}
 
@@ -2119,14 +2123,14 @@ export default function AnalyzerPage() {
                             <div className="text-xs font-semibold uppercase tracking-widest mb-0.5 inline-flex items-center gap-1" style={{ color: '#94a3b8' }}>Rebalancing Strategy <GlossaryTrigger term="리밸런싱" /></div>
                             {scoreDelta > 0 ? (
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-[#1c1c1e] text-sm">리밸런싱 후 분산도 <GlossaryTrigger term="벤치마크" /></span>
+                                <span className="font-bold text-[#1c1c1e] text-sm">{tr('analyzer.rebalancingTitle')} <GlossaryTrigger term="벤치마크" /></span>
                                 <span className="font-black" style={{ color: '#64748b' }}>{analysis.rebalanceResult.currentScore}</span>
                                 <span style={{ color: '#94a3b8' }}>→</span>
                                 <span className="font-black" style={{ color: '#10b981' }}>{analysis.rebalanceResult.improvedScore}</span>
                                 <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>+{scoreDelta}점</span>
                               </div>
                             ) : (
-                              <div className="text-sm font-bold" style={{ color: '#10b981' }}>포트폴리오가 이미 최적화되어 있습니다</div>
+                              <div className="text-sm font-bold" style={{ color: '#10b981' }}>{tr('analyzer.rebalancingOptimal')}</div>
                             )}
                           </div>
                         </div>
@@ -2134,7 +2138,7 @@ export default function AnalyzerPage() {
                         {/* 처음 대비 변화 (페이월 바깥, baseline이 있을 때만) */}
                         {(analysis.rebalanceResult?.baselineDrift?.length ?? 0) > 0 && (
                           <div className="px-5 pt-4 pb-2" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                            <div className="text-xs font-semibold uppercase tracking-widest mb-2.5" style={{ color: '#94a3b8' }}>처음 대비 변화</div>
+                            <div className="text-xs font-semibold uppercase tracking-widest mb-2.5" style={{ color: '#94a3b8' }}>{tr('analyzer.baselineDrift')}</div>
                             <div className="space-y-1.5">
                               {(analysis.rebalanceResult!.baselineDrift as BaselineDrift[]).slice(0, 5).map((d) => {
                                 const isUp = d.delta > 0;
@@ -2147,8 +2151,8 @@ export default function AnalyzerPage() {
                                   }}>
                                     <div className="flex items-center gap-2">
                                       <span className="text-xs font-bold" style={{ color: '#374151' }}>{d.label}</span>
-                                      {isNew && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>신규</span>}
-                                      {isRemoved && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>제거됨</span>}
+                                      {isNew && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>{tr('analyzer.newLabel')}</span>}
+                                      {isRemoved && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>{tr('analyzer.removedLabel')}</span>}
                                     </div>
                                     <div className="flex items-center gap-2 text-xs tabular-nums">
                                       {!isNew && !isRemoved && (

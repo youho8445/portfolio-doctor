@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthModal } from '@/components/AuthModal';
+import { LanguageProvider } from '@/i18n';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
@@ -16,11 +17,13 @@ function Wrapper({ children }: { children: ReactNode }) {
 
 export function ClientProviders({ children }: { children: ReactNode }) {
   return (
-    <Wrapper>
-      <AuthProvider>
-        {children}
-        <AuthModal />
-      </AuthProvider>
-    </Wrapper>
+    <LanguageProvider>
+      <Wrapper>
+        <AuthProvider>
+          {children}
+          <AuthModal />
+        </AuthProvider>
+      </Wrapper>
+    </LanguageProvider>
   );
 }

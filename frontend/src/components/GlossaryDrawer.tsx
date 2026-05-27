@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { GLOSSARY, GLOSSARY_CATEGORIES, type GlossaryCategory } from '@/data/glossary';
+import { useTranslation } from '@/i18n';
 
 interface Props {
   open: boolean;
@@ -33,6 +34,7 @@ export default function GlossaryDrawer({ open, onClose, initialQuery }: Props) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<GlossaryCategory>('전체');
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useTranslation();
 
   useEffect(() => {
     if (open) {
@@ -95,7 +97,7 @@ export default function GlossaryDrawer({ open, onClose, initialQuery }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">📘</span>
-              <span className="font-bold text-sm" style={{ color: '#1c1c1e' }}>투자 용어 사전</span>
+              <span className="font-bold text-sm" style={{ color: '#1c1c1e' }}>{t('glossary.title')}</span>
               <span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ background: '#f1f5f9', color: '#94a3b8' }}>
                 {filtered.length}개
               </span>
@@ -117,7 +119,7 @@ export default function GlossaryDrawer({ open, onClose, initialQuery }: Props) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="용어 검색... (예: FOMO, 손절, PER)"
+            placeholder={t('glossary.searchPlaceholder')}
             className="w-full rounded-xl px-3 py-2.5 text-sm outline-none mb-3"
             style={{ background: '#f8fafc', border: '1.5px solid #e8ecf4', color: '#1c1c1e' }}
             onFocus={(e) => (e.target.style.borderColor = '#7c3aed')}
@@ -148,8 +150,8 @@ export default function GlossaryDrawer({ open, onClose, initialQuery }: Props) {
           {filtered.length === 0 ? (
             <div className="text-center py-12" style={{ color: '#94a3b8' }}>
               <div className="text-3xl mb-2">🔍</div>
-              <div className="text-sm font-medium">검색 결과가 없어요</div>
-              <div className="text-xs mt-1">다른 키워드로 검색해보세요</div>
+              <div className="text-sm font-medium">{t('glossary.noResults')}</div>
+              <div className="text-xs mt-1">{t('glossary.noResultsHint')}</div>
             </div>
           ) : q ? (
             <div className="space-y-2">
@@ -181,7 +183,7 @@ export default function GlossaryDrawer({ open, onClose, initialQuery }: Props) {
         {/* Footer */}
         <div className="px-5 py-3 shrink-0" style={{ borderTop: '1px solid #f1f5f9' }}>
           <p className="text-[10px] text-center" style={{ color: '#cbd5e1' }}>
-            * 참고용 설명이며 투자 권유가 아닙니다
+            {t('glossary.footerDisclaimer')}
           </p>
         </div>
       </div>

@@ -31,6 +31,20 @@ export const metadata = {
     siteName: 'PoBalance',
     locale: 'ko_KR',
     type: 'website',
+    images: [
+      {
+        url: 'https://www.pobalance.com/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: '포밸런스 — AI 포트폴리오 건강검진',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '포밸런스(PoBalance) — AI 포트폴리오 건강검진',
+    description: '내 주식 포트폴리오를 AI가 매일 진단합니다.',
+    images: ['https://www.pobalance.com/og-image.png'],
   },
   verification: {
     other: {

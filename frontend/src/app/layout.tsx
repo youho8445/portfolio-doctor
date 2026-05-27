@@ -21,8 +21,17 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: 'PoBalance',
-  description: '내 포트폴리오의 흐름을 AI로 관리하세요',
+  title: 'PoBalance — AI 포트폴리오 건강검진',
+  description: '내 주식 포트폴리오를 AI가 매일 진단합니다. 건강 점수, 섹터 분산, 리밸런싱 추천까지 무료로 확인하세요.',
+  keywords: ['포트폴리오 분석', '주식 리밸런싱', 'AI 투자', '포트폴리오 건강검진', '주식 분산투자', '자산 배분'],
+  openGraph: {
+    title: 'PoBalance — AI 포트폴리오 건강검진',
+    description: '내 주식 포트폴리오를 AI가 매일 진단합니다. 건강 점수, 섹터 분산, 리밸런싱 추천까지 무료.',
+    url: 'https://www.pobalance.com',
+    siteName: 'PoBalance',
+    locale: 'ko_KR',
+    type: 'website',
+  },
   verification: {
     other: {
       'naver-site-verification': 'c309258e194170adbae1979d0c9e4741377ea9f6',

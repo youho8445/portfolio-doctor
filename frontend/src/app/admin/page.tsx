@@ -600,6 +600,8 @@ export default function AdminPage() {
                         <div className="text-xs truncate mt-0.5" style={{ color: '#6b7280' }}>{u.email}</div>
                         <div className="text-[10px] mt-0.5" style={{ color: '#374151' }}>
                           가입: {new Date(u.createdAt).toLocaleDateString('ko-KR')}
+                          {' · '}
+                          최근 로그인: {u.lastLoginAt ? timeAgo(u.lastLoginAt) : '없음'}
                         </div>
                       </div>
                       <div className="flex gap-1.5 shrink-0">

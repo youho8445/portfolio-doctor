@@ -203,6 +203,7 @@ export interface AdminUser {
   name: string;
   createdAt: string;
   trialEndsAt: string | null;
+  lastLoginAt: string | null;
 }
 
 export async function changeMyPassword(currentPassword: string, newPassword: string): Promise<void> {

@@ -329,7 +329,9 @@ export class AuthService {
     return this.jwtService.sign({ type: 'pending', ...data }, { expiresIn: '15m' });
   }
 
-  private issueToken(user: User) {
+  private async issueToken(user: User) {
+    user.lastLoginAt = new Date();
+    await this.userRepo.save(user);
     const payload = { sub: user.id, email: user.email ?? user.phoneNumber };
     return {
       access_token: this.jwtService.sign(payload),

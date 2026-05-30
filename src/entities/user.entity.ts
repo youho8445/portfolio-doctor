@@ -38,6 +38,9 @@ export class User {
   @Column({ type: 'datetime', nullable: true, default: null })
   trialEndsAt: Date | null;
 
+  @Column({ type: 'datetime', nullable: true, default: null })
+  lastLoginAt: Date | null;
+
   @CreateDateColumn({ type: 'datetime' })
   createdAt: Date;
 

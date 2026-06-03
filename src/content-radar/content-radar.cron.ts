@@ -8,7 +8,7 @@ export class ContentRadarCron {
 
   constructor(private readonly contentRadarService: ContentRadarService) {}
 
-  @Cron('0 21 * * *') // UTC 21:00 = KST 06:00 next day
+  // @Cron('0 21 * * *') // UTC 21:00 = KST 06:00 next day — paused on user request
   async runDailyRefresh(): Promise<void> {
     this.logger.log('Daily Content Radar cron triggered');
     await this.contentRadarService.refresh();

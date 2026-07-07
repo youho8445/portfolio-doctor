@@ -1,0 +1,6 @@
+{
+  "targets": [
+    { "name": "backend", "cwd": ".", "typecheck": "npx tsc --noEmit -p tsconfig.json", "build": "npm run build" },
+    { "name": "frontend", "cwd": "frontend", "typecheck": "npx tsc --noEmit", "build": "npm run build" }
+  ]
+}
